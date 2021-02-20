@@ -263,24 +263,19 @@ class AddressTree(object):
         self.engine = create_engine(dsn, echo=self.debug)
         self.Session = sessionmaker()
         self.Session.configure(bind=self.engine)
-        self.conn = None
         self.root = None
 
         self.trie_path = kwargs.get('trie', 'address.trie')
         self.trie = AddressTrie(self.trie_path)
 
+        self.conn = self.engine.connect()
+        self.session = self.Session()
+
     def create_db(self):
         Base.metadata.create_all(self.engine)
 
-    def connect(self):
-        if self.conn is None:
-            self.conn = self.engine.connect()
-
-        return self.conn
-
     def get_session(self):
-        self.connect()
-        return self.Session()
+        return self.session
 
     def get_root(self):
         if self.root:

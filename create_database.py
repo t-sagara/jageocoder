@@ -25,7 +25,7 @@ if __name__ == '__main__':
     else:
         tree = AddressTree(dsn="sqlite:///data/02.db", trie="data/02.trie", debug=False)
 
-    if build_from_file and build_trie:
+    if build_trie:
         tree.create_trie_index()
         
 
