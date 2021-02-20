@@ -304,6 +304,8 @@ class AddressTree(object):
             else:
                 cur_node = node
 
+        return cur_node
+
     def create_trie_index(self):
 
         self.index_table = {}
@@ -324,9 +326,9 @@ class AddressTree(object):
         self.get_root().set_index_recursive(self, None, session)
         session.commit()
 
-    def save(self):
-        logging.debug("Starting save tree (recursive)...")
+    def save_all(self):
         session = self.get_session()
+        logging.debug("Starting save full tree (recursive)...")
         self.get_root().save_recursive(session)
         session.commit()
         logging.debug("Finished save tree.")
@@ -334,6 +336,7 @@ class AddressTree(object):
     def read_file(self, path):
         logging.debug("Starting read_file...")
         nread = 0
+        subtree = None
         with open(path, 'r', encoding='utf-8') as f:
             while True:
                 line = f.readline()
@@ -358,14 +361,26 @@ class AddressTree(object):
                 except ValueError:
                     level = None
 
-                self.add_address(names, x=lon, y=lat, level=level)
+                node = self.add_address(names, x=lon, y=lat, level=level)
+                if node.level <= 3:
+                    if subtree:
+                        logging.debug("Saving subtree {}".format(subtree))
+                        session = self.get_session()
+                        subtree.save_recursive(session)
+                        session.commit()
+
+                    subtree = node
 
                 nread += 1
                 if nread % 1000 == 0:
                     logging.debug("- read {} lines.".format(nread))
 
         logging.debug("Finished read_file.")
-                    
+        if subtree:
+            logging.debug("Saving the last subtree {}".format(subtree))
+            session = self.get_session()
+            subtree.save_recursive(session)
+            session.commit()
 
     def search(self, address_names):
         cur_node = self.get_root()

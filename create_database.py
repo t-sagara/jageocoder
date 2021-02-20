@@ -20,7 +20,7 @@ if __name__ == '__main__':
         tree.read_file('data/02000_latlon.utf8')
         # tree.read_file('02000_latlon_debug.utf8')
         
-        tree.save()
+        # tree.save_all()
         
     else:
         tree = AddressTree(dsn="sqlite:///data/02.db", trie="data/02.trie", debug=False)
