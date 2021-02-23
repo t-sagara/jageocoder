@@ -587,6 +587,7 @@ class AddressTree(object):
         index = itaiji_converter.standardize(query)
         candidates = self.trie.common_prefixes(index)
         results = {}
+        max_len = 0
 
         session = self.get_session()
         for k, id in candidates.items():
@@ -597,9 +598,12 @@ class AddressTree(object):
                 node = trienode.node
                 results_by_node = node.search_recursive(rest_index, session)
                 for cand in results_by_node:
+                    _len = cand[1] + offset
+                    if _len > max_len:
+                        results = {}
+                        
                     if cand[0].id not in results:
-                        logging.debug('  adding {} by {}'.format(cand[0], node))
-                        results[cand[0].id] = [cand[0], cand[1] + offset]
+                        results[cand[0].id] = [cand[0], _len]
 
         return results
 

@@ -106,22 +106,4 @@ class Strlib(object):
         return -1  #不明
 
 strlib = Strlib() # singleton
-
-if __name__ == '__main__':
-
-    tests = [
-        ['２-', 2],
-        ['1234a', 1234],
-        ['0015', 15],
-        ['２４', 24],
-        ['一三五', 135],
-        ['二千四十五万円', 20450000],
-    ]
-    
-    for test in tests:
-        r = strlib.get_number(test[0])
-        n = r['n']
-        print("'{}' => {}, parsed {} chars".format(test[0], n, r['i']))
-        assert(n == test[1])
-
         

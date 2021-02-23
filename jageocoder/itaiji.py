@@ -1,11 +1,15 @@
 import json
+import os
 
-from strlib import strlib
+from jageocoder.strlib import strlib
 
 class Converter(object):
 
     def __init__(self):
-        with open('itaiji_dic.json', 'r', encoding='utf-8') as f:
+        itaiji_dic_json = os.path.join(
+            os.path.dirname(__file__), 'itaiji_dic.json')
+        
+        with open(itaiji_dic_json, 'r', encoding='utf-8') as f:
             itaiji_dic = json.load(f)
 
         src_str, dst_str = '', ''
@@ -75,23 +79,3 @@ class Converter(object):
         return new_notation
 
 converter = Converter()
-
-if __name__ == '__main__':
-    patterns = {
-        "２の１": "2.-1.",
-        "１０１番地": "101.番地",
-        "龍ヶ崎市": "竜崎市",
-        "多摩市永山1の11の4": "多摩市永山1.-11.-4.",
-        "目黒区駒場四ノ六ノ一": "目黒区駒場4.-6.-1.",
-        "井の頭公園駅": "井の頭公園駅",
-        "霞ヶ関ビル": "霞関ビル",
-        "つつじヶ丘駅": "つつじが丘駅",
-        "南アルプス市": "南アルプス市",
-    }
-
-    for q, ans in patterns.items():
-        r = converter.standardize(q)
-        print(f"{q} -> {r} (shoud be {ans})")
-        assert(r == ans)
-
-        

@@ -2,7 +2,7 @@ import gzip
 import logging
 import os
 
-from address import AddressNode, AddressTree
+from jageocoder.address import AddressNode, AddressTree
 
 if __name__ == '__main__':
 
