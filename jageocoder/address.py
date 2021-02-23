@@ -72,7 +72,7 @@ class AddressNode(Base):
     def search_recursive(self, index, session):
         logging.debug("node:{}, index:{}".format(self, index))
         if len(index) == 0:
-            return [[self, 0]]
+            return [[self, '']]
 
         conds = []
 
@@ -107,7 +107,7 @@ class AddressNode(Base):
                 rest_index = index[offset:]
                 logging.debug("child:{} match {} chars".format(child, offset))
                 for cand in child.search_recursive(rest_index, session):
-                    candidates.append([cand[0], cand[1] + offset])
+                    candidates.append([cand[0], child.name_index + cand[1]])
                     
             elif re_index is not None:
                 m = re_index.match(child.name_index)
@@ -118,10 +118,11 @@ class AddressNode(Base):
                 rest_index = index[hyphen_pos + 1:]
                 logging.debug("child:{} match {} chars".format(child, offset))
                 for cand in child.search_recursive(rest_index, session):
-                    candidates.append([cand[0], cand[1] + offset])
+                    candidates.append(
+                        [cand[0], index[0:hyphen_pos+1] + cand[1]])
 
         if len(candidates) == 0:
-            candidates = [[self, 0]]
+            candidates = [[self, '']]
 
         logging.debug("node:{} returns {}".format(self, candidates))
 
@@ -598,21 +599,37 @@ class AddressTree(object):
                 node = trienode.node
                 results_by_node = node.search_recursive(rest_index, session)
                 for cand in results_by_node:
-                    _len = cand[1] + offset
+                    _len = offset + len(cand[1])
                     if _len > max_len:
                         results = {}
                         
                     if cand[0].id not in results:
-                        results[cand[0].id] = [cand[0], _len]
+                        results[cand[0].id] = [cand[0], k + cand[1]]
 
-        return results
+        if len(results) > 0:
+            result = ''
+            for v in results.values():
+                result = v[1]
+                break
 
-if __name__ == '__main__':
-    trie = AddressTrie('test.trie')
-    for k, v in {'青森県': 1, '青森県青森市': 2}.items():
-        trie.add(k)
+            l_result = len(result)
+            matched = None
+            pos = _len if _len <= len(query) else len(query)
+            while True:
+                substr = query[0:pos]
+                standardized = itaiji_converter.standardize(substr)
+                l_standardized = len(standardized)
+                if l_standardized == l_result:
+                    matched = substr
+                    break
 
-    trie.save()
+                if l_standardized < l_result:
+                    pos += 1
+                else:
+                    pos -= 1
 
-    print(trie.common_prefixes('青森県青森市中央１'))
-    print(trie.predict_prefixes('青'))
+            return {"matched": matched,
+                    "candidates": [x[0] for x in results.values()]
+            }
+
+        return {"matched": None, "candidates": []}

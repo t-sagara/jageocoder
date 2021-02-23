@@ -19,5 +19,9 @@ if __name__ == '__main__':
         csv = csv.reader(f)
         for rows in csv:
             query = rows[3]
+            if query == '都道府県庁所在地':
+                continue
+
+            query += '-'
             print("query='{}'".format(query))
             print(tree.search_by_trie(query))
