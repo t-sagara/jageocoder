@@ -13,7 +13,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 
-from itaiji import converter as itaiji_converter
+from jageocoder.itaiji import converter as itaiji_converter
 
 # ref [SQLAlchemy Tutorial](https://docs.sqlalchemy.org/en/13/orm/tutorial.html?highlight=tutorial)
 
@@ -182,9 +182,27 @@ class AddressNode(Base):
         for c in self.children:
             c.save_recursive(session)
 
-    def __str__(self):
-        return '{}:{}'.format(self.id, self.name)
+    def as_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "x": self.x,
+            "y": self.y,
+            "level": self.level,
+            "note": self.note,
+            "fullname": self.get_fullname(),
+        }
 
+    def get_fullname(self):
+        names = []
+        cur_node = self
+        while cur_node.parent:
+            names.insert(0, cur_node.name)
+            cur_node = cur_node.parent
+
+        return names
+
+    def __str__(self):
         return '[{}:{}({},{}){}({})]'.format(
             self.id, self.name, self.x, self.y, self.level, str(self.note))
 
@@ -196,7 +214,6 @@ class AddressNode(Base):
             cur_node = cur_node.parent
 
         return '>'.join(r)
-
 
 class TrieNode(Base):
     __tablename__ = 'trienode'
@@ -427,10 +444,11 @@ class AddressTree(object):
 
             for i in range(len(node_prefixes)):
                 label = ''.join(node_prefixes[i:])
-                if label in self.index_table:
-                    self.index_table[label].append(v.id)
+                label_standardized = itaiji_converter.standardize(label)
+                if label_standardized in self.index_table:
+                    self.index_table[label_standardized].append(v.id)
                 else:
-                    self.index_table[label] = [v.id]
+                    self.index_table[label_standardized] = [v.id]
 
     def _set_index_table(self):
         logging.debug("Creating mapping table from trie_id:node_id")
@@ -572,7 +590,7 @@ class AddressTree(object):
 
         logging.debug("  done.")
 
-    def search(self, address_names):
+    def search_by_tree(self, address_names):
         cur_node = self.get_root()
         for name in address_names:
             name_index = itaiji_converter.standardize(name)
@@ -606,30 +624,35 @@ class AddressTree(object):
                     if cand[0].id not in results:
                         results[cand[0].id] = [cand[0], k + cand[1]]
 
-        if len(results) > 0:
-            result = ''
-            for v in results.values():
-                result = v[1]
+        return results
+
+    def search(self, query):
+        results = self.search_by_trie(query)
+        if len(results) == 0:
+            return {"matched": "", "candidates": []}
+            
+        top_result = ''
+        for v in results.values():
+            top_result = v[1]
+            break
+
+        l_result = len(top_result)
+        matched = None
+        pos = l_result if l_result <= len(query) else len(query)
+        while True:
+            substr = query[0:pos]
+            standardized = itaiji_converter.standardize(substr)
+            l_standardized = len(standardized)
+            if l_standardized == l_result:
+                matched = substr
                 break
 
-            l_result = len(result)
-            matched = None
-            pos = _len if _len <= len(query) else len(query)
-            while True:
-                substr = query[0:pos]
-                standardized = itaiji_converter.standardize(substr)
-                l_standardized = len(standardized)
-                if l_standardized == l_result:
-                    matched = substr
-                    break
+            if l_standardized < l_result:
+                pos += 1
+            else:
+                pos -= 1
 
-                if l_standardized < l_result:
-                    pos += 1
-                else:
-                    pos -= 1
-
-            return {"matched": matched,
-                    "candidates": [x[0] for x in results.values()]
-            }
-
-        return {"matched": None, "candidates": []}
+        return {
+            "matched": matched,
+            "candidates": [x[0] for x in results.values()]
+        }

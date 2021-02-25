@@ -1,4 +1,5 @@
 import csv
+import json
 import logging
 import os
 import time
@@ -24,4 +25,7 @@ if __name__ == '__main__':
 
             query += '-'
             print("query='{}'".format(query))
-            print(tree.search_by_trie(query))
+            result = tree.search(query)
+            result['candidates'] = [x.as_dict() for x in result['candidates']]
+
+            print(json.dumps(result, ensure_ascii=False, indent=2))
