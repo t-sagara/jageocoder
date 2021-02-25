@@ -108,8 +108,22 @@ class AddressNode(Base):
                 logging.debug("child:{} match {} chars".format(child, offset))
                 for cand in child.search_recursive(rest_index, session):
                     candidates.append([cand[0], child.name_index + cand[1]])
-                    
-            elif re_index is not None:
+
+                continue
+            
+            if '条' in child.name_index:
+                # 札幌市など「北3条西一丁目」の「北3西1」表記対応
+                alt_name_index = child.name_index.replace('条', '', 1)
+                if index.startswith(alt_name_index):
+                    offset = len(alt_name_index)
+                    rest_index = index[offset:]
+                    logging.debug("child:{} match {} chars".format(child, offset))
+                    for cand in child.search_recursive(rest_index, session):
+                        candidates.append([cand[0], alt_name_index + cand[1]])
+
+                    continue
+                
+            if re_index is not None:
                 m = re_index.match(child.name_index)
                 if not m:
                     continue
@@ -121,6 +135,17 @@ class AddressNode(Base):
                     candidates.append(
                         [cand[0], index[0:hyphen_pos+1] + cand[1]])
 
+        if self.level == 4 and self.parent.name == '京都市':
+            # 京都市の通り名対応
+            for child in self.children:
+                pos = index.find(child.name_index)
+                if pos > 0:
+                    offset = pos + len(child.name_index)
+                    rest_index = index[offset:]
+                    logging.debug("child:{} match {} chars".format(child, offset))
+                    for cand in child.search_recursive(rest_index, session):
+                        candidates.append([cand[0], index[0: offset] + cand[1]])
+ 
         if len(candidates) == 0:
             candidates = [[self, '']]
 
