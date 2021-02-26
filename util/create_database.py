@@ -1,4 +1,4 @@
-import gzip
+import bz2
 import logging
 import os
 
@@ -8,15 +8,15 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.DEBUG)
 
-    build_from_file = False
+    build_from_file = True
     build_trie = True
 
     dbpath = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), '../db/all_latlon.db'))
+        os.path.dirname(__file__), '../db/isj.db'))
     triepath = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), '../db/all_latlon.trie'))
+        os.path.dirname(__file__), '../db/isj.trie'))
     datapath = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), '../data/all_latlon.utf8.gz'))
+        os.path.dirname(__file__), '../data/isj.txt.bz2'))
     
     if build_from_file:
         if os.path.exists(dbpath):
@@ -26,9 +26,7 @@ if __name__ == '__main__':
                            trie=triepath, debug=False)
         tree.create_db()
 
-        #with gzip.open('data/dams.txt.gz', mode='rt',
-        #               encoding='EUC_JP', errors='backslashreplace') as f:
-        with gzip.open(datapath, mode='rt', encoding='utf-8') as f:
+        with bz2.open(datapath, mode='rt', encoding='utf-8') as f:
             tree.read_stream(f, grouping_level=4)
 
         tree.create_tree_index()

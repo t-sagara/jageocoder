@@ -21,6 +21,18 @@ class TestSearchMethods(unittest.TestCase):
         self.tree = AddressTree(dsn="sqlite:///" + dbpath,
                                 trie=triepath, debug=False)
 
+    def test_oaza(self):
+        query = '階上町道仏二ノ窪３番地'
+        result = self.tree.search(query)
+        self.assertEqual(result['matched'], '階上町道仏二ノ窪３番地')
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0].as_dict()
+        self.assertEqual(top['level'], 7)
+        self.assertEqual(
+            top['fullname'],
+            ['青森県','三戸郡','階上町','大字道仏','二ノ窪','３番地'])
+        
     def test_sapporo(self):
         query = '札幌市中央区北3西1-7-'
         result = self.tree.search(query)
