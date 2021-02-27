@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     time0 = time.time()
 
-    tree = AddressTree(dsn="sqlite:///db/all_latlon.db", trie="db/all_latlon.trie", debug=False)  # True
+    tree = AddressTree(dsn="sqlite:///db/isj.db", trie="db/isj.trie", debug=False)  # True
 
     sample_data = os.path.join(
         os.path.dirname(__file__), '../data/pref_office.csv')

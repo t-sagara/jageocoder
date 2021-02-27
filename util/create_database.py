@@ -8,7 +8,7 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.DEBUG)
 
-    build_from_file = True
+    build_from_file = False
     build_trie = True
 
     dbpath = os.path.abspath(os.path.join(
