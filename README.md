@@ -4,7 +4,7 @@ This is a Python port of the Japanese-address geocoder used in CSIS at the Unive
 
 ## Getting Started
 
-This package provides address-geocoding functionality in Python programs. The basic usage is specify a dictionary with `init()` then call `search()` to get geocoding results.
+This package provides address-geocoding functionality for Python programs. The basic usage is to specify a dictionary with `init()` then call `search()` to get geocoding results.
 
 ```python
 python
@@ -25,12 +25,15 @@ Requires Python 3.7.x or later and the following packages.
 
 ### Installing
 
-Installing the package by `pip`, download the dictionary file for SQLite3 from [here](https://www.info-proto.com/resource/isj-20210227.db.bz2), then create a TRIE index.
+- Install the package using `pip install jageocoder`
+- Download the dictionary file for SQLite3 from [here](https://www.info-proto.com/resource/isj-20210227.db.bz2)
+- Create a TRIE index.
 
 Note: This dictionary is created from the names and coordinates of address elements in the "GAIKU level" and "OAZA/CHOUME level", downloaded from the [MLIT's "Location Reference Information Download Service"](https://nlftp.mlit.go.jp/isj/index.html).
 
 ```sh
 pip install jageocoder
+mkdir db
 curl https://www.info-proto.com/resource/isj-20210227.db.bz2 | bzip2 -dc > db/isj.db
 python
 >>> import jageocoder
@@ -38,6 +41,7 @@ python
 	dsn="sqlite:///db/isj.db",
 	trie="db/isj.trie")
 >>> jageocoder.tree.create_trie_index()
+    (it may takes several minutes)
 ```
 
 ## Running the tests
