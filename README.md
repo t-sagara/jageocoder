@@ -25,13 +25,13 @@ Requires Python 3.7.x or later and the following packages.
 
 ### Installing
 
-After installing the package, download the dictionary file for SQLite3 then create a TRIE index.
+Installing the package by `pip`, download the dictionary file for SQLite3 from [here](https://www.info-proto.com/resource/isj-20210227.db.bz2), then create a TRIE index.
 
-> This dictionary is created from the names and coordinates of address elements in the "GAIKU level" and "OAZA/CHOUME level", downloaded from the [MLIT's "Location Reference Information Download Service"](https://nlftp.mlit.go.jp/isj/index.html).
+Note: This dictionary is created from the names and coordinates of address elements in the "GAIKU level" and "OAZA/CHOUME level", downloaded from the [MLIT's "Location Reference Information Download Service"](https://nlftp.mlit.go.jp/isj/index.html).
 
 ```sh
 pip install jageocoder
-curl http://www.info-proto.com/resources/isj.db.bz2 - | bzip2 -dc > db/isj.db
+curl https://www.info-proto.com/resource/isj-20210227.db.bz2 | bzip2 -dc > db/isj.db
 python
 >>> import jageocoder
 >>> jageocoder.init(
