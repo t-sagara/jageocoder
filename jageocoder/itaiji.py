@@ -6,6 +6,9 @@ from jageocoder.strlib import strlib
 
 class Converter(object):
 
+    optional_prefixes = ['字', '大字', '小字']
+    optional_postfixes = ['条', '線', '丁', '丁目', '番', '番地', '号']
+
     def __init__(self):
         itaiji_dic_json = os.path.join(
             os.path.dirname(__file__), 'itaiji_dic.json')
@@ -40,11 +43,31 @@ class Converter(object):
         ------
         The length of optional prefixes string.
         """
-        # Check '字', '大字', '小字' from the beginning of the string
-        if notation[0:1] == '字':
-            return 1
-        if notation[0:2] in ('大字', '小字',):
-            return 2
+        for prefix in self.__class__.optional_prefixes:
+            if notation.startswith(prefix):
+                return len(prefix)
+
+        return 0
+
+    def check_optional_postfixes(self, notation):
+        """
+        Check optional postfixes in the notation and
+        return the length of the postfix string.
+
+        ex. check_optional_postfixes('1番地') -> 2
+
+        Parameters
+        ----------
+        notation : str
+            The address notation to be checked.
+
+        Return
+        ------
+        The length of optional postfixes string.
+        """
+        for postfix in self.__class__.optional_postfixes:
+            if notation.endswith(postfix):
+                return len(postfix)
 
         return 0
 

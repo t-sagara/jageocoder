@@ -5,6 +5,10 @@ from .address import AddressTree
 tree = None
 
 
+class JageocoderError(RuntimeError):
+    pass
+
+
 def init(dsn, trie):
     """
     Initialize AddressTree.
@@ -44,6 +48,9 @@ def search(query):
         List of dict representation of nodes with
         the longest match to the query string.
     """
+    if tree is None:
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
     result = tree.search(query)
     result['candidates'] = [x.as_dict() for x in result['candidates']]
 

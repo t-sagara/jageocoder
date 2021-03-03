@@ -1,7 +1,6 @@
 import copy
 from logging import getLogger
 import os
-import re
 
 import marisa_trie
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
@@ -186,19 +185,14 @@ class AddressNode(Base):
         filtered_children = session.query(self.__class__).filter(
             self.__class__.parent_id == self.id, or_(*conds))
 
-        if '-' in index:
-            # If the search index string contains '-',
-            # treat it as a wildcard
-            hyphen_pos = index.index('-')
-            re_index = re.compile('^' + re.escape(index[0:hyphen_pos]) + '.*')
-        else:
-            re_index = None
-
         candidates = []
         for child in filtered_children:
             logger.debug("-> comparing; {}".format(child.name_index))
 
             if index.startswith(child.name_index):
+                # In case the index string of the child node is
+                # completely included in the beginning of the search string.
+                # ex. index='東京都新宿区...' and child.name_index='東京都'
                 offset = len(child.name_index)
                 rest_index = index[offset:]
                 logger.debug("child:{} match {} chars".format(child, offset))
@@ -209,6 +203,31 @@ class AddressNode(Base):
                     ])
 
                 continue
+
+            l_optional_postfix = itaiji_converter.check_optional_postfixes(
+                child.name_index)
+            if l_optional_postfix > 0:
+                # In case the index string of the child node with optional
+                # postfixes removed is completely included in the beginning
+                # of the search string.
+                # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
+                optional_postfix = child.name_index[-l_optional_postfix:]
+                alt_child_index = child.name_index[0: -l_optional_postfix]
+                if index.startswith(alt_child_index):
+                    offset = len(alt_child_index)
+                    if len(index) > offset and index[offset] == '-':
+                        offset += 1
+
+                    rest_index = index[offset:]
+                    logger.debug(
+                        "child:{} match {} chars".format(child, offset))
+                    for cand in child.search_recursive(rest_index, session):
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + index[0: offset] + cand[1]
+                        ])
+
+                    continue
 
             if '条' in child.name_index:
                 # Support for Sapporo City and other cities that use
@@ -226,20 +245,6 @@ class AddressNode(Base):
                         ])
 
                     continue
-
-            if re_index is not None:
-                m = re_index.match(child.name_index)
-                if not m:
-                    continue
-
-                offset = len(m.group(0))
-                rest_index = index[hyphen_pos + 1:]
-                logger.debug("child:{} match {} chars".format(child, offset))
-                for cand in child.search_recursive(rest_index, session):
-                    candidates.append([
-                        cand[0],
-                        optional_prefix + index[0:hyphen_pos+1] + cand[1]
-                    ])
 
         if self.level == 4 and self.parent.name == '京都市':
             # Street name (通り名) support in Kyoto City
@@ -815,7 +820,7 @@ class AddressTree(object):
             if node is None:
                 # The node exists and not updated.
                 continue
-            
+
             stocked.append(node)
             if len(stocked) > 100000:
                 logger.debug("Inserting into the database... ({} - {})".format(

@@ -26,9 +26,9 @@ class TestSearchMethods(unittest.TestCase):
         """
         Test a notation which is omitting '条' in Sapporo city.
         """
-        query = '札幌市中央区北3西1-7-'
+        query = '札幌市中央区北3西1-7'
         result = self.tree.search(query)
-        self.assertEqual(result['matched'], '札幌市中央区北3西1-7-')
+        self.assertEqual(result['matched'], '札幌市中央区北3西1-7')
         candidates = result['candidates']
         self.assertEqual(len(candidates), 1)
         top = candidates[0].as_dict()
@@ -38,7 +38,7 @@ class TestSearchMethods(unittest.TestCase):
             ['北海道', '札幌市', '中央区', '北三条西', '一丁目', '7番地'])
 
     def test_akita(self):
-        query = '秋田市山王4-1-1-'
+        query = '秋田市山王4-1-1'
         result = self.tree.search(query)
         self.assertEqual(result['matched'], '秋田市山王4-1-')
         candidates = result['candidates']

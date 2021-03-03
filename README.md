@@ -11,7 +11,7 @@ python
 >>> import jageocoder
 >>> jageocoder.init(dsn='sqlite:///db/isj.db', trie='db/isj.trie')
 >>> print(jageocoder.search('新宿区西新宿2-8-1'))
-{'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 5962895, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
+{'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 5961406, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
 ```
 
 ### Prerequisites
@@ -26,22 +26,22 @@ Requires Python 3.7.x or later and the following packages.
 ### Installing
 
 - Install the package using `pip install jageocoder`
-- Download the dictionary file for SQLite3 from [here](https://www.info-proto.com/resource/isj-20210227.db.bz2)
+- Download the latest zipped dictionary archive from [here](https://www.info-proto.com/resource/isj-20210303.zip)
+- Unzip the archive and place the `*.db` file in `db/` directory
 - Create a TRIE index.
-
-Note: This dictionary is created from the names and coordinates of address elements in the "GAIKU level" and "OAZA/CHOUME level", downloaded from the [MLIT's "Location Reference Information Download Service"](https://nlftp.mlit.go.jp/isj/index.html).
 
 ```sh
 pip install jageocoder
 mkdir db
-curl https://www.info-proto.com/resource/isj-20210227.db.bz2 | bzip2 -dc > db/isj.db
+curl -o db/isj-20210303.zip https://www.info-proto.com/resource/isj-20210303.zip
+unzip db/isj-20210303.zip -d db/
 python
 >>> import jageocoder
 >>> jageocoder.init(
 	dsn="sqlite:///db/isj.db",
 	trie="db/isj.trie")
 >>> jageocoder.tree.create_trie_index()
-    (it may takes several minutes)
+    (It may take a few minutes)
 ```
 
 ## Running the tests
