@@ -1,5 +1,6 @@
 import re
 
+
 class Strlib(object):
 
     def __init__(self):
@@ -23,11 +24,11 @@ class Strlib(object):
         return (c in self.arabic)
 
     def get_numeric_char(self, c):
-        
+
         pos = '0123456789'.find(c)
         if pos >= 0:
             return pos
-        
+
         pos = self.kansuji.find(c)
         if pos >= 0:
             return pos
@@ -87,7 +88,7 @@ class Strlib(object):
                 break
 
         total += curval
-        return {"n": total, "i":l}
+        return {"n": total, "i": l}
 
     def get_ctype(self, c):
         if self.re_hira.match(c):
@@ -103,7 +104,7 @@ class Strlib(object):
         elif self.re_cjk.match(c):
             return 1  # 漢字
 
-        return -1  #不明
+        return -1  # 不明
 
-strlib = Strlib() # singleton
-        
+
+strlib = Strlib()  # singleton

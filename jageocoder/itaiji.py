@@ -3,12 +3,13 @@ import os
 
 from jageocoder.strlib import strlib
 
+
 class Converter(object):
 
     def __init__(self):
         itaiji_dic_json = os.path.join(
             os.path.dirname(__file__), 'itaiji_dic.json')
-        
+
         with open(itaiji_dic_json, 'r', encoding='utf-8') as f:
             itaiji_dic = json.load(f)
 
@@ -18,20 +19,53 @@ class Converter(object):
             dst_str += dst
 
         self.trans_itaiji = str.maketrans(src_str, dst_str)
-        self.trans_h2z = str.maketrans({chr(0x0021 + i): chr(0xFF01 + i) for i in range(94)})
-        self.trans_z2h = str.maketrans({chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
+        self.trans_h2z = str.maketrans(
+            {chr(0x0021 + i): chr(0xFF01 + i) for i in range(94)})
+        self.trans_z2h = str.maketrans(
+            {chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
 
+    def check_optional_prefixes(self, notation):
+        """
+        Check optional prefixes in the notation and
+        return the length of the prefix string.
+
+        ex. check_optional_prefixes('大字道仏') -> 2
+
+        Parameters
+        ----------
+        notation : str
+            The address notation to be checked.
+
+        Return
+        ------
+        The length of optional prefixes string.
+        """
+        # Check '字', '大字', '小字' from the beginning of the string
+        if notation[0:1] == '字':
+            return 1
+        if notation[0:2] in ('大字', '小字',):
+            return 2
+
+        return 0
 
     def standardize(self, notation):
+        """
+        Standardize an address notation.
 
+        Parameters
+        ----------
+        notation : str
+                The address notation to be standardized.
+
+        Return
+        ------
+        The standardized address notation string.
+        """
         if notation is None or len(notation) == 0:
             return notation
-        
-        # 先頭の '字', '大字', '小字' を除去
-        if notation[0:1] == '字':
-            notation = notation[1:]
-        elif notation[0:2] in ('大字', '小字',):
-            notation = notation[2:]
+
+        l_optional_prefix = self.check_optional_prefixes(notation)
+        notation = notation[l_optional_prefix:]
 
         notation = notation.translate(
             self.trans_itaiji).translate(self.trans_z2h)
@@ -49,27 +83,31 @@ class Converter(object):
                 nctype = 0
             else:
                 nctype = strlib.get_ctype(notation[i + 1])
-                # print("-> next:{}, nctype:{}".format(notation[i + 1], nctype))
 
+            # Omit characters that may be omitted if they are
+            # sandwiched between kanji.
             if c in 'ケヶガがツッつ' and \
                prectype not in (4, 5) and nctype not in (4, 5):
                 ctype = prectype
                 i += 1
                 continue
 
-            # print("c:{}, prectype:{}, nctype:{}".format(
-            #     c, prectype, nctype))
-
-            if c in 'ノの' and prectype in(0, 2, 6) and nctype in (0, 2, 6):
+            # 'ノ' and 'の' between numbers or ascii letters
+            # are treated as hyphens.
+            if c in 'ノの' and prectype in (0, 2, 6) and nctype in (0, 2, 6):
                 new_notation += '-'
                 ctype = 0
                 i += 1
                 continue
 
+                # Replace numbers including Chinese characters
+            # with number + '.' in the notation.
             if strlib.get_numeric_char(c):
                 ninfo = strlib.get_number(notation[i:])
                 new_notation += str(ninfo['n']) + '.'
                 i += ninfo['i']
+                if i < len(notation) and notation[i] == '.':
+                    i += 1
                 ctype = 0
                 continue
 
@@ -78,4 +116,5 @@ class Converter(object):
 
         return new_notation
 
-converter = Converter()
+
+converter = Converter()  # The singleton

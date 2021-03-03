@@ -1,5 +1,5 @@
 import copy
-import logging
+from logging import getLogger
 import os
 import re
 
@@ -15,13 +15,44 @@ from sqlalchemy.exc import OperationalError
 
 from jageocoder.itaiji import converter as itaiji_converter
 
-# ref [SQLAlchemy Tutorial](https://docs.sqlalchemy.org/en/13/orm/tutorial.html?highlight=tutorial)
-
 Base = declarative_base()
+logger = getLogger(__name__)
 
-# ref https://stackoverflow.com/questions/4896104/creating-a-tree-from-self-referential-tables-in-sqlalchemy
 
 class AddressNode(Base):
+    """
+    The address-node structure stored in 'node' table.
+
+    Attributes
+    ----------
+    id : int
+        The key identifier that is automatically sequentially numbered.
+    name : str
+        The name of the address element, such as '東京都' or '新宿区'
+    name_index : str
+        The standardized string for indexing created from its name.
+    x : float
+        X-coordinate value. (Longitude)
+    y : float
+        Y-coordinate value. (Latitude)
+    level : int
+        The level of the address element.
+        The meaning of each value is as follows.
+        1 = 都道府県
+        2 = 郡・支庁・振興局
+        3 = 市町村および特別区
+        4 = 政令市の区
+        5 = 大字
+        6 = 字
+        7 = 地番または住居表示実施地域の街区
+        8 = 枝番または住居表示実施地域の住居番号
+    note : string
+        Note or comment.
+    parent_id : int
+        The id of the parent node.
+    children : list of AddressNode
+        The child nodes.
+    """
     __tablename__ = 'node'
 
     id = Column(Integer, primary_key=True)
@@ -39,16 +70,17 @@ class AddressNode(Base):
     )
 
     def __init__(self, *args, **kwargs):
+        """
+        The initializer of the node.
+
+        In addition to the initialization of the record, the name_index is also created.
+        """
         super().__init__(*args, **kwargs)
         # Basic attributes
         self.name = kwargs.get('name', '')
 
-        # Extended attributes
-        # kwargs can contains 'x', 'y', 'level' and 'note'
-        self.x = kwargs.get('x', kwargs.get('lon'))
-        self.y = kwargs.get('y', kwargs.get('lat'))
-        self.level = kwargs.get('level')
-        self.note = kwargs.get('note')
+        # Set extended attributes
+        self.set_attributes(**kwargs)
 
         # For indexing
         self.name_index = itaiji_converter.standardize(self.name)
@@ -56,13 +88,52 @@ class AddressNode(Base):
         # Relations
         self.parent_id = kwargs.get('parent_id', None)
 
+    def set_attributes(self, **kwargs):
+        """
+        Set attributes of this node by kwargs values.
+        'name' can't be modified.
+        """
+        self.x = kwargs.get('x', kwargs.get('lon'))
+        self.y = kwargs.get('y', kwargs.get('lat'))
+        self.level = kwargs.get('level')
+        self.note = kwargs.get('note')
+
     def add_child(self, child):
+        """
+        Add a node as a child of this node.
+
+        Parameter
+        ---------
+        child : AddressNode
+            The node that will be a child node.
+        """
         self.children.append(child)
 
     def add_to_parent(self, parent):
+        """
+        Add this node as a child of an other node.
+
+        Parameter
+        ---------
+        parent : AddressNode
+            The node that will be the parent.
+        """
         self.parent = parent
 
     def get_child(self, target_name):
+        """
+        Get a child node with the specified name.
+
+        Parameter
+        ---------
+        target_name : str
+            The name (or standardized name) of the target node.
+
+        Return
+        ------
+        Returns the relevand node if it is found,
+        or None if it is not.
+        """
         for c in self.children:
             if c.name == target_name or c.name_index == target_name:
                 return c
@@ -70,59 +141,92 @@ class AddressNode(Base):
         return None
 
     def search_recursive(self, index, session):
-        logging.debug("node:{}, index:{}".format(self, index))
+        """
+        Recursively searches for nodes that match the specified address notation.
+
+        Parameter
+        ---------
+        index : str
+            The standardized address notation.
+        session : sqlalchemy.orm.Session
+            The database session for executing SQL queries.
+
+        Return
+        ------
+        A list of relevant AddressNode.
+        """
+        l_optional_prefix = itaiji_converter.check_optional_prefixes(index)
+        optional_prefix = index[0: l_optional_prefix]
+        index = index[l_optional_prefix:]
+
+        logger.debug("node:{}, index:{}, optional_prefix:{}".format(
+            self, index, optional_prefix))
         if len(index) == 0:
-            return [[self, '']]
+            return [[self, optional_prefix]]
 
         conds = []
 
         if '0' <= index[0] and index[0] <= '9':
+            # If it starts with a number,
+            # look for a node that matches the numeric part exactly.
             for i in range(0, len(index)):
                 if index[i] == '.':
                     break
 
             substr = index[0:i+1] + '%'
             conds.append(self.__class__.name_index.like(substr))
-            logging.debug("  conds: name_index LIKE '{}'".format(substr))
+            logger.debug("  conds: name_index LIKE '{}'".format(substr))
         else:
+            # If it starts with not a number,
+            # look for a node with a maching first letter.
             substr = index[0:1] + '%'
             conds.append(self.__class__.name_index.like(substr))
-            logging.debug("  conds: name_index LIKE '{}'".format(substr))
+            logger.debug("  conds: name_index LIKE '{}'".format(substr))
 
         filtered_children = session.query(self.__class__).filter(
             self.__class__.parent_id == self.id, or_(*conds))
-            
+
         if '-' in index:
+            # If the search index string contains '-',
+            # treat it as a wildcard
             hyphen_pos = index.index('-')
             re_index = re.compile('^' + re.escape(index[0:hyphen_pos]) + '.*')
         else:
             re_index = None
-            
+
         candidates = []
         for child in filtered_children:
-            logging.debug("-> comparing; {}".format(child.name_index))
+            logger.debug("-> comparing; {}".format(child.name_index))
 
             if index.startswith(child.name_index):
                 offset = len(child.name_index)
                 rest_index = index[offset:]
-                logging.debug("child:{} match {} chars".format(child, offset))
+                logger.debug("child:{} match {} chars".format(child, offset))
                 for cand in child.search_recursive(rest_index, session):
-                    candidates.append([cand[0], child.name_index + cand[1]])
+                    candidates.append([
+                        cand[0],
+                        optional_prefix + child.name_index + cand[1]
+                    ])
 
                 continue
-            
+
             if '条' in child.name_index:
-                # 札幌市など「北3条西一丁目」の「北3西1」表記対応
+                # Support for Sapporo City and other cities that use
+                # "北3西1" instead of "北3条西１丁目".
                 alt_name_index = child.name_index.replace('条', '', 1)
                 if index.startswith(alt_name_index):
                     offset = len(alt_name_index)
                     rest_index = index[offset:]
-                    logging.debug("child:{} match {} chars".format(child, offset))
+                    logger.debug(
+                        "child:{} match {} chars".format(child, offset))
                     for cand in child.search_recursive(rest_index, session):
-                        candidates.append([cand[0], alt_name_index + cand[1]])
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + alt_name_index + cand[1]
+                        ])
 
                     continue
-                
+
             if re_index is not None:
                 m = re_index.match(child.name_index)
                 if not m:
@@ -130,84 +234,55 @@ class AddressNode(Base):
 
                 offset = len(m.group(0))
                 rest_index = index[hyphen_pos + 1:]
-                logging.debug("child:{} match {} chars".format(child, offset))
+                logger.debug("child:{} match {} chars".format(child, offset))
                 for cand in child.search_recursive(rest_index, session):
-                    candidates.append(
-                        [cand[0], index[0:hyphen_pos+1] + cand[1]])
+                    candidates.append([
+                        cand[0],
+                        optional_prefix + index[0:hyphen_pos+1] + cand[1]
+                    ])
 
         if self.level == 4 and self.parent.name == '京都市':
-            # 京都市の通り名対応
+            # Street name (通り名) support in Kyoto City
+            # If a matching part of the search string is found in the
+            # child nodes, the part before the name is skipped
+            # as a street name.
             for child in self.children:
                 pos = index.find(child.name_index)
                 if pos > 0:
                     offset = pos + len(child.name_index)
                     rest_index = index[offset:]
-                    logging.debug("child:{} match {} chars".format(child, offset))
+                    logger.debug(
+                        "child:{} match {} chars".format(child, offset))
                     for cand in child.search_recursive(rest_index, session):
-                        candidates.append([cand[0], index[0: offset] + cand[1]])
- 
-        if len(candidates) == 0:
-            candidates = [[self, '']]
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + index[0: offset] + cand[1]
+                        ])
 
-        logging.debug("node:{} returns {}".format(self, candidates))
+        if len(candidates) == 0:
+            candidates = [[self, optional_prefix]]
+
+        logger.debug("node:{} returns {}".format(self, candidates))
 
         return candidates
 
-    def get_index_recursive(self, tree, prefixes):
-        node_prefixes = copy.copy(prefixes)
-        if self.name == '_root_':
-            node_prefixes = []
-        elif self.level > 5:
-            return
-        else:
-            node_prefixes.append(self.name_index)
-
-            if self.level == 3:
-                logging.debug("node: {} prefixes = {}".format(self, prefixes))
-                
-            for i in range(len(node_prefixes)):
-                label = ''.join(node_prefixes[i:])
-                tree.index_table[label] = True
-
-        if self.name == '_root_' or self.level < 5:
-            for c in self.children:
-                c.get_index_recursive(tree, node_prefixes)
-
-        return
-
-    def set_index_recursive(self, tree, prefixes, session):
-        node_prefixes = copy.copy(prefixes)
-        if self.name == '_root_':
-            node_prefixes = []
-        elif self.level > 5:
-            return
-        else:
-            node_prefixes.append(self.name_index)
-            
-            if self.level == 3:
-                logging.debug("node: {} prefixes = {}".format(self, prefixes))
-                
-            for i in range(len(node_prefixes)):
-                label = ''.join(node_prefixes[i:])
-                if label in tree.index_table:
-                    if self.id is None:
-                        raise RuntimeError("Node '{}' is not assigned a valid id (Save the tree first).".format(self))
-                    
-                    tn = TrieNode(
-                        trie_id=tree.index_table[label],
-                        node_id=self.id)
-                    session.add(tn)
-
-        if self.name == '_root_' or self.level < 5:
-            for c in self.children:
-                c.set_index_recursive(tree, node_prefixes, session)
-
     def save_recursive(self, session):
+        """
+        Add the node to the database recursively.
+
+        Parameters
+        ----------
+        session : sqlalchemy.orm.Session
+            The database session for executing SQL queries.
+        """
         session.add(self)
         for c in self.children:
             c.save_recursive(session)
 
     def as_dict(self):
+        """
+        Return the dict notation of the node.
+        """
         return {
             "id": self.id,
             "name": self.name,
@@ -219,6 +294,9 @@ class AddressNode(Base):
         }
 
     def get_fullname(self):
+        """
+        Returns a complete address notation starting with the name of the prefecture.
+        """
         names = []
         cur_node = self
         while cur_node.parent:
@@ -240,7 +318,29 @@ class AddressNode(Base):
 
         return '>'.join(r)
 
+
 class TrieNode(Base):
+    """
+    The mapping-table of TRIE id and Node id. Stored in 'trienode' table.
+
+    Attributes
+    ----------
+    id : int
+        The key identifier that is automatically sequentially numbered.
+    trie_id : int
+        TRIE id that corresponds one-to-one to a notation.
+    node_id : int
+        Node id that corresponds one-to-one to an AddressNode.
+    node : AddressNode
+        The node with node_id as its id.
+
+    Note
+    ----
+    Some of the notations correspond to multiple address elements.
+    For example, "中央区中央" exists in either 千葉市 and 相模原市,
+    so TRIE id and Node id correspond one-to-many.
+    """
+
     __tablename__ = 'trienode'
 
     id = Column(Integer, primary_key=True)
@@ -251,8 +351,34 @@ class TrieNode(Base):
 
 
 class AddressTrie(object):
+    """
+    Implementation of TRIE Index using marisa trie.
+
+    Attributes
+    ----------
+    path : str
+        TRIE file path.
+    trie : marisa_trie.Trie object
+        TRIE index containing address notations higher than the oaza name.
+    words : dict
+        A dict whose key is the address notation to be registered.
+        Note that the address notations must be standardized.
+        The value can be anything, as it is used as a hash table
+        to quickly determine if the notation is registered or not.
+    """
 
     def __init__(self, path, words: dict = {}):
+        """
+        The initializer.
+
+        Parameters
+        ----------
+        path : str
+            Path to the TRIE file.
+            Used both to open an existing file and to create a new file.
+        words : dict (default : {})
+            A dict whose key is the address notation to be registered.
+        """
         self.path = path
         self.trie = None
         self.words = words
@@ -261,12 +387,22 @@ class AddressTrie(object):
             self.connect()
 
     def connect(self):
+        """
+        Open the TRIE file.
+        """
         self.trie = marisa_trie.Trie().mmap(self.path)
 
     def add(self, word: str):
+        """
+        Add an word to the words hash table.
+        """
         self.words[word] = True
 
     def save(self):
+        """
+        Create a new TRIE index from the address notation registered in words,
+        and save it to a file.
+        """
         if self.trie:
             del self.trie
 
@@ -280,9 +416,43 @@ class AddressTrie(object):
         self.connect()
 
     def get_id(self, query: str):
+        """
+        Get the id on the TRIE index (TRIE id) of the prefix string
+        that exactly matches the string specified in query.
+        Note that the prefix strings are standardized address notations.
+
+        Parameters
+        ----------
+        query : str
+            The query string.
+
+        Return
+        ------
+        The TRIE id if it matches the query.
+        Otherwise, it will raise a 'KeyError' exception.
+        """
         return self.trie.key_id(query)
 
     def common_prefixes(self, query: str):
+        """
+        Returns a list of prefixes included in the query.
+        Note that the prefix strings are standardized address notations.
+
+        For example, '東京都新宿区' will return the following result.
+        ```json
+        {'東': 219, '東京': 26527, '東京都': 46587,
+        '東京都新宿': 179816, '東京都新宿区': 217924}
+        ```
+
+        Parameters
+        ----------
+        query : str
+            The query string.
+
+        Return
+        ------
+        A dict with a prefix string as key and a TRIE id as value.
+        """
         results = {}
         for p in self.trie.iter_prefixes(query):
             results[p] = self.trie.key_id(p)
@@ -290,6 +460,25 @@ class AddressTrie(object):
         return results
 
     def predict_prefixes(self, query: str):
+        """
+        Returns a list of prefixes containing the query.
+        Note that the prefix strings are standardized address notations.
+
+        For example, '東京都新宿区西' will return the following result.
+        ```json
+        {'東京都新宿区西新宿': 341741, '東京都新宿区西早稲田': 341742,
+        '東京都新宿区西5.軒町': 320459, '東京都新宿区西落合': 320460}
+        ```
+
+        Parameters
+        ----------
+        query : str
+            The query string.
+
+        Return
+        ------
+        A dict with a prefix string as key and a TRIE id as value.
+        """
         results = {}
         for p in self.trie.iterkeys(query):
             results[p] = self.trie.key_id(p)
@@ -318,7 +507,7 @@ class AddressTree(object):
     trie : AddressTrie
         The TRIE index of the tree.
     """
-    
+
     def __init__(self, dsn=None, trie_path=None, **kwargs):
         """
         The initializer
@@ -354,9 +543,9 @@ class AddressTree(object):
             self.conn = self.engine.connect()
             self.session = _session()
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             exit(1)
-            
+
         self.root = None
         self.trie = AddressTrie(self.trie_path)
 
@@ -379,7 +568,7 @@ class AddressTree(object):
     def get_root(self):
         """
         Get the root-node of the tree.
-        If not set yet, (create and ) get the node from the database.
+        If not set yet, create and get the node from the database.
 
         Returns
         The AddressNode object.
@@ -398,7 +587,7 @@ class AddressTree(object):
 
         return self.root
 
-    def add_address(self, address_names, **kwargs):
+    def add_address(self, address_names, do_update=False, **kwargs):
         """
         Create a new AddressNode and add to the tree.
 
@@ -407,16 +596,25 @@ class AddressTree(object):
         address_names : list of str
             A list of the parent's address name.
             For example, ["東京都","新宿区","西新宿"]
+        do_update : bool
+            When an address with the same name already exists,
+            update it with the value of kwargs if 'do_update' is true,
+            otherwise do nothing.
         **kwargs : properties of the new address node.
             name : str. name. ("２丁目")
             x : float. X coordinate or longitude. (139.69175)
             y : float. Y coordinate or latitude. (35.689472)
             level : int. Address level (1: pref, 3: city, 5: oaza, ...)
             note : str. Note.
+
+        Return
+        ------
+        The added node.
         """
         cur_node = self.get_root()
-        for name in address_names:
-            node = cur_node.get_child(name)
+        for i, name in enumerate(address_names):
+            name_index = itaiji_converter.standardize(name)
+            node = cur_node.get_child(name_index)
             if not node:
                 kwargs.update({'name': name, 'parent': cur_node})
                 new_node = AddressNode(**kwargs)
@@ -424,6 +622,11 @@ class AddressTree(object):
                 cur_node = new_node
             else:
                 cur_node = node
+                if i == len(address_names) - 1:
+                    if do_update:
+                        cur_node.set_attributes(**kwargs)
+                    else:
+                        cur_node = None
 
         return cur_node
 
@@ -432,28 +635,37 @@ class AddressTree(object):
         Create the TRIE index from the tree.
         """
         self.index_table = {}
-        logging.debug("Collecting labels for the trie index...")
+        logger.debug("Collecting labels for the trie index...")
         self._get_index_table()
-        # self.get_root().get_index_recursive(self, '')
 
-        logging.debug("Building Trie...")
+        logger.debug("Building Trie...")
         self.trie = AddressTrie(self.trie_path, self.index_table)
         self.trie.save()
 
         self._set_index_table()
 
     def _get_index_table(self):
+        """
+        Collect the names of all address elements
+        to be registered in the TRIE index.
+        The collected notations will be stored in `tree.index_table`.
+
+        Generates notations that describe everything from the name of
+        the prefecture to the name of the oaza without abbreviation,
+        notations that omit the name of the prefecture, or notations
+        that omit the name of the prefecture and the city.
+        """
         session = self.get_session()
 
         # Build temporary lookup table
-        logging.debug("Building temporary lookup table..")
+        logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
         for node in session.query(
             AddressNode.id, AddressNode.name, AddressNode.parent_id).filter(
                 AddressNode.level <= 5):
             tmp_id_name_table[node.id] = node
 
-        logging.debug("  {} records found.".format(len(tmp_id_name_table)))
+        logger.debug("  {} records found.".format(len(tmp_id_name_table)))
 
         # Create index_table
         self.index_table = {}
@@ -464,7 +676,7 @@ class AddressTree(object):
                 node_prefixes.insert(0, cur_node.name)
                 if cur_node.parent_id < 0:
                     break
-                
+
                 cur_node = tmp_id_name_table[cur_node.parent_id]
 
             for i in range(len(node_prefixes)):
@@ -476,63 +688,97 @@ class AddressTree(object):
                     self.index_table[label_standardized] = [v.id]
 
     def _set_index_table(self):
-        logging.debug("Creating mapping table from trie_id:node_id")
+        """
+        Map all the id of the TRIE index (TRIE id) to the node id.
+
+        Collect notations recursively the names of all address elements
+        which was registered in the TRIE index, retrieve
+        the id of each notations in the TRIE index,
+        then add the TrieNode to the database that maps
+        the TRIE id to the node id.
+        """
+
+        logger.debug("Creating mapping table from trie_id:node_id")
         session = self.get_session()
-        logging.debug("  Deleting old TrieNode table...")
+        logger.debug("  Deleting old TrieNode table...")
         session.query(TrieNode).delete()
-        logging.debug("  Dropping index...")
+        logger.debug("  Dropping index...")
         try:
             session.execute("DROP INDEX ix_trienode_trie_id")
         except OperationalError:
-            logging.debug("    the index does not exist. (ignored)")
+            logger.debug("    the index does not exist. (ignored)")
 
-        logging.debug("  Adding mapping records...")
+        logger.debug("  Adding mapping records...")
         for k, node_id_list in self.index_table.items():
             trie_id = self.trie.get_id(k)
             for node_id in node_id_list:
                 tn = TrieNode(trie_id=trie_id, node_id=node_id)
                 session.add(tn)
 
-        logging.debug("  Creating index on trienode.trie_id ...")
+        logger.debug("  Creating index on trienode.trie_id ...")
         trienode_trie_id_index = Index(
             'ix_trienode_trie_id', TrieNode.trie_id)
         try:
             trienode_trie_id_index.create(self.engine)
         except OperationalError:
-            logging.warning("  the index already exists. (ignored)")
+            logger.debug("  the index already exists. (ignored)")
 
         session.commit()
-        logging.debug("  done.")
+        logger.debug("  done.")
 
     def save_all(self):
         """
         Save all AddressNode in the tree to the database.
         """
         session = self.get_session()
-        logging.debug("Starting save full tree (recursive)...")
+        logger.debug("Starting save full tree (recursive)...")
         self.get_root().save_recursive(session)
         session.commit()
-        logging.debug("Finished save tree.")
+        logger.debug("Finished save tree.")
 
-    def read_file(self, path, grouping_level=4):
-        logging.debug("Starting read_file...")
+    def read_file(self, path, do_update=False):
+        """
+        Add AddressNodes from a text file.
+        See 'data/test.txt' for the format of the text file.
+
+        Parameters
+        ----------
+        path : str
+            Text file path.
+        do_update : bool (default=False)
+            When an address with the same name already exists,
+            update it with the value of the new data if 'do_update' is true,
+            otherwise do nothing.
+        """
+        logger.debug("Starting read_file...")
         with open(path, 'r', encoding='utf-8',
                   errors='backslashreplace') as f:
-            self.read_stream(f, grouping_level)
+            self.read_stream(f, do_update=do_update)
 
-    def read_stream(self, fp, grouping_level=4):
+    def read_stream(self, fp, do_update=False):
+        """
+        Add AddressNodes from a stream.
+
+        Parameters
+        ----------
+        fp : io.TextIOBase
+            Text stream.
+        do_update : bool (default=False)
+            When an address with the same name already exists,
+            update it with the value of the new data if 'do_update' is true,
+            otherwise do nothing.
+        """
         nread = 0
-        nstocked = 0
-        subtree = None
+        stocked = []
         prev_names = None
         while True:
             try:
                 line = fp.readline()
             except UnicodeDecodeError as e:
-                logging.error("Decode error at the next line of {}".format(
+                logger.error("Decode error at the next line of {}".format(
                     prev_names))
                 exit(1)
-                
+
             if not line:
                 break
 
@@ -555,67 +801,89 @@ class AddressTree(object):
                 level = None
 
             if prev_names == names:
-                logging.debug("Skipping '{}".format(prev_names))
+                logger.debug("Skipping '{}".format(prev_names))
                 continue
 
             prev_names = names
-            
-            node = self.add_address(names, x=lon, y=lat, level=level)
+
+            node = self.add_address(
+                names, do_update, x=lon, y=lat, level=level)
             nread += 1
             if nread % 1000 == 0:
-                logging.debug("- read {} lines.".format(nread))
+                logger.debug("- read {} lines.".format(nread))
 
-            nstocked += 1
-            if node.level <= grouping_level:
-                # Stock the previous subtree
-                if subtree:
-                    logging.debug("Saving subtree {}".format(subtree))
-                    session = self.get_session()
-                    subtree.save_recursive(session)
+            if node is None:
+                # The node exists and not updated.
+                continue
+            
+            stocked.append(node)
+            if len(stocked) > 100000:
+                logger.debug("Inserting into the database... ({} - {})".format(
+                    stocked[0].get_fullname(), stocked[-1].get_fullname()))
+                session = self.get_session()
+                for node in stocked:
+                    session.add(node)
 
-                    if nstocked > 100000:
-                        logging.debug("  commit.")
-                        session.commit()
-                        nstocked = 0
+                session.commit()
+                stocked.clear()
 
-                subtree = node
-
-        logging.debug("Finished read_stream.")
-        if subtree:
-            logging.debug("Saving the last subtree {}".format(subtree))
+        logger.debug("Finished reading the stream.")
+        if len(stocked) > 0:
+            logger.debug("Inserting into the database... ({} - {})".format(
+                stocked[0].get_fullname(), stocked[-1].get_fullname()))
             session = self.get_session()
-            subtree.save_recursive(session)
+            for node in stocked:
+                session.add(node)
+
             session.commit()
 
+        logger.debug("Done.")
 
     def drop_indexes(self):
         """
-        Drop indexes to improve INSERT speed.
+        Drop indexes to improve the speed of bulk insertion.
         - ix_node_parent_id ON node (parent_id)
         - ix_trienode_trie_id ON trienode (trie_id)
         """
-        logging.debug("Dropping indexes...")
+        logger.debug("Dropping indexes...")
         session = self.get_session()
         session.execute("DROP INDEX ix_node_parent_id")
-        logging.debug("  done.")
+        logger.debug("  done.")
 
     def create_tree_index(self):
         """
-        Add index later that were not initially defined
-        to improve INSERT speed.
+        Add index later that were not initially defined.
         - ix_node_parent_id ON node (parent_id)
         """
-        logging.debug("Creating index on node.parent_id ...")
+        logger.debug("Creating index on node.parent_id ...")
         node_parent_id_index = Index(
             'ix_node_parent_id', AddressNode.parent_id)
         try:
             node_parent_id_index.create(self.engine)
         except OperationalError:
-            logging.warning("  the index already exists. (ignored)")
+            logger.warning("  the index already exists. (ignored)")
 
-        logging.debug("  done.")
+        logger.debug("  done.")
 
     def search_by_tree(self, address_names):
+        """
+        Get the corresponding node id from the list of address element names,
+        recursively search for child nodes using the tree.
+
+        For example, ['東京都','新宿区','西新宿','二丁目'] will search
+        the '東京都' node under the root node, search the '新宿区' node
+        from the children of the '東京都' node. Repeat this process and
+        return the '二丁目' node which is a child of '西新宿' node.
+
+        Parameters
+        ----------
+        address_names : list of str
+            A list of address element names to be searched.
+
+        Return
+        ------
+        The last matched node.
+        """
         cur_node = self.get_root()
         for name in address_names:
             name_index = itaiji_converter.standardize(name)
@@ -628,6 +896,26 @@ class AddressTree(object):
         return cur_node
 
     def search_by_trie(self, query: str):
+        """
+        Get the list of corresponding nodes using the TRIE index.
+        Returns a list of address element nodes that match
+        the query string in the longest part from the beginning.
+
+        For example, '中央区中央1丁目' will return the nodes
+        corresponding to '千葉県千葉市中央区中央一丁目' and
+        '神奈川県相模原市中央区中央一丁目'.
+
+        Parameters
+        ----------
+        query : str
+            An address notation to be searched.
+
+        Return
+        ------
+        A dict object whose key is a node id
+        and whose value is a list of node and substrings
+        that match the query.
+        """
         index = itaiji_converter.standardize(query)
         candidates = self.trie.common_prefixes(index)
         results = {}
@@ -645,17 +933,40 @@ class AddressTree(object):
                     _len = offset + len(cand[1])
                     if _len > max_len:
                         results = {}
-                        
-                    if cand[0].id not in results:
+                        max_len = _len
+
+                    if _len == max_len and cand[0].id not in results:
                         results[cand[0].id] = [cand[0], k + cand[1]]
 
         return results
 
-    def search(self, query):
+    def search(self, query: str):
+        """
+        Searches for address nodes corresponding to an address notation
+        and returns the matching substring and a list of nodes.
+
+        Note that the matched string in the "search_by_trie" result is
+        the standardized one, and the substring in the "search" result
+        is the unstandardized one.
+
+        Parameters
+        ----------
+        query : str
+            An address notation to be searched.
+
+        Return
+        ------
+        A dict containing the following elements.
+
+        matched : str
+            The matching substring.
+        candidates : list of AddressNodes
+            List of nodes with the longest match to the query string.
+        """
         results = self.search_by_trie(query)
         if len(results) == 0:
             return {"matched": "", "candidates": []}
-            
+
         top_result = ''
         for v in results.values():
             top_result = v[1]
@@ -664,6 +975,7 @@ class AddressTree(object):
         l_result = len(top_result)
         matched = None
         pos = l_result if l_result <= len(query) else len(query)
+
         while True:
             substr = query[0:pos]
             standardized = itaiji_converter.standardize(substr)

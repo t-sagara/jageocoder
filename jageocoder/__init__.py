@@ -4,6 +4,7 @@ from .address import AddressTree
 
 tree = None
 
+
 def init(dsn, trie):
     """
     Initialize AddressTree.
@@ -20,21 +21,28 @@ def init(dsn, trie):
     The AddressTree object.
     """
     global tree
-    
+
     tree = AddressTree(dsn, trie)
+
 
 def search(query):
     """
     Search node from the tree by the query.
 
-    Parameter
+    Parameters
     ---------
     query : str
-        The address string to be retrieved.
-   
+        An address notation to be searched.
+
     Return
     ------
-    
+    A dict containing the following elements.
+
+    matched : str
+        The matching substring.
+    candidates : list of dict
+        List of dict representation of nodes with
+        the longest match to the query string.
     """
     result = tree.search(query)
     result['candidates'] = [x.as_dict() for x in result['candidates']]

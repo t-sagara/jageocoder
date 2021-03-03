@@ -220,7 +220,7 @@ class IsjConverter(object):
                 chiban = m.group(1).translate(self.trans_kansuji_zerabic)
                 chiban = chiban.replace('十', '')
                 curnode = curnode.addChild(Node(chiban + '番地', x, y, 7, true))
-                hugou = jaconv.h2z(args[3])
+                hugou = jaconv.h2z(args[3], ascii=False, digit=False)
                 curnode = curnode.addChild(Node(hugou, x, y, 8, true))
                 return self.root
 
@@ -238,7 +238,7 @@ class IsjConverter(object):
 
         #self.registerOaza(args[2], jcode, x, y)
 
-        hugou = jaconv.h2z(args[4])
+        hugou = jaconv.h2z(args[4], ascii=False, digit=False)
         if args[10] == '1':
             # 住居表示地域
             newnode = Node(hugou + '番', x, y, 7, flag)
