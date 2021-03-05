@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import copy
 from logging import getLogger
 import os
@@ -16,6 +17,122 @@ from jageocoder.itaiji import converter as itaiji_converter
 
 Base = declarative_base()
 logger = getLogger(__name__)
+
+
+class LRU(OrderedDict):
+    'Limit size, evicting the least recently looked-up key when full'
+
+    def __init__(self, maxsize=512, *args, **kwds):
+        self.maxsize = maxsize
+        super().__init__(*args, **kwds)
+
+    def __getitem__(self, key):
+        value = super().__getitem__(key)
+        self.move_to_end(key)
+        return value
+
+    def __setitem__(self, key, value):
+        if key in self:
+            self.move_to_end(key)
+
+        super().__setitem__(key, value)
+        if len(self) > self.maxsize:
+            oldest = next(iter(self))
+            logger.debug("Delete '{}'".format(oldest))
+            del self[oldest]
+
+
+class AddressLevelError(RuntimeError):
+    pass
+
+
+class AddressLevel(object):
+    """
+    Address Levels
+
+    1 = 都道府県
+    2 = 郡・支庁・振興局
+    3 = 市町村および特別区
+    4 = 政令市の区
+    5 = 大字
+    6 = 字
+    7 = 地番または住居表示実施地域の街区
+    8 = 枝番または住居表示実施地域の住居番号
+    """
+
+    # Constants
+    UNDEFINED = -1
+    PREF = 1
+    COUNTY = 2
+    CITY = 3
+    WORD = 4
+    OAZA = 5
+    AZA = 6
+    BLOCK = 7
+    BLD = 8
+
+    @classmethod
+    def guess(cls, name, parent, trigger):
+        """
+        Guess the level of the address element.
+
+        Parameters
+        ----------
+        name : str
+            The name of the address element
+        parent : AddressNode
+            The parent node of the target.
+        trigger : dict
+            properties of the new address node who triggered
+            adding the address element.
+
+            name : str. name. ("２丁目")
+            x : float. X coordinate or longitude. (139.69175)
+            y : float. Y coordinate or latitude. (35.689472)
+            level : int. Address level (1: pref, 3: city, 5: oaza, ...)
+            note : str. Note.
+        """
+        lastchar = name[-1]
+        if parent.id == -1:
+            return cls.PREF
+
+        if parent.level == cls.PREF and \
+                (lastchar == '郡' or name.endswith(('支庁', '振興局',))):
+            return cls.COUNTY
+
+        if lastchar in '市町村':
+            if parent.level < cls.CITY:
+                return cls.CITY
+
+            if parent.level in (cls.CITY, cls.OAZA,):
+                return parent.level + 1
+
+        if lastchar == '区':
+            if parent.level == cls.CITY:
+                return cls.WORD
+
+            if parent.name == '東京都':
+                return cls.CITY
+
+        if parent.level < cls.OAZA:
+            return cls.OAZA
+
+        if parent.level == cls.OAZA:
+            return cls.AZA
+
+        if parent.level == cls.AZA:
+            if trigger['level'] <= cls.BLOCK:
+                # If the Aza-name is over-segmented, Aza-level address elements
+                # may appear in series.
+                # ex: 北海道,帯広市,稲田町南,九線,西,19番地
+                return cls.AZA
+
+            return cls.BLOCK
+
+        raise AddressLevelError(
+            ('Cannot estimate the level of the address element. '
+                'name={}, parent={}, trigger={}'.format(
+                    name, parent, trigger)))
 
 
 class AddressNode(Base):
@@ -37,14 +154,6 @@ class AddressNode(Base):
     level : int
         The level of the address element.
         The meaning of each value is as follows.
-        1 = 都道府県
-        2 = 郡・支庁・振興局
-        3 = 市町村および特別区
-        4 = 政令市の区
-        5 = 大字
-        6 = 字
-        7 = 地番または住居表示実施地域の街区
-        8 = 枝番または住居表示実施地域の住居番号
     note : string
         Note or comment.
     parent_id : int
@@ -246,7 +355,7 @@ class AddressNode(Base):
 
                     continue
 
-        if self.level == 4 and self.parent.name == '京都市':
+        if self.level == AddressLevel.WORD and self.parent.name == '京都市':
             # Street name (通り名) support in Kyoto City
             # If a matching part of the search string is found in the
             # child nodes, the part before the name is skipped
@@ -592,7 +701,8 @@ class AddressTree(object):
 
         return self.root
 
-    def add_address(self, address_names, do_update=False, **kwargs):
+    def add_address(self, address_names, do_update=False,
+                    cache=None, **kwargs):
         """
         Create a new AddressNode and add to the tree.
 
@@ -605,6 +715,11 @@ class AddressTree(object):
             When an address with the same name already exists,
             update it with the value of kwargs if 'do_update' is true,
             otherwise do nothing.
+        cache : LRU
+            A dict object to use as a cache for improving performance,
+            whose keys are the address notation from the prefecture level
+            and whose values are the corresponding nodes.
+            If not specified or None is given, do not use the cache.
         **kwargs : properties of the new address node.
             name : str. name. ("２丁目")
             x : float. X coordinate or longitude. (139.69175)
@@ -618,10 +733,25 @@ class AddressTree(object):
         """
         cur_node = self.get_root()
         for i, name in enumerate(address_names):
+            fullname = ''.join(address_names[0:i + 1])
+            if cache is not None:
+                if fullname in cache:
+                    cur_node = cache[fullname]
+                    continue
+                else:
+                    logger.debug("Cache miss: '{}'".format(fullname))
+
             name_index = itaiji_converter.standardize(name)
             node = cur_node.get_child(name_index)
             if not node:
-                kwargs.update({'name': name, 'parent': cur_node})
+                if i < len(address_names) - 1:
+                    guessed_level = AddressLevel.guess(
+                        name, parent=cur_node, trigger=kwargs)
+                else:
+                    guessed_level = kwargs['level']
+
+                kwargs.update({'name': name, 'parent': cur_node,
+                               'level': guessed_level})
                 new_node = AddressNode(**kwargs)
                 cur_node.add_child(new_node)
                 cur_node = new_node
@@ -632,6 +762,8 @@ class AddressTree(object):
                         cur_node.set_attributes(**kwargs)
                     else:
                         cur_node = None
+                elif cache is not None:
+                    cache[fullname] = cur_node
 
         return cur_node
 
@@ -667,7 +799,7 @@ class AddressTree(object):
         tmp_id_name_table = {}
         for node in session.query(
             AddressNode.id, AddressNode.name, AddressNode.parent_id).filter(
-                AddressNode.level <= 5):
+                AddressNode.level <= AddressLevel.OAZA):
             tmp_id_name_table[node.id] = node
 
         logger.debug("  {} records found.".format(len(tmp_id_name_table)))
@@ -681,6 +813,12 @@ class AddressTree(object):
                 node_prefixes.insert(0, cur_node.name)
                 if cur_node.parent_id < 0:
                     break
+
+                if cur_node.parent_id not in tmp_id_name_table:
+                    raise RuntimeError(
+                        ('The parent_id:{} of node:{} is not'.format(
+                            cur_node.parent_id, cur_node),
+                         ' in the tmp_id_table'))
 
                 cur_node = tmp_id_name_table[cur_node.parent_id]
 
@@ -776,6 +914,8 @@ class AddressTree(object):
         nread = 0
         stocked = []
         prev_names = None
+        cache = LRU(maxsize=512)
+
         while True:
             try:
                 line = fp.readline()
@@ -812,17 +952,18 @@ class AddressTree(object):
             prev_names = names
 
             node = self.add_address(
-                names, do_update, x=lon, y=lat, level=level)
+                names, do_update, cache=cache,
+                x=lon, y=lat, level=level)
             nread += 1
             if nread % 1000 == 0:
-                logger.debug("- read {} lines.".format(nread))
+                logger.info("- read {} lines.".format(nread))
 
             if node is None:
                 # The node exists and not updated.
                 continue
 
             stocked.append(node)
-            if len(stocked) > 100000:
+            if len(stocked) > 10000:
                 logger.debug("Inserting into the database... ({} - {})".format(
                     stocked[0].get_fullname(), stocked[-1].get_fullname()))
                 session = self.get_session()

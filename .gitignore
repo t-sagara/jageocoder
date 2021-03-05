@@ -131,5 +131,10 @@ dmypy.json
 # Large data
 data/
 db/
+converter/gaiku/
+converter/oaza/
+converter/geonlp/
+converter/saigai.gsi.go.jp/
+converter/output/
 
 !.gitkeep

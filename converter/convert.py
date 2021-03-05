@@ -1,6 +1,8 @@
 import csv
+import glob
 import io
 import json
+import logging
 import os
 import re
 import sys
@@ -9,8 +11,10 @@ import zipfile
 import jaconv
 
 from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.address import AddressLevel
 
 
+"""
 class Node(object):
 
     def __init__(self, name, x, y, level, flag=False):
@@ -60,6 +64,7 @@ class Node(object):
         if self.children:
             for name, child in self.children.items():
                 child.printTree(fp, new_upper)
+"""
 
 
 class IsjConverter(object):
@@ -76,8 +81,8 @@ class IsjConverter(object):
     kansuji = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
     trans_kansuji_zarabic = str.maketrans('一二三四五六七八九', '１２３４５６７８９')
 
-    def __init__(self):
-        with open("../jiscode.json", 'r') as f:
+    def __init__(self, jiscode_path, fp=None):
+        with open(jiscode_path, 'r') as f:
             self.jiscodes = json.load(f)
 
         self.jiscode_from_name = {}
@@ -88,7 +93,10 @@ class IsjConverter(object):
                 altname = itaiji_converter.standardize(names[0] + names[2])
                 self.jiscode_from_name[altname] = jiscode
 
-        self.root = Node(None, None, None, None)
+        if fp is None:
+            self.fp = sys.stdout
+        else:
+            self.fp = fp
 
     def _get_jiscode(self, name):
         st_name = itaiji_converter.standardize(name)
@@ -97,8 +105,14 @@ class IsjConverter(object):
 
         return None
 
-    def print_tree(self, fp):
-        self.root.printTree(fp)
+    def print_line(self, parents, names, x, y, level):
+        if isinstance(names, str):
+            names = [names]
+
+        message = "{},{},{},{},{}".format(
+            ','.join(parents),
+            ','.join(names), x, y, level)
+        print(message, file=self.fp)
 
     @staticmethod
     def _arabicToNumber(arabic):
@@ -153,27 +167,34 @@ class IsjConverter(object):
         return kanji
 
     def procOazaLine(self, args):
+        """
+        大字・町丁目レベル位置参照情報の１行を解析して住所ノードを追加する
+        """
         if args[0] == '都道府県コード':
-            return self.root
+            return
 
         if args[2] == "07023":  # 07000-12.0b のバグ
             args[2] = "07203"
 
         pcode, pname, ccode, cname, isj_code, oaza, y, x = args[0:8]
 
-        curnode = self.addCityByJiscode(ccode, x, y)
+        parents = self.jiscodes[ccode]
+        names = []
+        level = AddressLevel.UNDEFINED
 
         for place in self.guessAza(ccode, oaza):
             level, name = place
-            newnode = Node(name, x, y, level)
-            curnode = curnode.addChild(newnode)
+            names.append(name)
 
-        return self.root
+        self.print_line(parents, names, x, y, level)
 
     def procGaikuLine(self, args, mode='latlon'):
+        """
+        街区レベル位置参照情報の１行を解析して住所ノードを追加する
+        """
         if args[0] == '都道府県名' or args[2] == '' or args[11] == '0':
             # 字名が空欄のデータ, 非代表点 は登録しない
-            return self.root
+            return
 
         flag = False
         if args[12] == '3' or args[13] == '3':
@@ -197,8 +218,6 @@ class IsjConverter(object):
             jcode = self._get_jiscode(pref + city.replace('ヶ', 'ケ'))
 
         if jcode is None:
-            import pdb
-            pdb.set_trace()
             raise RuntimeError("{} の JISCODE が取得できません。({})".format(
                 pref + city, args))
 
@@ -209,44 +228,71 @@ class IsjConverter(object):
             x = args[6]
             y = args[7]
 
-        curnode = self.addCityByJiscode(jcode, x, y)
+        parents = self.jiscodes[jcode]
+        names = []
+        level = AddressLevel.UNDEFINED
 
         # 以下の住所は枝番と思われる
         # 17206 石川県/加賀市/永井町五十六/12 => 石川県/加賀市/永井町/56番地/12
         if jcode == '17206':
             m = re.match(r'^永井町([一二三四五六七八九十１２３４５６７８９].*)$', args[2])
             if m:
-                curnode = curnode.addChild(Node('永井町', x, y, 5, true))
+                names.append('永井町')
                 chiban = m.group(1).translate(self.trans_kansuji_zerabic)
                 chiban = chiban.replace('十', '')
-                curnode = curnode.addChild(Node(chiban + '番地', x, y, 7, true))
+                names.append(chiban + '番地')
                 hugou = jaconv.h2z(args[3], ascii=False, digit=False)
-                curnode = curnode.addChild(Node(hugou, x, y, 8, true))
-                return self.root
+                names.append(hugou)
+                level = AddressLevel.BLD
+                self.print_line(parents, names, x, y, level)
+                return
 
         if args[3] == '':
             for place in self.guessAza(jcode, args[2]):
                 level, name = place
-                newnode = Node(name, x, y, level, flag)
-                curnode = curnode.addChild(newnode)
+                names.append(name)
 
         else:
-            newnode = Node(args[2], x, y, 5, flag)
-            curnode = curnode.addChild(newnode)
-            newnode = Node(args[3], x, y, 6, flag)
-            curnode = curnode.addChild(newnode)
-
-        #self.registerOaza(args[2], jcode, x, y)
+            names.append(args[2])
+            names.append(args[3])
 
         hugou = jaconv.h2z(args[4], ascii=False, digit=False)
         if args[10] == '1':
             # 住居表示地域
-            newnode = Node(hugou + '番', x, y, 7, flag)
+            names.append(hugou + '番')
+            level = AddressLevel.BLOCK
         else:
-            newnode = Node(hugou + '番地', x, y, 7, flag)
+            names.append(hugou + '番地')
+            level = AddressLevel.BLOCK
 
-        curnode = curnode.addChild(newnode)
-        return self.root
+        self.print_line(parents, names, x, y, level)
+
+    def procJukyohyoujiLine(self, args):
+        """
+        住居表示住所の１行を解析して住所ノードを追加する
+        """
+        if len(args) > 9:
+            raise RuntimeError("Invalid line: {}".format(args))
+
+        jcode, aza, gaiku, kiso, code, dummy, lon, lat, scale = args
+        parents = self.jiscodes[jcode]
+        names = []
+        level = AddressLevel.UNDEFINED
+
+        # 大字，字レベル
+        for place in self.guessAza(jcode, aza):
+            level, name = place
+            names.append(name)
+
+        # 街区レベル
+        hugou = jaconv.h2z(gaiku, ascii=False, digit=False)
+        names.append(hugou + '番')
+
+        # 住居表示レベル
+        number = jaconv.h2z(kiso, ascii=False, digit=False)
+        names.append(number + '号')
+        level = AddressLevel.BLD
+        self.print_line(parents, names, lon, lat, level)
 
     def _guessAza_sub(self, name, ignore_aza=False):
         """
@@ -255,28 +301,38 @@ class IsjConverter(object):
         if not ignore_aza:
             m = re.match(r'^([^字]+?[^文])字(.*)$', name)
             if m:
-                return [[5, m.group(1)], [6, m.group(2)]]
+                return [[AddressLevel.OAZA, m.group(1)], [6, m.group(2)]]
 
         m = re.match(
             r'^(.*[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+線)(東|西|南|北)$', name)
         if m:
-            return [[5, m.group(1)], [6, m.group(2)], [7, m.group(3)]]
+            return [
+                [AddressLevel.OAZA, m.group(1)],
+                [AddressLevel.AZA, m.group(2)],
+                [AddressLevel.BLOCK, m.group(3)]]
 
         m = re.match(
             r'^(.*[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+線(東|西)?)$', name)
         if m:
-            return [[5, m.group(1)], [6, m.group(2)]]
+            return [
+                [AddressLevel.OAZA, m.group(1)],
+                [AddressLevel.AZA, m.group(2)]]
 
-        m = re.match(r'^(.*[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+丁目)$', name)
+        m = re.match(
+            r'^(.*[^０-９一二三四五六七八九〇十])([東西南北]?[０-９一二三四五六七八九〇十]+(丁目|線))$', name)
         if m:
-            return [[5, m.group(1)], [6, m.group(2)]]
+            return [
+                [AddressLevel.OAZA, m.group(1)],
+                [AddressLevel.AZA, m.group(2)]]
 
         m = re.match(r'^(.*[^０-９一二三四五六七八九〇十])([０-９一二三四五六七八九〇十]+番地)$', name)
         if m:
-            return [[5, m.group(1)], [7, m.group(2)]]
+            return [
+                [AddressLevel.OAZA, m.group(1)],
+                [AddressLevel.BLOCK, m.group(2)]]
 
         # 分割できなかった場合はそのまま
-        return [[5, name]]
+        return [[AddressLevel.OAZA, name]]
 
     def guessAza(self, jcode, name):
         """
@@ -296,11 +352,15 @@ class IsjConverter(object):
 
             if jcode == '06201' and name.startswith('十文字'):
                 # 例外 山形県/山形市/十文字/大原
-                return [[5, '十文字'], [6, name[3:]]]
+                return [
+                    [AddressLevel.OAZA, '十文字'],
+                    [AddressLevel.AZA, name[3:]]]
 
             m = re.match(r'^([^字]+?[^文])字(.+)', name)
             if m:
-                return [[5, m.group(1)], [6, m.group(2)]]
+                return [
+                    [AddressLevel.OAZA, m.group(1)],
+                    [AddressLevel.AZA, m.group(2)]]
 
             return self._guessAza_sub(name)
 
@@ -325,20 +385,27 @@ class IsjConverter(object):
         elif jcode == '21201':
             m = re.match(r'^(西野町)([６７六七]丁目.*)$', name)
             if m:
-                return [[5, m.group(1)], [6, m.group(2)]]
+                return [
+                    [AddressLevel.OAZA, m.group(1)],
+                    [AddressLevel.AZA, m.group(2)]]
 
         # 以下の住所は整備ミスなので修正する
         #   長野県/長野市/若里6丁目 => 長野県/長野市/若里６丁目
         #   長野県/長野市/若里7丁目 => 長野県/長野市/若里７丁目
         #   広島県/福山市/駅家町大字弥生ケ => 広島県/福山市/駅家町大字弥生ヶ丘
         if jcode == '20201' and name == '若里6丁目':
-            return [[5, '若里'], [6, '６丁目']]
+            return [
+                [AddressLevel.OAZA, '若里'],
+                [AddressLevel.AZA, '６丁目']]
 
         if jcode == '20201' and name == '若里7丁目':
-            return [[5, '若里'], [6, '７丁目']]
+            return [
+                [AddressLevel.OAZA, '若里'],
+                [AddressLevel.AZA, '７丁目']]
 
         if jcode == '34207' and name == '駅家町大字弥生ケ':
-            return [[5, '駅家町大字弥生ヶ丘']]
+            return [
+                [AddressLevel.OAZA, '駅家町大字弥生ヶ丘']]
 
         return self._guessAza_sub(name)
 
@@ -362,21 +429,22 @@ class IsjConverter(object):
 
         m = re.match(r'(.*)(郡|支庁|総合振興局|振興局|島)$', names[1])
         if m:
-            curnode.addChild(Node(m.group(1), x, y, 2))
-            newnode = Node(names[1], x, y, 2)
+            curnode.addChild(Node(m.group(1), x, y, AddressLevel.COUNTY))
+            newnode = Node(names[1], x, y, AddressLevel.COUNTY)
             curnode = curnode.addChild(newnode)
         else:
             m = re.match(r'(.*)(市|町|村)$', names[1])
             if m:
-                curnode.addChild(Node(m.group(1), x, y, 3))
-                newnode = Node(names[1], x, y, 3)
+                curnode.addChild(Node(m.group(1), x, y, AddressLevel.CITY))
+                newnode = Node(names[1], x, y, AddressLevel.CITY)
                 curnode = curnode.addChild(newnode)
             else:
                 if names[0] == '東京都':
                     m = re.match(r'(.*)区', names[1])
                     if m:
-                        curnode.addChild(Node(m.group(1), x, y, 3))
-                        newnode = Node(names[1], x, y, 3)
+                        curnode.addChild(
+                            Node(m.group(1), x, y, AddressLevel.CITY))
+                        newnode = Node(names[1], x, y, AddressLevel.CITY)
                         curnode = curnode.addChild(newnode)
 
         if len(names) == 2:
@@ -384,19 +452,22 @@ class IsjConverter(object):
 
         m = re.match(r'(.*)(町|村)$', names[2])
         if m:
-            curnode.addChild(Node(m.group(1), x, y, 3))
-            newnode = Node(names[2], x, y, 3)
+            curnode.addChild(Node(m.group(1), x, y, AddressLevel.CITY))
+            newnode = Node(names[2], x, y, AddressLevel.CITY)
             curnode = curnode.addChild(newnode)
         else:
             m = re.match(r'(.*)区$', names[2])
             if m:
-                curnode.addChild(Node(m.group(1), x, y, 4))
-                newnode = Node(names[2], x, y, 4)
+                curnode.addChild(Node(m.group(1), x, y, AddressLevel.WORD))
+                newnode = Node(names[2], x, y, AddressLevel.WORD)
                 curnode = curnode.addChild(newnode)
 
         return curnode
 
     def add_from_gaiku_zipfile(self, zipfilepath):
+        """
+        街区レベル位置参照情報から住所表記を登録
+        """
         with zipfile.ZipFile(zipfilepath) as z:
             for filename in z.namelist():
                 if not filename.lower().endswith('.csv'):
@@ -413,11 +484,15 @@ class IsjConverter(object):
                             self.procGaikuLine(args)
                             pre_args = args
                     except UnicodeDecodeError:
-                        print("変換できない文字が見つかりました。処理中のファイルは {}, 直前の行は次の通りです。\n{}".format(
-                            filename, pre_args), file=sys.stderr)
-                        exit(-1)
+                        raise RuntimeError((
+                            "変換できない文字が見つかりました。"
+                            "処理中のファイルは {}, 直前の行は次の通りです。\n{}")
+                            .format(pre_args))
 
     def add_from_oaza_zipfile(self, zipfilepath):
+        """
+        大字・町丁目レベル位置参照情報から住所表記を登録
+        """
         with zipfile.ZipFile(zipfilepath) as z:
             for filename in z.namelist():
                 if not filename.lower().endswith('.csv'):
@@ -434,32 +509,111 @@ class IsjConverter(object):
                             self.procOazaLine(args)
                             pre_args = args
                     except UnicodeDecodeError:
-                        print("変換できない文字が見つかりました。処理中のファイルは {}, 直前の行は次の通りです。\n{}".format(
-                            filename, pre_args), file=sys.stderr)
-                        exit(-1)
+                        raise RuntimeError((
+                            "変換できない文字が見つかりました。"
+                            "処理中のファイルは {}, 直前の行は次の通りです。\n{}")
+                            .format(filename, pre_args))
+
+    def add_from_jukyohyouji_zipfile(self, zipfilepath):
+        """
+        住居表示住所から住所表記を登録
+        """
+        with zipfile.ZipFile(zipfilepath) as z:
+            for filename in z.namelist():
+                if not filename.lower().endswith('.csv'):
+                    continue
+
+                with z.open(filename, mode='r') as f:
+                    ft = io.TextIOWrapper(
+                        f, encoding='CP932', newline='',
+                        errors='backslashreplace')
+                    reader = csv.reader(ft)
+                    pre_args = None
+                    try:
+                        for args in reader:
+                            self.procJukyohyoujiLine(args)
+                            pre_args = args
+                    except UnicodeDecodeError:
+                        raise RuntimeError((
+                            "変換できない文字が見つかりました。"
+                            "処理中のファイルは {}, 直前の行は次の通りです。\n{}")
+                            .format(filename, pre_args))
 
 
 if __name__ == '__main__':
+
+    logging.basicConfig(level=logging.DEBUG)
+
     basedir = os.path.dirname(__file__)
+    jiscode_path = os.path.join(basedir, 'jiscode.json')
+
+    output_filepath = os.path.join(basedir, '00.txt')
+
+    with open(output_filepath, 'w', encoding='utf-8') as fout:
+        # 都道府県名および県庁所在地座標
+        input_filepath = os.path.join(basedir, 'geonlp/japan_pref.csv')
+        with open(input_filepath, 'r', encoding='cp932', newline='') as f:
+            reader = csv.reader(f)
+            for rows in reader:
+                if rows[0] == 'geonlp_id':
+                    continue
+
+                name, lon, lat = rows[6], rows[11], rows[12]
+                print("{}".format(','.join(
+                    [name, lon, lat, str(AddressLevel.PREF)])),
+                    file=fout)
+                name = rows[2]
+                if name != '北海':
+                    print("{}".format(','.join(
+                        [name, lon, lat, str(AddressLevel.PREF)])),
+                        file=fout)
+
+        # 市区町村名および役場所在地座標
+        input_filepath = os.path.join(basedir, 'geonlp/japan_city.csv')
+        with open(input_filepath, 'r', encoding='cp932', newline='') as f:
+            reader = csv.reader(f)
+            converter = IsjConverter(jiscode_path, fp=fout)
+            for rows in reader:
+                if rows[0] == 'geonlp_id':
+                    continue
+
+                jiscode = rows[1]
+                names = converter.jiscodes[jiscode]
+                parents = [names[0]]
+                names = names[1:]
+                lon, lat = rows[11], rows[12]
+                level = AddressLevel.CITY
+                if names[-1].endswith(('郡', '局', '島')):
+                    level = AddressLevel.COUNTY
+                elif parents[0] != '東京都' and names[-1].endswith('区'):
+                    level = AddressLevel.WORD
+
+                if lon and lat:
+                    converter.print_line(parents, names, lon, lat, level)
 
     for pref_code in range(1, 48):
-        basename = "{:02d}000.zip".format(pref_code)
-        converter = IsjConverter()
-        added = False
-
-        oaza_filepath = os.path.join(basedir, 'oaza', basename)
-        if os.path.exists(oaza_filepath):
-            converter.add_from_oaza_zipfile(oaza_filepath)
-            added = True
-
-        gaiku_filepath = os.path.join(basedir, 'gaiku', basename)
-        if os.path.exists(gaiku_filepath):
-            converter.add_from_gaiku_zipfile(gaiku_filepath)
-            added = True
-
-        if not added:
-            continue
-
         output_filepath = os.path.join(basedir, '{:02}.txt'.format(pref_code))
         with open(output_filepath, 'w', encoding='utf-8') as f:
-            converter.print_tree(f)
+
+            basename = "{:02d}000.zip".format(pref_code)
+            converter = IsjConverter(jiscode_path, fp=f)
+
+            oaza_filepath = os.path.join(basedir, 'oaza', basename)
+            if os.path.exists(oaza_filepath):
+                logging.debug("Reading from {}".format(oaza_filepath))
+                converter.add_from_oaza_zipfile(oaza_filepath)
+                added = True
+
+            gaiku_filepath = os.path.join(basedir, 'gaiku', basename)
+            if os.path.exists(gaiku_filepath):
+                logging.debug("Reading from {}".format(gaiku_filepath))
+                converter.add_from_gaiku_zipfile(gaiku_filepath)
+                added = True
+
+            for jusho_filepath in sorted(glob.glob(
+                os.path.join(basedir,
+                             'saigai.gsi.go.jp/jusho/download/data/',
+                             '{:02d}*.zip'.format(pref_code)))):
+                logging.debug("Reading from {}".format(jusho_filepath))
+                converter.add_from_jukyohyouji_zipfile(jusho_filepath)
+                added = True
