@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import copy
+import json
 from logging import getLogger
 import os
 
@@ -204,7 +205,7 @@ class AddressNode(Base):
         self.x = kwargs.get('x', kwargs.get('lon'))
         self.y = kwargs.get('y', kwargs.get('lat'))
         self.level = kwargs.get('level')
-        self.note = kwargs.get('note')
+        self.note = kwargs.get('note', None)
 
     def add_child(self, child):
         """
@@ -767,6 +768,67 @@ class AddressTree(object):
 
         return cur_node
 
+    def add_address_v2(self, record, do_update=False, cache=None):
+        """
+        Create a new AddressNode and add to the tree.
+
+        Parameters
+        ----------
+        record : dict
+            A dict object containing elements as follows.
+            path : list of list
+                Name-level pairs of address elements.
+            x : float, y : float
+                Coordinate values of the last address element.
+            note : str (optional)
+                A strin gcontaining notes, etc.
+        do_update : bool
+            When an address with the same name already exists,
+            update it with the value of kwargs if 'do_update' is true,
+            otherwise do nothing.
+        cache : LRU
+            A dict object to use as a cache for improving performance,
+            whose keys are the address notation from the prefecture level
+            and whose values are the corresponding nodes.
+            If not specified or None is given, do not use the cache.
+
+        Return
+        ------
+        The added node.
+        """
+        cur_node = self.get_root()
+        address_names = [x[0] for x in record['path']]
+        for i, element in enumerate(record['path']):
+            fullname = ''.join(address_names[0:i + 1])
+            if cache is not None:
+                if fullname in cache:
+                    cur_node = cache[fullname]
+                    continue
+                else:
+                    logger.debug("Cache miss: '{}'".format(fullname))
+
+            name, level = element
+            name_index = itaiji_converter.standardize(name)
+            node = cur_node.get_child(name_index)
+            v = {'name': name, 'x': record['x'], 'y': record['y'],
+                 'level': level, 'note': record.get('note', None), }
+            
+            if not node:
+                new_node = AddressNode(**v)
+                cur_node.add_child(new_node)
+                cur_node = new_node
+            else:
+                cur_node = node
+                if i == len(address_names) - 1:
+                    if do_update:
+                        cur_node.set_attributes(**v)
+                    else:
+                        cur_node = None
+                elif cache is not None:
+                    cache[fullname] = cur_node
+
+        return cur_node
+
     def create_trie_index(self):
         """
         Create the TRIE index from the tree.
@@ -985,6 +1047,77 @@ class AddressTree(object):
 
         logger.debug("Done.")
 
+    def read_stream_v2(self, fp, do_update=False):
+        """
+        Add AddressNodes from a JSONL stream.
+
+        Parameters
+        ----------
+        fp : io.TextIOBase
+            Text stream.
+        do_update : bool (default=False)
+            When an address with the same name already exists,
+            update it with the value of the new data if 'do_update' is true,
+            otherwise do nothing.
+        """
+        nread = 0
+        stocked = []
+        prev_path = None
+        cache = LRU(maxsize=512)
+
+        while True:
+            try:
+                line = fp.readline()
+            except UnicodeDecodeError as e:
+                logger.error("Decode error at the next line of {}".format(
+                    prev_names))
+                exit(1)
+
+            if not line:
+                break
+
+            record = json.loads(line.rstrip())
+            path = record['path']
+
+            if prev_path == path:
+                logger.debug("Skipping '{}".format(prev_path))
+                continue
+
+            prev_path = path
+
+            node = self.add_address_v2(record, do_update, cache=cache)
+
+            nread += 1
+            if nread % 1000 == 0:
+                logger.info("- read {} lines.".format(nread))
+
+            if node is None:
+                # The node exists and not updated.
+                continue
+
+            stocked.append(node)
+            if len(stocked) > 10000:
+                logger.debug("Inserting into the database... ({} - {})".format(
+                    stocked[0].get_fullname(), stocked[-1].get_fullname()))
+                session = self.get_session()
+                for node in stocked:
+                    session.add(node)
+
+                session.commit()
+                stocked.clear()
+
+        logger.debug("Finished reading the stream.")
+        if len(stocked) > 0:
+            logger.debug("Inserting into the database... ({} - {})".format(
+                stocked[0].get_fullname(), stocked[-1].get_fullname()))
+            session = self.get_session()
+            for node in stocked:
+                session.add(node)
+
+            session.commit()
+
+        logger.debug("Done.")
+
     def drop_indexes(self):
         """
         Drop indexes to improve the speed of bulk insertion.
@@ -1041,7 +1174,7 @@ class AddressTree(object):
 
         return cur_node
 
-    def search_by_trie(self, query: str):
+    def search_by_trie(self, query: str, best_only=True):
         """
         Get the list of corresponding nodes using the TRIE index.
         Returns a list of address element nodes that match
@@ -1055,6 +1188,8 @@ class AddressTree(object):
         ----------
         query : str
             An address notation to be searched.
+        best_only : bool (option, default=True)
+            If true, get the best candidates will be returned.
 
         Return
         ------
@@ -1077,16 +1212,21 @@ class AddressTree(object):
                 results_by_node = node.search_recursive(rest_index, session)
                 for cand in results_by_node:
                     _len = offset + len(cand[1])
-                    if _len > max_len:
-                        results = {}
-                        max_len = _len
+                    if best_only:
+                        if _len > max_len:
+                            results = {}
+                            max_len = _len
 
-                    if _len == max_len and cand[0].id not in results:
+                        if _len == max_len and cand[0].id not in results:
+                            results[cand[0].id] = [cand[0], k + cand[1]]
+
+                    else:
                         results[cand[0].id] = [cand[0], k + cand[1]]
+                        max_len = _len if _len > max_len else max_len
 
         return results
 
-    def search(self, query: str):
+    def search(self, query: str, **kwargs):
         """
         Searches for address nodes corresponding to an address notation
         and returns the matching substring and a list of nodes.
@@ -1102,24 +1242,42 @@ class AddressTree(object):
 
         Return
         ------
-        A dict containing the following elements.
-
-        matched : str
-            The matching substring.
-        candidates : list of AddressNodes
-            List of nodes with the longest match to the query string.
+        A list of AddressNode and matched substring pairs.
         """
-        results = self.search_by_trie(query)
-        if len(results) == 0:
-            return {"matched": "", "candidates": []}
+        results = self.search_by_trie(query, **kwargs)
 
-        top_result = ''
-        for v in results.values():
-            top_result = v[1]
-            break
+        values = sorted(results.values(), reverse=True,
+                        key=lambda v: len(v[1]))
 
-        l_result = len(top_result)
-        matched = None
+        matched_substring = {}
+        for v in values:
+            if v[1] in matched_substring:
+                matched = matched_substring[v[1]]
+            else:
+                matched = self._get_matched_substring(query, v[1])
+                matched_substring[v[1]] = matched
+
+            v[1] = matched
+
+        return values
+
+    def _get_matched_substring(self, query, matched):
+        """
+        From the substring matched standardized string,
+        recover the corresponding substring of the original search string.
+        
+        Parameters
+        ----------
+        query : str
+            The original search string.
+        matchd : str
+            The substring matched standardized string.
+
+        Return
+        ------
+        The recovered substring.
+        """
+        l_result = len(matched)
         pos = l_result if l_result <= len(query) else len(query)
 
         while True:
@@ -1128,14 +1286,9 @@ class AddressTree(object):
             l_standardized = len(standardized)
             if l_standardized == l_result:
                 matched = substr
-                break
+                return substr
 
             if l_standardized < l_result:
                 pos += 1
             else:
                 pos -= 1
-
-        return {
-            "matched": matched,
-            "candidates": [x[0] for x in results.values()]
-        }

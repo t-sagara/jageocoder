@@ -51,7 +51,12 @@ def search(query):
     if tree is None:
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
-    result = tree.search(query)
-    result['candidates'] = [x.as_dict() for x in result['candidates']]
+    results = tree.search(query)
 
-    return result
+    if len(results) == 0:
+        return {'matched':'', 'candidates':[]}
+
+    return {
+        'matched': results[0][1],
+        'candidates': [x[0].as_dict() for x in results],
+    }

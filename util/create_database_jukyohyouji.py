@@ -26,12 +26,22 @@ if __name__ == '__main__':
         tree.create_db()
         tree.create_tree_index()
 
-        for i in range(0, 48): # 0,48
-            filepath = os.path.join(basedir, 'converter/mlit-isj/',
-                                    "{:02d}.txt".format(i))
-            logging.info("Loading {}".format(filepath))
-            with open(filepath, mode='r', encoding='utf-8') as f:
-                tree.read_stream(f, do_update=False)
+        # Read Prefecture - City level elements from '00.txt'
+        filepath = os.path.join(basedir, 'converter/output/00.txt')
+        logging.info("Loading {}".format(filepath))
+        with open(filepath, mode='r', encoding='utf-8') as f:
+            tree.read_stream_v2(f, do_update=False)
+
+        # Read all data from 
+        for i in range(1, 48):
+            for src in ('oaza', 'gaiku', 'jusho',):
+                
+                filepath = os.path.join(
+                    basedir, 'converter/output/',
+                    "{:02d}_{}.txt".format(i, src))
+                logging.info("Loading {}".format(filepath))
+                with open(filepath, mode='r', encoding='utf-8') as f:
+                    tree.read_stream_v2(f, do_update=False)
 
                 
         # tree.create_tree_index()
@@ -42,4 +52,5 @@ if __name__ == '__main__':
         tree.create_tree_index()
 
     if build_trie:
+        logging.info("Creating TRIE index.")
         tree.create_trie_index()
