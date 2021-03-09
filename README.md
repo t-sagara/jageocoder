@@ -26,21 +26,20 @@ Requires Python 3.7.x or later and the following packages.
 ### Installing
 
 - Install the package using `pip install jageocoder`
-- Download the latest zipped dictionary archive from [here](https://www.info-proto.com/resource/isj-20210303.zip)
-- Unzip the archive and place the `*.db` file in `db/` directory
+- Download the latest zipped dictionary data from [here](https://www.info-proto.com/jageocoder/#data)
+- Unzip the dictionary data and place the `*.db` file in `db/` directory
 - Create a TRIE index.
 
 ```sh
 pip install jageocoder
 mkdir db
-curl -o db/isj-20210303.zip https://www.info-proto.com/resource/isj-20210303.zip
-unzip db/isj-20210303.zip -d db/
+unzip gaiku.zip -d db/
 python
 >>> import jageocoder
 >>> jageocoder.init(
 	dsn="sqlite:///db/isj.db",
-	trie="db/isj.trie")
->>> jageocoder.tree.create_trie_index()
+	trie_path="db/isj.trie")
+>>> jageocoder.create_trie_index()
     (It may take a few minutes)
 ```
 
