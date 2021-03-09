@@ -9,8 +9,8 @@ This package provides address-geocoding functionality for Python programs. The b
 ```python
 python
 >>> import jageocoder
->>> jageocoder.init(dsn='sqlite:///db/address.db', trie='db/address.trie')
->>> print(jageocoder.search('新宿区西新宿2-8-1'))
+>>> jageocoder.init(dsn='sqlite:///db/address.db', trie_path='db/address.trie')
+>>> jageocoder.search('新宿区西新宿2-8-1')
 {'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 5961406, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
 ```
 
@@ -37,8 +37,7 @@ unzip gaiku.zip -d db/
 python
 >>> import jageocoder
 >>> jageocoder.init(
-	dsn="sqlite:///db/isj.db",
-	trie_path="db/isj.trie")
+	dsn="sqlite:///db/address.db", trie_path="db/address.trie")
 >>> jageocoder.create_trie_index()
     (It may take a few minutes)
 ```
