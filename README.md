@@ -9,7 +9,7 @@ This package provides address-geocoding functionality for Python programs. The b
 ```python
 python
 >>> import jageocoder
->>> jageocoder.init(dsn='sqlite:///db/isj.db', trie='db/isj.trie')
+>>> jageocoder.init(dsn='sqlite:///db/address.db', trie='db/address.trie')
 >>> print(jageocoder.search('新宿区西新宿2-8-1'))
 {'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 5961406, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
 ```
@@ -86,7 +86,7 @@ Address notation varies. So suggestions for logic improvements are welcome. Plea
 
 ## License
 
-This project is licensed under the [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+This project is licensed under [the MIT License](https://opensource.org/licenses/mit-license.php).
 
 This is not the scope of the dictionary data license. Please follow the license of the respective dictionary data.
 

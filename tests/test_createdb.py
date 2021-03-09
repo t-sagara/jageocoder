@@ -40,5 +40,5 @@ class TestCreateDBMethods(unittest.TestCase):
         self.tree.create_trie_index()
 
         result = self.tree.search('階上町大字道仏二の窪１番地')
-        self.assertEqual(len(result['candidates']), 1)
-        self.assertEqual(result['matched'], '階上町大字道仏二の窪１番地')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')

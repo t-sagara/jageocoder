@@ -9,7 +9,7 @@ class JageocoderError(RuntimeError):
     pass
 
 
-def init(dsn, trie):
+def init(dsn, trie_path):
     """
     Initialize AddressTree.
 
@@ -26,7 +26,7 @@ def init(dsn, trie):
     """
     global tree
 
-    tree = AddressTree(dsn, trie)
+    tree = AddressTree(dsn, trie_path)
 
 
 def search(query):
@@ -60,3 +60,22 @@ def search(query):
         'matched': results[0][1],
         'candidates': [x[0].as_dict() for x in results],
     }
+
+def create_trie_index():
+    """
+    Create the TRIE index from the database file.
+
+    This function is a shortcut for AddressTree.create_trie_index().
+
+    Parameteres
+    -----------
+    No parameter required.
+
+    Return
+    ------
+    No value.
+    """
+    if tree is None:
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    results = tree.create_trie_index()
