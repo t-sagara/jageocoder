@@ -9,14 +9,14 @@ This package provides address-geocoding functionality for Python programs. The b
 ```python
 python
 >>> import jageocoder
->>> jageocoder.init(dsn='sqlite:///db/address.db', trie_path='db/address.trie')
+>>> jageocoder.init()
 >>> jageocoder.search('新宿区西新宿2-8-1')
 {'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 5961406, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
 ```
 
 ### Prerequisites
 
-Requires Python 3.7.x or later and the following packages.
+Requires Python 3.6.x or later and the following packages.
 
 - [marisa-trie-m](https://pypi.org/project/marisa-trie-m/)
     for building and retrieving TRIE index
@@ -27,20 +27,47 @@ Requires Python 3.7.x or later and the following packages.
 
 - Install the package using `pip install jageocoder`
 - Download the latest zipped dictionary data from [here](https://www.info-proto.com/jageocoder/#data)
-- Unzip the dictionary data and place the `*.db` file in `db/` directory
+- Install the dictionary.
 - Create a TRIE index.
 
 ```sh
 pip install jageocoder
-mkdir db
-unzip gaiku.zip -d db/
+curl https://www.info-proto.com/static/jusho.zip -o jusho.zip
 python
 >>> import jageocoder
->>> jageocoder.init(
-	dsn="sqlite:///db/address.db", trie_path="db/address.trie")
+>>> jageocoder.install_dictionary('jusho.zip')
+>>> jageocoder.init()
 >>> jageocoder.create_trie_index()
-    (It may take a few minutes)
 ```
+
+The dictionary database will be created under
+`{sys.prefix}/jageocoder/db/`, or if the user doesn't have 
+write permission there `{site.USER_DATA}/jageocoder/db/`
+by default.
+
+If you need to know the location of the directory containing
+the dictionary database, perform `get_db_dir(mode='r')` as follows.
+
+```sh
+python
+>>> import jageocoder
+>>> jageocoder.get_db_dir(mode='r')
+```
+
+If you prefer to create it in another location, set the environment
+variable `JAGEOCODER_DB_DIR` before executing `install_dictionary()`.
+
+```sh
+export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
+python
+>>> import jageocoder
+>>> jageocoder.install_dictionary('jusho.zip')
+```
+
+## Uninstalling
+
+Remove the directory containing the database.
+Then, do `pip uninstall jageocoder`.
 
 ## Running the tests
 
