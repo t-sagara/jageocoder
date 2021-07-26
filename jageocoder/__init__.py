@@ -1,50 +1,125 @@
+import logging
 import os
+import tempfile
+from typing import Optional, NoReturn
+import urllib.request
+from urllib.error import URLError
+import zipfile
 
-from .address import AddressTree
-
+from jageocoder.tree import AddressTree, get_db_dir
 tree = None
+
+logger = logging.getLogger(__name__)
 
 
 class JageocoderError(RuntimeError):
+    """
+    Custom exception classes sent out by jageocoder module.
+    """
     pass
 
 
-def init(dsn, trie_path):
+def init(dsn: Optional[str] = None,
+         trie_path: Optional[str] = None,
+         db_dir: Optional[str] = None,
+         mode: Optional[str] = 'a',
+         debug: Optional[bool] = False) -> NoReturn:
     """
-    Initialize AddressTree.
+    Initialize the module-level AddressTree object `jageocoder.tree`
+    ready for use.
 
     Parameters
     ----------
-    dsn : str
-        RFC-1738 based database-url, so called "data source name".
-    trie_path : str
+    dsn: str, optional
+        Data Source Name of the database.
+    trie_path: str, optional
         File path to save the TRIE index.
-
-    Return
-    ------
-    The AddressTree object.
+    db_dir: str, optional
+        The database directory.
+        If dsn and trie_path are omitted and db_dir is set,
+        'address.db' and 'address.trie' under this directory will be used.
+    mode: str, optional(default='a')
+        Specifies the mode for opening the database.
+        - In the case of 'a', if the database already exists, it will be used.
+          If it does not exist, create a new one.
+        - In the case of 'w', if the database already exists, delete it first.
+          Then create a new one.
+        - In the case of 'r', if the database already exists, it wull be used.
+          Otherwise raise a JageocoderError exception.
+    debug: bool, Optional(default=False)
+        Debugging flag.
     """
     global tree
 
-    tree = AddressTree(dsn, trie_path)
+    if tree:
+        del tree
+
+    tree = AddressTree(dsn=dsn, trie_path=trie_path, db_dir=db_dir,
+                       mode=mode, debug=debug)
 
 
-def search(query):
+def install_dictionary(path_or_url: Optional[str] = 'jusho.zip',
+                       db_dir: Optional[str] = None) -> NoReturn:
+    """
+    Install address-dictionary from the specified path or url.
+
+    Parameters
+    ----------
+    path_or_url: str, optional
+        The file path or url where the zipped address-dictionary file
+        is available.
+        If omitted, try to open 'jusho.zip' in the current directory.
+
+    db_dir: str, optional
+        The directory where the database files will be installed.
+        If omitted, it will be determined by `get_db_dir()`.
+    """
+    # Set default value
+    if db_dir is None:
+        db_dir = get_db_dir()
+
+    # Open a local file
+    tmppath = None
+    if os.path.exists(path_or_url):
+        path = path_or_url
+    else:
+        try:
+            # Try to download a file
+            fp, path = tempfile.mkstemp()
+            os.close(fp)
+            logger.debug(
+                'Downloading zipped dictionary from {}'.format(path_or_url))
+            urllib.request.urlretrieve(path_or_url, path)
+            logger.debug('.. download complete.')
+            tmppath = path
+        except URLError:
+            raise JageocoderError("Can't open file {}".format(path_or_url))
+
+    # unzip the file
+    with zipfile.ZipFile(path) as zipf:
+        logger.debug('Extracting address.db to {}'.format(db_dir))
+        zipf.extract(member='address.db', path=db_dir)
+
+    if tmppath:
+        os.remove(tmppath)
+
+
+def search(query: str) -> dict:
     """
     Search node from the tree by the query.
 
     Parameters
     ---------
-    query : str
+    query: str
         An address notation to be searched.
 
     Return
     ------
     A dict containing the following elements.
 
-    matched : str
+    matched: str
         The matching substring.
-    candidates : list of dict
+    candidates: list of dict
         List of dict representation of nodes with
         the longest match to the query string.
     """
@@ -54,28 +129,21 @@ def search(query):
     results = tree.search(query)
 
     if len(results) == 0:
-        return {'matched':'', 'candidates':[]}
+        return {'matched': '', 'candidates': []}
 
     return {
         'matched': results[0][1],
         'candidates': [x[0].as_dict() for x in results],
     }
 
-def create_trie_index():
+
+def create_trie_index() -> NoReturn:
     """
     Create the TRIE index from the database file.
 
     This function is a shortcut for AddressTree.create_trie_index().
-
-    Parameteres
-    -----------
-    No parameter required.
-
-    Return
-    ------
-    No value.
     """
     if tree is None:
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
-    results = tree.create_trie_index()
+    tree.create_trie_index()

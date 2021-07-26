@@ -1,9 +1,4 @@
-import csv
-import json
 import logging
-import os
-import sys
-import time
 import unittest
 
 import jageocoder
@@ -15,11 +10,7 @@ logger = logging.getLogger(__name__)
 class TestSearchMethods(unittest.TestCase):
 
     def setUp(self):
-        dbpath = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), '../db/address.db'))
-        triepath = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), '../db/address.trie'))
-        jageocoder.init(dsn="sqlite:///" + dbpath, trie_path=triepath)
+        jageocoder.init(mode='r')
 
     def test_sapporo(self):
         """
@@ -73,7 +64,7 @@ class TestSearchMethods(unittest.TestCase):
         top = candidates[0]
         self.assertEqual(top['level'], 7)
         self.assertEqual(top['fullname'],
-                         ['東京都', '西多摩郡', '瑞穂町', '箱根ケ崎', '2335番地'])
+                         ['東京都', '西多摩郡', '瑞穂町', '大字箱根ケ崎', '2335番地'])
 
         query = '東京都西多摩郡瑞穂町箱根ケ崎2335番地'
         result = jageocoder.search(query)
@@ -83,4 +74,8 @@ class TestSearchMethods(unittest.TestCase):
         top = candidates[0]
         self.assertEqual(top['level'], 7)
         self.assertEqual(top['fullname'],
-                         ['東京都', '西多摩郡', '瑞穂町', '箱根ケ崎', '2335番地'])
+                         ['東京都', '西多摩郡', '瑞穂町', '大字箱根ケ崎', '2335番地'])
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -110,6 +110,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# vscode
+\.vscode/
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -136,5 +139,8 @@ converter/oaza/
 converter/geonlp/
 converter/saigai.gsi.go.jp/
 converter/output/
+
+# Test directory
+\test_createdb/
 
 !.gitkeep
