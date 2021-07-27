@@ -120,7 +120,7 @@ def install_dictionary(path_or_url: Optional[str] = 'jusho.zip',
             urllib.request.urlretrieve(path_or_url, path)
             logger.debug('.. download complete.')
             tmppath = path
-        except URLError:
+        except (URLError, ValueError,):
             raise JageocoderError("Can't open file {}".format(path_or_url))
 
     # Unzip the file
