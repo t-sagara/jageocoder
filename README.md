@@ -28,7 +28,6 @@ Requires Python 3.6.x or later and the following packages.
 - Install the package using `pip install jageocoder`
 - Download the latest zipped dictionary data from [here](https://www.info-proto.com/jageocoder/#data)
 - Install the dictionary.
-- Create a TRIE index.
 
 ```sh
 pip install jageocoder
@@ -87,21 +86,21 @@ If you are assuming practical use, consider putting SQLite3 files on fast storag
 
 ## ToDos
 
-### Supporting address changes
+- Supporting address changes
 
-The functionality to handle address changes due to municipal consolidation, etc. has already been implemented in the C++ version, but will be implemented in this package in the future.
+    The functionality to handle address changes due to municipal consolidation, etc.
+    has already been implemented in the C++ version, but will be implemented
+    in this package in the future.
 
-### Documents for creating own dictionaries
+- Documents for creating own dictionaries
 
-The detailed procedure for creating a dictionary will be documented in due course.
-
-To create your own dictionary, create a dictionary file in text format from location reference information, and read it into the database using `AddressTree.read_stream()`. There is an unorganized script in `utils/create_database.py` for your reference.
-
-A script to create a dictionary file in text format from location reference information of MLIT is available in `converter/mlit-isj/`. We will organize these scripts in order.
+    The procedure and tools to create your own dictionary database will be provided
+    as a separate project in the near future.
 
 ## Contributing
 
-Address notation varies. So suggestions for logic improvements are welcome. Please submit an issue with examples of address notations in use and how they should be parsed.
+Address notation varies. So suggestions for logic improvements are welcome.
+Please submit an issue with examples of address notations in use and how they should be parsed.
 
 ## Authors
 

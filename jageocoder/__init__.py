@@ -52,7 +52,7 @@ def init(dsn: Optional[str] = None,
     global tree
 
     if tree:
-        del tree
+        tree.close()
 
     tree = AddressTree(dsn=dsn, trie_path=trie_path, db_dir=db_dir,
                        mode=mode, debug=debug)

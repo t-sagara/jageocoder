@@ -197,7 +197,10 @@ class AddressTree(object):
         self.root = None
         self.trie = AddressTrie(self.trie_path)
 
-    def __del__(self):
+    def close(self):
+        if self.session:
+            self.session.close()
+
         if self.engine:
             self.engine.dispose()
             del self.engine

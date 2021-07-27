@@ -7,8 +7,15 @@ name = "pypi"
 marisa-trie-m = "*"
 sqlalchemy = "*"
 jaconv = "*"
+jageocoder = {editable = true, path = "."}
 
 [dev-packages]
+autopep8 = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3.6"
+
+[scripts]
+format = "autopep8 -ivr --ignore E226,E24,W50,W690,E501 ."
+lint = "flake8 --show-source --extend-ignore E501 ."

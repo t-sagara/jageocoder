@@ -44,7 +44,7 @@ class TestCreateDBMethods(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
 
-        del self.tree
+        self.tree.close()
 
     def test_install(self):
         jageocoder.install_dictionary(self.zippath, db_dir=self.db_dir)
@@ -53,6 +53,8 @@ class TestCreateDBMethods(unittest.TestCase):
         result = tree.search('階上町大字道仏二の窪１番地')
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
+
+        tree.close()
 
 
 if __name__ == '__main__':
