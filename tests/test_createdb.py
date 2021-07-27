@@ -1,8 +1,8 @@
 import logging
 import os
-import shutil
 import unittest
 
+import jageocoder
 from jageocoder.tree import AddressTree
 
 logger = logging.getLogger(__name__)
@@ -14,15 +14,13 @@ class TestCreateDBMethods(unittest.TestCase):
     basedir = os.path.abspath(os.path.join(
         os.path.dirname(__file__), '../'))
     textpath = os.path.join(basedir, 'data/test.txt')
+    zippath = os.path.join(basedir, 'data/test_jusho.zip')
     tree = None
 
     @classmethod
     def setUpClass(cls):
         cls.db_dir = 'test_createdb'
-        if os.path.exists(cls.db_dir):
-            shutil.rmtree(cls.db_dir)
-
-        os.makedirs(cls.db_dir, mode=0o777)
+        os.makedirs(cls.db_dir, mode=0o777, exist_ok=True)
 
     def test_create(self):
         self.tree = AddressTree(db_dir=self.db_dir, mode='w')
@@ -46,6 +44,17 @@ class TestCreateDBMethods(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
 
+        del self.tree
+
+    def test_install(self):
+        jageocoder.install_dictionary(self.zippath, db_dir=self.db_dir)
+        tree = jageocoder.get_module_tree()
+
+        result = tree.search('階上町大字道仏二の窪１番地')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
+
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     unittest.main()

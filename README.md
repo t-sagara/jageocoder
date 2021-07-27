@@ -36,8 +36,6 @@ curl https://www.info-proto.com/static/jusho.zip -o jusho.zip
 python
 >>> import jageocoder
 >>> jageocoder.install_dictionary('jusho.zip')
->>> jageocoder.init()
->>> jageocoder.create_trie_index()
 ```
 
 The dictionary database will be created under

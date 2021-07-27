@@ -28,13 +28,13 @@ class AddressTreeException(RuntimeError):
     pass
 
 
-def get_db_dir(mode: Optional[str] = 'a') -> str:
+def get_db_dir(mode: Optional[str] = 'r') -> str:
     """
     Get the database directory.
 
     Parameters
     ----------
-    mode: str, optional(default='a')
+    mode: str, optional(default='r')
         Specifies the mode for searching the database directory.
         If 'a' or 'w' is set, search a writable directory.
         If 'r' is set, search a database file that already exists.
@@ -196,6 +196,12 @@ class AddressTree(object):
 
         self.root = None
         self.trie = AddressTrie(self.trie_path)
+
+    def __del__(self):
+        if self.engine:
+            self.engine.dispose()
+            del self.engine
+            self.engine = None
 
     def __not_in_readonly_mode(self):
         if self.mode == 'r':
