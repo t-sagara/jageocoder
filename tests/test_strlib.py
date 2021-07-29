@@ -2,6 +2,7 @@ import unittest
 
 from jageocoder.strlib import strlib
 
+
 class TestStrlibMethods(unittest.TestCase):
 
     def test_get_number(self):
@@ -18,3 +19,6 @@ class TestStrlibMethods(unittest.TestCase):
             n = r['n']
             self.assertEqual(n, qa[1])
 
+
+if __name__ == '__main__':
+    unittest.main()

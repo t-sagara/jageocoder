@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Union
 
 from jageocoder.strlib import strlib
 
@@ -10,6 +11,14 @@ class Converter(object):
     optional_postfixes = ['条', '線', '丁', '丁目', '番', '番地', '号']
 
     def __init__(self):
+        """
+        Initialize the converter.
+
+        Attributes
+        ----------
+        trans_itaiji: table
+            The character mapping table from src to dst.
+        """
         itaiji_dic_json = os.path.join(
             os.path.dirname(__file__), 'itaiji_dic.json')
 
@@ -27,12 +36,10 @@ class Converter(object):
         self.trans_z2h = str.maketrans(
             {chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
 
-    def check_optional_prefixes(self, notation):
+    def check_optional_prefixes(self, notation: str) -> int:
         """
         Check optional prefixes in the notation and
         return the length of the prefix string.
-
-        ex. check_optional_prefixes('大字道仏') -> 2
 
         Parameters
         ----------
@@ -42,6 +49,14 @@ class Converter(object):
         Return
         ------
         The length of optional prefixes string.
+
+        Examples
+        --------
+        >>> from jageocoder.itaiji import converter
+        >>> converter.check_optional_prefixes('大字道仏')
+        2
+        >>> converter.check_optional_prefixes('字貝取')
+        1
         """
         for prefix in self.__class__.optional_prefixes:
             if notation.startswith(prefix):
@@ -54,8 +69,6 @@ class Converter(object):
         Check optional postfixes in the notation and
         return the length of the postfix string.
 
-        ex. check_optional_postfixes('1番地') -> 2
-
         Parameters
         ----------
         notation : str
@@ -64,6 +77,14 @@ class Converter(object):
         Return
         ------
         The length of optional postfixes string.
+
+        Examples
+        --------
+        >>> from jageocoder.itaiji import converter
+        >>> converter.check_optional_postfixes('1番地')
+        2
+        >>> converter.check_optional_postfixes('15号')
+        1
         """
         for postfix in self.__class__.optional_postfixes:
             if notation.endswith(postfix):
@@ -71,18 +92,19 @@ class Converter(object):
 
         return 0
 
-    def standardize(self, notation):
+    def standardize(self, notation: Union[str, None]) -> str:
         """
         Standardize an address notation.
 
         Parameters
         ----------
         notation : str
-                The address notation to be standardized.
+            The address notation to be standardized.
 
         Return
         ------
-        The standardized address notation string.
+        str
+            The standardized address notation string.
         """
         if notation is None or len(notation) == 0:
             return notation

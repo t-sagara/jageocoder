@@ -2,6 +2,7 @@ import unittest
 
 from jageocoder.itaiji import converter
 
+
 class TestItaijiMethods(unittest.TestCase):
 
     def _test_qa(self, q, a):
@@ -32,3 +33,7 @@ class TestItaijiMethods(unittest.TestCase):
         # Replace old-complex Kanji characters to new-simple alternatives
         self._test_qa("龍崎市", "竜崎市")
         self._test_qa("籠原駅", "篭原駅")
+
+
+if __name__ == '__main__':
+    unittest.main()
