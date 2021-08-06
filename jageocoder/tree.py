@@ -1,10 +1,12 @@
 from collections import OrderedDict
+import csv
 import json
 from logging import getLogger
 import os
+import re
 import site
 import sys
-from typing import Optional
+from typing import Union, NoReturn, List, Optional, TextIO
 
 from sqlalchemy import Index
 from sqlalchemy.orm import sessionmaker
@@ -197,6 +199,11 @@ class AddressTree(object):
         self.root = None
         self.trie = AddressTrie(self.trie_path)
 
+        # Regular expression
+        self.re_float = re.compile(r'^\-?\d+\.?\d*$')
+        self.re_int = re.compile(r'^\-?\d+$')
+        self.re_address = re.compile(r'^(\d+);(.*)$')
+
     def close(self):
         if self.session:
             self.session.close()
@@ -250,6 +257,147 @@ class AddressTree(object):
 
         return self.root
 
+    def check_line_format(self, args: List[str]) -> int:
+        """
+        Receives split args from a line of comma-separated text
+        representing a single address element, and returns
+        the format ID.
+
+        Parameters
+        ----------
+        args: list[str]
+
+        Return
+        ------
+        int
+            The id of the identified format.
+            1. Address names without level, lon, lat
+            2. Address names without level, lon, lat, note
+            3. Address names without level, lon, lat, level without note
+            4. Address names without level, lon, lat, level, note
+
+        Examples
+        --------
+        >>> from jageocoder_converter import BaseConverter
+        >>> base = BaseConverter()
+        >>> base.check_line_format(['1;北海道','3;札幌市','4;中央区','141.34103','43.05513'])
+        1
+        >>> base.check_line_format(['1;北海道','3;札幌市','4;中央区','5;大通','6;西二十丁目','141.326249','43.057218','01101/ODN-20/'])
+        2
+        >>> base.check_line_format(['北海道','札幌市','中央区','大通','西二十丁目','141.326249','43.057218',6])
+        3
+        >>> base.check_line_format(['北海道','札幌市','中央区','大通','西二十丁目','141.326249','43.057218',6,'01101/ODN-20/'])
+        4
+        """
+
+        # Find the first consecutive position of a real number or None.
+        pos0 = None
+        pos1 = None
+        for pos, arg in enumerate(args):
+            if arg == '' or self.re_float.match(arg):
+                if pos0:
+                    pos1 = pos
+                    break
+                else:
+                    pos0 = pos
+            else:
+                pos0 = None
+
+        if pos1 is None:
+            raise AddressTreeException(
+                'Unexpected line format.\n{}'.format(','.join(args)))
+
+        names = args[0:pos0]
+        lon = float(args[pos0]) if args[pos0] != '' else None
+        lat = float(args[pos1]) if args[pos1] != '' else None
+        level = None
+        note = None
+
+        if self.re_address.match(names[0]):
+            if len(args) == pos1 + 1:
+                logger.debug("line format id: 1")
+                return 1
+
+            if len(args) == pos1 + 2:
+                logger.debug("line format id: 2")
+                return 2
+
+        else:
+            if len(args) == pos1 + 2 and self.re_int.match(args[pos1 + 1]):
+                logger.debug("line format id: 3")
+                return 3
+
+            if len(args) == pos1 + 3 and self.re_int.match(args[pos1 + 1]):
+                logger.debug("line format id: 4")
+                return 4
+
+        raise AddressTreeException(
+            'Unexpected line format.\n{}'.format(','.join(args)))
+
+    def parse_line_args(self, args: List[str], format_id: int) -> list:
+        """
+        Receives split args from a line of comma-separated text
+        representing a single address element, and returns
+        a list of parsed attributes.
+
+        Parameters
+        ----------
+        args: list[str]
+            List of split args in a line
+        format_id: int
+            The id of the line format identfied by `check_line_format`
+
+        Return
+        ------
+        list
+            A list containing the following attributes.
+            - Address names: list[str]
+            - Longitude: float
+            - Latitude: float
+            - Level: int or None
+            - note: str or None
+
+        Examples
+        --------
+        >>> from jageocoder_converter import BaseConverter
+        >>> base = BaseConverter()
+        >>> base.parse_line_args(['1;北海道','3;札幌市','4;中央区','141.34103','43.05513'], 1)
+        [['1;北海道','3;札幌市','4;中央区'], 141.34103, 43.05513, None, None]
+        >>> base.parse_line_args(['1;北海道','3;札幌市','4;中央区','5;大通','6;西二十丁目','141.326249','43.057218','01101/ODN-20/'], 2)
+        [['1;北海道','3;札幌市','4;中央区','5;大通','6;西二十丁目'],141.326249,43.057218,None,'01101/ODN-20/']
+        >>> base.parse_line_args(['北海道','札幌市','中央区','大通','西二十丁目','141.326249','43.057218',6,'01101/ODN-20/'], 4)
+        [['北海道','札幌市','中央区','大通','西二十丁目'],141.326249,43.057218,6,'01101/ODN-20/']
+        """
+
+        def fv(val: str) -> Union[float, None]:
+            if val == '':
+                return None
+            return float(val)
+
+        nargs = len(args)
+        if format_id == 1:
+            return [
+                args[0:nargs-2], fv(args[nargs-2]), fv(args[nargs-1]),
+                None, None]
+
+        if format_id == 2:
+            return [
+                args[0:nargs-3], fv(args[nargs-3]), fv(args[nargs-2]),
+                None, args[nargs-1]]
+
+        if format_id == 3:
+            return [
+                args[0:nargs-3], fv(args[nargs-3]), fv(args[nargs-2]),
+                int(args[nargs-1]), None]
+
+        if format_id == 4:
+            return [
+                args[0:nargs-4], fv(args[nargs-4]), fv(args[nargs-3]),
+                int(args[nargs-2]), args[nargs-1]]
+
+        raise AddressTreeException(
+            'Unexpected line format id: {}'.format(format_id))
+
     def add_address(self, address_names, do_update=False,
                     cache=None, **kwargs):
         """
@@ -258,8 +406,8 @@ class AddressTree(object):
         Parameters
         ----------
         address_names : list of str
-            A list of the parent's address name.
-            For example, ["東京都","新宿区","西新宿"]
+            A list of the address element names.
+            For example, ["東京都","新宿区","西新宿", "２丁目"]
         do_update : bool
             When an address with the same name already exists,
             update it with the value of kwargs if 'do_update' is true,
@@ -270,112 +418,61 @@ class AddressTree(object):
             and whose values are the corresponding nodes.
             If not specified or None is given, do not use the cache.
         **kwargs : properties of the new address node.
-            name : str. name. ("２丁目")
-            x : float. X coordinate or longitude. (139.69175)
-            y : float. Y coordinate or latitude. (35.689472)
-            level : int. Address level (1: pref, 3: city, 5: oaza, ...)
-            note : str. Note.
+            x : float. X coordinate or longitude in decimal degree
+            y : float. Y coordinate or latitude in decimal degree
+            level: int. Level of the node
+            note : str. Note
 
         Return
         ------
-        The added node.
+        AddressNode
+            The added node.
         """
         self.__not_in_readonly_mode()
         cur_node = self.get_root()
-        for i, name in enumerate(address_names):
-            fullname = ''.join(address_names[0:i + 1])
+        for i, elem in enumerate(address_names):
+            path = ''.join(address_names[0:i + 1])
+            is_leaf = (i == len(address_names) - 1)
+
             if cache is not None:
-                if fullname in cache:
-                    cur_node = cache[fullname]
+                if path in cache:
+                    cur_node = cache[path]
                     continue
-                else:
-                    logger.debug("Cache miss: '{}'".format(fullname))
+                elif i < len(address_names):
+                    logger.debug("Cache miss: '{}'".format(path))
+
+            m = self.re_address.match(elem)
+            if m:
+                level = m.group(1)
+                name = m.group(2)
+            else:
+                level = AddressLevel.UNDEFINED
+                name = elem
+                if is_leaf:
+                    level = kwargs.get('level', AddressLevel.UNDEFINED)
 
             name_index = itaiji_converter.standardize(name)
             node = cur_node.get_child(name_index)
             if not node:
-                if i < len(address_names) - 1:
-                    guessed_level = AddressLevel.guess(
-                        name, parent=cur_node, trigger=kwargs)
-                else:
-                    guessed_level = kwargs['level']
-
-                kwargs.update({'name': name, 'parent': cur_node,
-                               'level': guessed_level})
+                kwargs.update({
+                    'name': name,
+                    'parent': cur_node,
+                    'level': level})
                 new_node = AddressNode(**kwargs)
                 cur_node.add_child(new_node)
                 cur_node = new_node
             else:
                 cur_node = node
-                if i == len(address_names) - 1:
+                if is_leaf:
                     if do_update:
                         cur_node.set_attributes(**kwargs)
                     else:
                         cur_node = None
-                elif cache is not None:
-                    cache[fullname] = cur_node
 
-        return cur_node
-
-    def add_address_v2(self, record, do_update=False, cache=None):
-        """
-        Create a new AddressNode and add to the tree.
-
-        Parameters
-        ----------
-        record : dict
-            A dict object containing elements as follows.
-            path : list of list
-                Name-level pairs of address elements.
-            x : float, y : float
-                Coordinate values of the last address element.
-            note : str (optional)
-                A strin gcontaining notes, etc.
-        do_update : bool
-            When an address with the same name already exists,
-            update it with the value of kwargs if 'do_update' is true,
-            otherwise do nothing.
-        cache : LRU
-            A dict object to use as a cache for improving performance,
-            whose keys are the address notation from the prefecture level
-            and whose values are the corresponding nodes.
-            If not specified or None is given, do not use the cache.
-
-        Return
-        ------
-        The added node.
-        """
-        self.__not_in_readonly_mode()
-        cur_node = self.get_root()
-        address_names = [x[0] for x in record['path']]
-        for i, element in enumerate(record['path']):
-            fullname = ''.join(address_names[0:i + 1])
-            if cache is not None:
-                if fullname in cache:
-                    cur_node = cache[fullname]
-                    continue
-                else:
-                    logger.debug("Cache miss: '{}'".format(fullname))
-
-            name, level = element
-            name_index = itaiji_converter.standardize(name)
-            node = cur_node.get_child(name_index)
-            v = {'name': name, 'x': record['x'], 'y': record['y'],
-                 'level': level, 'note': record.get('note', None), }
-
-            if not node:
-                new_node = AddressNode(**v)
-                cur_node.add_child(new_node)
-                cur_node = new_node
-            else:
-                cur_node = node
-                if i == len(address_names) - 1:
-                    if do_update:
-                        cur_node.set_attributes(**v)
-                    else:
-                        cur_node = None
-                elif cache is not None:
-                    cache[fullname] = cur_node
+            if cache is not None and \
+                    cur_node is not None and \
+                    not is_leaf:
+                cache[path] = cur_node
 
         return cur_node
 
@@ -511,14 +608,14 @@ class AddressTree(object):
                   errors='backslashreplace') as f:
             self.read_stream(f, do_update=do_update)
 
-    def read_stream(self, fp, do_update=False):
+    def read_stream(self, fp: TextIO, do_update: bool = False) -> NoReturn:
         """
-        Add AddressNodes from a stream.
+        Add AddressNodes to the tree from a stream.
 
         Parameters
         ----------
-        fp : io.TextIOBase
-            Text stream.
+        fp : io.TextIO
+            Input text stream.
         do_update : bool (default=False)
             When an address with the same name already exists,
             update it with the value of the new data if 'do_update' is true,
@@ -530,34 +627,30 @@ class AddressTree(object):
         prev_names = None
         cache = LRU(maxsize=512)
 
+        reader = csv.reader(fp)
+        format_id = None
+
         while True:
             try:
-                line = fp.readline()
+                args = reader.__next__()
             except UnicodeDecodeError:
                 logger.error("Decode error at the next line of {}".format(
                     prev_names))
                 exit(1)
-
-            if not line:
+            except StopIteration:
                 break
 
-            args = line.rstrip().split(',')
-            names = args[0:-3]
-            lon, lat, level = args[-3:]
-            try:
-                lon = float(lon)
-            except ValueError:
-                lon = None
+            if args is None:
+                break
 
-            try:
-                lat = float(lat)
-            except ValueError:
-                lat = None
+            if format_id is None:
+                format_id = self.check_line_format(args)
 
-            try:
-                level = int(level)
-            except ValueError:
-                level = None
+            names, lon, lat, level, note = self.parse_line_args(
+                args, format_id)
+
+            if names[-1].startswith('!'):
+                names = names[0:-1]
 
             if prev_names == names:
                 logger.debug("Skipping '{}".format(prev_names))
@@ -567,77 +660,7 @@ class AddressTree(object):
 
             node = self.add_address(
                 names, do_update, cache=cache,
-                x=lon, y=lat, level=level)
-            nread += 1
-            if nread % 1000 == 0:
-                logger.info("- read {} lines.".format(nread))
-
-            if node is None:
-                # The node exists and not updated.
-                continue
-
-            stocked.append(node)
-            if len(stocked) > 10000:
-                logger.debug("Inserting into the database... ({} - {})".format(
-                    stocked[0].get_fullname(), stocked[-1].get_fullname()))
-                for node in stocked:
-                    self.session.add(node)
-
-                self.session.commit()
-                stocked.clear()
-
-        logger.debug("Finished reading the stream.")
-        if len(stocked) > 0:
-            logger.debug("Inserting into the database... ({} - {})".format(
-                stocked[0].get_fullname(), stocked[-1].get_fullname()))
-            for node in stocked:
-                self.session.add(node)
-
-            self.session.commit()
-
-        logger.debug("Done.")
-
-    def read_stream_v2(self, fp, do_update=False):
-        """
-        Add AddressNodes from a JSONL stream.
-
-        Parameters
-        ----------
-        fp : io.TextIOBase
-            Text stream.
-        do_update : bool (default=False)
-            When an address with the same name already exists,
-            update it with the value of the new data if 'do_update' is true,
-            otherwise do nothing.
-        """
-        self.__not_in_readonly_mode()
-        nread = 0
-        stocked = []
-        prev_path = None
-        cache = LRU(maxsize=512)
-
-        while True:
-            try:
-                line = fp.readline()
-            except UnicodeDecodeError:
-                logger.error("Decode error at the next line of {}".format(
-                    prev_path))
-                exit(1)
-
-            if not line:
-                break
-
-            record = json.loads(line.rstrip())
-            path = record['path']
-
-            if prev_path == path:
-                logger.debug("Skipping '{}".format(prev_path))
-                continue
-
-            prev_path = path
-
-            node = self.add_address_v2(record, do_update, cache=cache)
-
+                x=lon, y=lat, level=level, note=note)
             nread += 1
             if nread % 1000 == 0:
                 logger.info("- read {} lines.".format(nread))

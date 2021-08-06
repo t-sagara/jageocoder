@@ -5,7 +5,8 @@ from typing import Union
 class Strlib(object):
 
     def __init__(self):
-        self.hyphen = "-－\u2010\u002D\u00AD\u2011\u2043"
+        self.hyphen = ("\u002D\uFE63\uFF0D\u2010\u2011\u2043\u02D6"
+                       "\u2212\u2012\u2013\u2014\u2015\uFE58\u30FC")
         self.kansuji = "〇一二三四五六七八九"
         self.arabic = "０１２３４５６７８９"
 
@@ -58,7 +59,7 @@ class Strlib(object):
         >>> from jageocoder.strlib import strlib
         >>> strlib.is_kansuji('八')
         True
-        >>> strlib.is_hyphen('８')
+        >>> strlib.is_kansuji('８')
         False
         """
         return (c in self.kansuji)

@@ -145,7 +145,14 @@ class Converter(object):
                 i += 1
                 continue
 
-                # Replace numbers including Chinese characters
+            # Replace hyphen-like characters with '-'
+            if strlib.is_hyphen(c):
+                new_notation += '-'
+                ctype = 0
+                i += 1
+                continue
+
+            # Replace numbers including Chinese characters
             # with number + '.' in the notation.
             if strlib.get_numeric_char(c):
                 ninfo = strlib.get_number(notation[i:])
@@ -162,4 +169,5 @@ class Converter(object):
         return new_notation
 
 
-converter = Converter()  # The singleton
+# Create the singleton object of a converter that normalizes address strings
+converter = Converter()

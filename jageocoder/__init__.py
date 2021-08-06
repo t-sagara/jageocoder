@@ -7,7 +7,18 @@ from urllib.error import URLError
 import zipfile
 
 from jageocoder.tree import AddressTree, get_db_dir
-tree = None
+from jageocoder.node import AddressNode
+from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.address import AddressLevel
+
+__all__ = [
+    AddressLevel,  # Definition of levels of address elements
+    AddressNode,   # 'node' table definition
+    AddressTree,   # Tree and TRIE management class of address nodes
+    itaiji_converter,  # The singleton converter object
+]
+
+_tree = None
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +60,13 @@ def init(dsn: Optional[str] = None,
     debug: bool, Optional(default=False)
         Debugging flag.
     """
-    global tree
+    global _tree
 
-    if tree:
-        tree.close()
+    if _tree:
+        _tree.close()
 
-    tree = AddressTree(dsn=dsn, trie_path=trie_path, db_dir=db_dir,
-                       mode=mode, debug=debug)
+    _tree = AddressTree(dsn=dsn, trie_path=trie_path, db_dir=db_dir,
+                        mode=mode, debug=debug)
 
 
 def is_initialized() -> bool:
@@ -82,8 +93,8 @@ def get_module_tree() -> Union[AddressTree, None]:
     AddressTree
         The singleton object.
     """
-    global tree
-    return tree
+    global _tree
+    return _tree
 
 
 def install_dictionary(path_or_url: Optional[str] = 'jusho.zip',
@@ -133,10 +144,9 @@ def install_dictionary(path_or_url: Optional[str] = 'jusho.zip',
 
     # Create trie-index
     init(db_dir=db_dir, mode='a')
-    tree = get_module_tree()
-    logger.debug('Creating TRIE index {}'.format(tree.trie_path))
-    tree.create_trie_index()
-
+    global _tree
+    logger.debug('Creating TRIE index {}'.format(_tree.trie_path))
+    _tree.create_trie_index()
     logger.debug('Dictionary installation complete.')
 
 
@@ -159,10 +169,11 @@ def search(query: str) -> dict:
         List of dict representation of nodes with
         the longest match to the query string.
     """
-    if tree is None:
+    if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
-    results = tree.search(query)
+    global _tree
+    results = _tree.search(query)
 
     if len(results) == 0:
         return {'matched': '', 'candidates': []}
@@ -179,7 +190,8 @@ def create_trie_index() -> NoReturn:
 
     This function is a shortcut for AddressTree.create_trie_index().
     """
-    if tree is None:
+    if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
-    tree.create_trie_index()
+    global _tree
+    _tree.create_trie_index()
