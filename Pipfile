@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-marisa-trie-m = "*"
 sqlalchemy = "*"
 jaconv = "*"
 jageocoder = {editable = true, path = "."}

@@ -43,12 +43,12 @@ write permission there `{site.USER_DATA}/jageocoder/db/`
 by default.
 
 If you need to know the location of the directory containing
-the dictionary database, perform `get_db_dir(mode='r')` as follows.
+the dictionary database, perform `get_db_dir()` as follows.
 
 ```sh
 python
 >>> import jageocoder
->>> jageocoder.get_db_dir(mode='r')
+>>> jageocoder.get_db_dir()
 ```
 
 If you prefer to create it in another location, set the environment
@@ -77,6 +77,10 @@ python -m unittest
 - Street address in Sapporo city such as '北3西1' for '北三条西一丁目'
 - Toorina in Kyoto city such as '下立売通新町西入薮ノ内町' for '薮ノ内町'
 
+## Create your own dictionary
+
+Please use the dictionary coverter
+[jageocoder-converter](https://github.com/t-sagara/jageocoder-converter).
 
 ## Deployment
 
@@ -91,11 +95,6 @@ If you are assuming practical use, consider putting SQLite3 files on fast storag
     The functionality to handle address changes due to municipal consolidation, etc.
     has already been implemented in the C++ version, but will be implemented
     in this package in the future.
-
-- Documents for creating own dictionaries
-
-    The procedure and tools to create your own dictionary database will be provided
-    as a separate project in the near future.
 
 ## Contributing
 

@@ -25,7 +25,7 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(top['level'], 7)
         self.assertEqual(
             top['fullname'],
-            ['北海道', '札幌市', '中央区', '北三条西', '一丁目', '7番地'])
+            ['北海道', '札幌市', '中央区', '北三条', '西一丁目', '7番地'])
 
     def test_akita(self):
         query = '秋田市山王4-1-1'
@@ -63,8 +63,9 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(len(candidates), 1)
         top = candidates[0]
         self.assertEqual(top['level'], 7)
-        self.assertEqual(top['fullname'],
-                         ['東京都', '西多摩郡', '瑞穂町', '大字箱根ケ崎', '2335番地'])
+        self.assertIn(top['fullname'],
+                      [['東京都', '西多摩郡', '瑞穂町', '箱根ケ崎', '2335番地'],
+                       ['東京都', '西多摩郡', '瑞穂町', '大字箱根ケ崎', '2335番地']])
 
         query = '東京都西多摩郡瑞穂町箱根ケ崎2335番地'
         result = jageocoder.search(query)
@@ -73,8 +74,9 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(len(candidates), 1)
         top = candidates[0]
         self.assertEqual(top['level'], 7)
-        self.assertEqual(top['fullname'],
-                         ['東京都', '西多摩郡', '瑞穂町', '大字箱根ケ崎', '2335番地'])
+        self.assertIn(top['fullname'],
+                      [['東京都', '西多摩郡', '瑞穂町', '箱根ケ崎', '2335番地'],
+                       ['東京都', '西多摩郡', '瑞穂町', '大字箱根ケ崎', '2335番地']])
 
 
 if __name__ == '__main__':
