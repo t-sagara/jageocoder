@@ -18,7 +18,7 @@ python
 
 Requires Python 3.6.x or later and the following packages.
 
-- [marisa-trie-m](https://pypi.org/project/marisa-trie-m/)
+- [marisa-trie](https://pypi.org/project/marisa-trie/)
     for building and retrieving TRIE index
 - [SQLAlchemy](https://pypi.org/project/SQLAlchemy/)
     for abstracting access to the RDBMS
