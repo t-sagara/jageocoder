@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import csv
-import json
 from logging import getLogger
 import os
 import re
@@ -8,6 +7,7 @@ import site
 import sys
 from typing import Union, NoReturn, List, Optional, TextIO
 
+from deprecated import deprecated
 from sqlalchemy import Index
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -308,10 +308,6 @@ class AddressTree(object):
                 'Unexpected line format.\n{}'.format(','.join(args)))
 
         names = args[0:pos0]
-        lon = float(args[pos0]) if args[pos0] != '' else None
-        lat = float(args[pos1]) if args[pos1] != '' else None
-        level = None
-        note = None
 
         if self.re_address.match(names[0]):
             if len(args) == pos1 + 1:
@@ -800,25 +796,43 @@ class AddressTree(object):
 
         return results
 
+    @deprecated(('Renamed to `searchNode()` because it was confusing'
+                 ' with jageocoder.search()'))
     def search(self, query: str, **kwargs):
+        return self.searchNode(query, **kwargs)
+
+    def searchNode(self, query: str, best_only: Optional[bool] = True):
         """
         Searches for address nodes corresponding to an address notation
         and returns the matching substring and a list of nodes.
-
-        Note that the matched string in the "search_by_trie" result is
-        the standardized one, and the substring in the "search" result
-        is the unstandardized one.
 
         Parameters
         ----------
         query : str
             An address notation to be searched.
+        best_only: bool, optional
+            If set to False, Returns all candidates whose prefix matches.
 
         Return
         ------
-        A list of AddressNode and matched substring pairs.
+        list
+            A list of AddressNode and matched substring pairs.
+
+        Note
+        ----
+        The `search_by_trie` function returns the standardized string
+        as the match string. In contrast, the `searchNode` function returns
+        the de-starndized string.
+
+        Example
+        -------
+        >>> import jageocoder
+        >>> jageocoder.init()
+        >>> tree = jageocoder.get_module_tree()
+        >>> tree.searchNode('多摩市落合1-15-2')
+        [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
         """
-        results = self.search_by_trie(query, **kwargs)
+        results = self.search_by_trie(query, best_only)
 
         values = sorted(results.values(), reverse=True,
                         key=lambda v: len(v[1]))

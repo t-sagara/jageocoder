@@ -1,4 +1,6 @@
 from logging import getLogger
+import re
+from typing import List, NoReturn, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
 from sqlalchemy import or_
@@ -301,6 +303,29 @@ class AddressNode(Base):
 
         return names
 
+    def get_nodes_by_level(self):
+        """
+        The function returns an array of this node and its upper nodes.
+        The Nth node of the array contains the node corresponding
+        to address level N.
+        If there is no element corresponding to level N, None is stored.
+
+        Example
+        -------
+        >>> import jageocoder
+        >>> jageocoder.init()
+        >>> node = jageocoder.searchNode('多摩市落合1-15')[0][0]
+        >>> [str(x) for x in node.get_node_array_by_level()]
+        ['None', '[11460206:東京都(139.69164,35.6895)1(jisx0401:13)]', 'None', '[12063501:多摩市(139.446366,35.636959)3(jisx0402:13224)]', 'None', '[12065382:落合(139.427097,35.624877)5(None)]', '[12065383:一丁目(139.427097,35.624877)6(None)]', '[12065389:15番地(139.428969,35.625779)7(None)]']
+        """
+        result = [None] * (self.level + 1)
+        cur_node = self
+        while cur_node.parent:
+            result[cur_node.level] = cur_node
+            cur_node = cur_node.parent
+
+        return result
+
     def __str__(self):
         return '[{}:{}({},{}){}({})]'.format(
             self.id, self.name, self.x, self.y, self.level, str(self.note))
@@ -313,3 +338,111 @@ class AddressNode(Base):
             cur_node = cur_node.parent
 
         return '>'.join(r)
+
+    def retrieve_upper_node(self, target_levels: List[int]):
+        """
+        Retrieves the node at the specified level from
+        the this node or one of its upper nodes.
+        """
+        cur_node = self
+        while cur_node.parent and cur_node.level not in target_levels:
+            parent = cur_node.parent
+            cur_node = parent
+
+        if cur_node.level in target_levels:
+            return cur_node
+
+        return None
+
+    def get_pref_name(self) -> str:
+        """
+        Returns the name of prefecture that contains this node.
+        """
+        node = self.retrieve_upper_node([AddressLevel.PREF])
+        if node is None:
+            return ''
+
+        return node.name
+
+    def get_pref_jiscode(self) -> str:
+        """
+        Returns the jisx0401 code of the prefecture that
+        contains this node.
+        """
+        node = self.retrieve_upper_node([AddressLevel.PREF])
+        if node is None:
+            return ''
+
+        m = re.search(r'jisx0401:(\d{2})', node.note)
+        if m:
+            return m.group(1)
+
+        return ''
+
+    def get_pref_local_authority_code(self) -> str:
+        """
+        Returns the 地方公共団体コード of the prefecture that
+        contains this node.
+        """
+        jisx0401 = self.get_pref_jiscode()
+        if jisx0401 == '':
+            return ''
+
+        return self._local_authority_code(jisx0401 + '000')
+
+    def get_city_name(self) -> str:
+        """
+        Returns the name of city that contains this node.
+        """
+        node = self.retrieve_upper_node([
+            AddressLevel.CITY, AddressLevel.WORD])
+        if node is None:
+            return ''
+
+        return node.name
+
+    def get_city_jiscode(self) -> str:
+        """
+        Returns the jisx0402 code of the city that
+        contains this node.
+        """
+        node = self.retrieve_upper_node([
+            AddressLevel.CITY, AddressLevel.WORD])
+        if node is None:
+            return ''
+
+        m = re.search(r'jisx0402:(\d{5})', node.note)
+        if m:
+            return m.group(1)
+
+        return ''
+
+    def get_city_local_authority_code(self) -> str:
+        """
+        Returns the 地方公共団体コード of the city that
+        contains this node.
+        """
+        jisx0402 = self.get_city_jiscode()
+        if jisx0402 == '':
+            return ''
+
+        return self._local_authority_code(jisx0402)
+
+    def _local_authority_code(self, orig_code: str) -> str:
+        """
+        Returns the 6-digit code, adding a check digit to the JIS code.
+        https://www.soumu.go.jp/main_content/000137948.pdf
+        """
+        if len(orig_code) != 5:
+            raise RuntimeError('The original code must be a 5-digit string.')
+
+        sum = int(orig_code[0]) * 6 + int(orig_code[1]) * 5 +\
+            int(orig_code[2]) * 4 + int(orig_code[3]) * 3 +\
+            int(orig_code[4]) * 2
+        if sum < 11:
+            checkdigit = str(11 - sum)
+        else:
+            remainder = sum % 11
+            checkdigit = str(11 - remainder)[-1]
+
+        return orig_code + checkdigit

@@ -173,7 +173,7 @@ def search(query: str) -> dict:
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    results = _tree.search(query)
+    results = _tree.searchNode(query, True)
 
     if len(results) == 0:
         return {'matched': '', 'candidates': []}
@@ -182,6 +182,43 @@ def search(query: str) -> dict:
         'matched': results[0][1],
         'candidates': [x[0].as_dict() for x in results],
     }
+
+
+def searchNode(query: str, best_only: Optional[bool] = True):
+    """
+    Searches for address nodes corresponding to an address notation
+    and returns the matching substring and a list of nodes.
+
+    Parameters
+    ----------
+    query : str
+        An address notation to be searched.
+    best_only: bool, optional
+        If set to False, Returns all candidates whose prefix matches.
+
+    Return
+    ------
+    list
+        A list of AddressNode and matched substring pairs.
+
+    Note
+    ----
+    The `search_by_trie` function returns the standardized string
+    as the match string. In contrast, the `searchNode` function returns
+    the de-starndized string.
+
+    Example
+    -------
+    >>> import jageocoder
+    >>> jageocoder.init()
+    >>> jageocoder.searchNode('多摩市落合1-15-2')
+    [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    global _tree
+    return _tree.searchNode(query, best_only)
 
 
 def create_trie_index() -> NoReturn:
