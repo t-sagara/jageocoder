@@ -12,6 +12,8 @@ class TestCodeMethods(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         jageocoder.init(mode='r')
+        query = '札幌市中央区北1西2'
+        cls.node_sapporo = jageocoder.searchNode(query)[0][0]
         query = '長崎市尾上町３－１'
         cls.node_nagasaki = jageocoder.searchNode(query)[0][0]
         query = '富山市新総曲輪１－７'
@@ -21,6 +23,7 @@ class TestCodeMethods(unittest.TestCase):
         """
         Get the names of the prefectures.
         """
+        self.assertEqual(self.node_sapporo.get_pref_name(), '北海道')
         self.assertEqual(self.node_nagasaki.get_pref_name(), '長崎県')
         self.assertEqual(self.node_toyama.get_pref_name(), '富山県')
 
@@ -28,6 +31,8 @@ class TestCodeMethods(unittest.TestCase):
         """
         Get the jiscodes and la code of the prefectures.
         """
+        self.assertEqual(
+            self.node_sapporo.get_pref_jiscode(), '01')
         self.assertEqual(
             self.node_nagasaki.get_pref_jiscode(), '42')
         self.assertEqual(
@@ -37,6 +42,9 @@ class TestCodeMethods(unittest.TestCase):
         """
         Get the local authority codes of the prefectures.
         """
+        self.assertEqual(
+            self.node_sapporo.get_pref_local_authority_code(),
+            '010006')
         self.assertEqual(
             self.node_nagasaki.get_pref_local_authority_code(),
             '420000')
@@ -48,6 +56,7 @@ class TestCodeMethods(unittest.TestCase):
         """
         Get the names of the cities.
         """
+        self.assertEqual(self.node_sapporo.get_city_name(), '中央区')
         self.assertEqual(self.node_nagasaki.get_city_name(), '長崎市')
         self.assertEqual(self.node_toyama.get_city_name(), '富山市')
 
@@ -55,6 +64,8 @@ class TestCodeMethods(unittest.TestCase):
         """
         Get the jiscodes of the cities.
         """
+        self.assertEqual(
+            self.node_sapporo.get_city_jiscode(), '01101')
         self.assertEqual(
             self.node_nagasaki.get_city_jiscode(), '42201')
         self.assertEqual(
@@ -64,6 +75,9 @@ class TestCodeMethods(unittest.TestCase):
         """
         Get the local authority codes of the cities.
         """
+        self.assertEqual(
+            self.node_sapporo.get_city_local_authority_code(),
+            '011011')
         self.assertEqual(
             self.node_nagasaki.get_city_local_authority_code(),
             '422011')

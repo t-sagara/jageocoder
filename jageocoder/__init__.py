@@ -173,7 +173,7 @@ def search(query: str) -> dict:
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    results = _tree.search(query)
+    results = _tree.searchNode(query, True)
 
     if len(results) == 0:
         return {'matched': '', 'candidates': []}
