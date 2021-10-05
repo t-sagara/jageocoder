@@ -1,5 +1,6 @@
 from logging import getLogger
 import re
+from typing import List, NoReturn, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
 from sqlalchemy import or_
@@ -338,17 +339,17 @@ class AddressNode(Base):
 
         return '>'.join(r)
 
-    def retrieve_upper_node(self, target_level: int):
+    def retrieve_upper_node(self, target_levels: List[int]):
         """
         Retrieves the node at the specified level from
         the this node or one of its upper nodes.
         """
         cur_node = self
-        while cur_node.parent and cur_node.level != target_level:
+        while cur_node.parent and cur_node.level not in target_levels:
             parent = cur_node.parent
             cur_node = parent
 
-        if cur_node.level == target_level:
+        if cur_node.level in target_levels:
             return cur_node
 
         return None
@@ -357,7 +358,7 @@ class AddressNode(Base):
         """
         Returns the name of prefecture that contains this node.
         """
-        node = self.retrieve_upper_node(AddressLevel.PREF)
+        node = self.retrieve_upper_node([AddressLevel.PREF])
         if node is None:
             return ''
 
@@ -368,7 +369,7 @@ class AddressNode(Base):
         Returns the jisx0401 code of the prefecture that
         contains this node.
         """
-        node = self.retrieve_upper_node(AddressLevel.PREF)
+        node = self.retrieve_upper_node([AddressLevel.PREF])
         if node is None:
             return ''
 
@@ -393,7 +394,8 @@ class AddressNode(Base):
         """
         Returns the name of city that contains this node.
         """
-        node = self.retrieve_upper_node(AddressLevel.CITY)
+        node = self.retrieve_upper_node([
+            AddressLevel.CITY, AddressLevel.WORD])
         if node is None:
             return ''
 
@@ -401,10 +403,11 @@ class AddressNode(Base):
 
     def get_city_jiscode(self) -> str:
         """
-        Returns the jisx0401 code of the city that
+        Returns the jisx0402 code of the city that
         contains this node.
         """
-        node = self.retrieve_upper_node(AddressLevel.CITY)
+        node = self.retrieve_upper_node([
+            AddressLevel.CITY, AddressLevel.WORD])
         if node is None:
             return ''
 
