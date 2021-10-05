@@ -40,7 +40,7 @@ class TestCreateDBMethods(unittest.TestCase):
 
         self.tree.create_trie_index()
 
-        result = self.tree.searchNode('階上町大字道仏二の窪１番地', True)
+        result = self.tree.searchNode('階上町大字道仏二の窪１番地')
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
 
@@ -50,7 +50,7 @@ class TestCreateDBMethods(unittest.TestCase):
         jageocoder.install_dictionary(self.zippath, db_dir=self.db_dir)
         tree = jageocoder.get_module_tree()
 
-        result = tree.searchNode('階上町大字道仏二の窪１番地', True)
+        result = tree.searchNode('階上町大字道仏二の窪１番地')
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
 

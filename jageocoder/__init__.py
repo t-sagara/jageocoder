@@ -184,7 +184,7 @@ def search(query: str) -> dict:
     }
 
 
-def searchNode(query: str, best_only: Optional[bool] = False):
+def searchNode(query: str, best_only: Optional[bool] = True):
     """
     Searches for address nodes corresponding to an address notation
     and returns the matching substring and a list of nodes.
@@ -194,7 +194,7 @@ def searchNode(query: str, best_only: Optional[bool] = False):
     query : str
         An address notation to be searched.
     best_only: bool, optional
-        If true, get the best candidates will be returned.
+        If set to False, Returns all candidates whose prefix matches.
 
     Return
     ------

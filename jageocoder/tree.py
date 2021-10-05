@@ -796,11 +796,12 @@ class AddressTree(object):
 
         return results
 
-    @deprecated('Renamed to `searchNode()` because it was confusing with jageocoder.search().')
+    @deprecated(('Renamed to `searchNode()` because it was confusing'
+                 ' with jageocoder.search()'))
     def search(self, query: str, **kwargs):
         return self.searchNode(query, **kwargs)
 
-    def searchNode(self, query: str, best_only: Optional[bool] = False):
+    def searchNode(self, query: str, best_only: Optional[bool] = True):
         """
         Searches for address nodes corresponding to an address notation
         and returns the matching substring and a list of nodes.
@@ -810,7 +811,7 @@ class AddressTree(object):
         query : str
             An address notation to be searched.
         best_only: bool, optional
-            If true, get the best candidates will be returned.
+            If set to False, Returns all candidates whose prefix matches.
 
         Return
         ------
