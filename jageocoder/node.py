@@ -257,7 +257,7 @@ class AddressNode(Base):
                         ])
 
         if len(candidates) == 0:
-            candidates = [[self, optional_prefix]]
+            candidates = [[self, '']]
 
         logger.debug("node:{} returns {}".format(self, candidates))
 
