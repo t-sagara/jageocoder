@@ -24,7 +24,6 @@ class TestCreateDBMethods(unittest.TestCase):
 
     def test_create(self):
         self.tree = AddressTree(db_dir=self.db_dir, mode='w')
-        self.tree.create_db()
 
         with open(self.textpath, mode='r', encoding='utf-8') as f:
             self.tree.read_stream(f)

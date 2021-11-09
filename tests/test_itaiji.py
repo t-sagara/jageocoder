@@ -19,8 +19,8 @@ class TestItaijiMethods(unittest.TestCase):
         # Replace 'の' between numeric characters
         self._test_qa("２の１", "2.-1.")
 
-        # Not replace 'の' between non-numeric characters
-        self._test_qa("井の頭公園駅", "井の頭公園駅")
+        # Omit 'の' between non-numeric characters
+        self._test_qa("井の頭公園駅", "井頭公園駅")
 
     def test_ommit_ga(self):
         # Ommit 'ケヶガがツッつ' between Kanji characters

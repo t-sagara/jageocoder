@@ -1,6 +1,6 @@
 from logging import getLogger
 import re
-from typing import List, NoReturn, Optional
+from typing import List
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
 from sqlalchemy import or_
@@ -370,7 +370,7 @@ class AddressNode(Base):
         contains this node.
         """
         node = self.retrieve_upper_node([AddressLevel.PREF])
-        if node is None:
+        if node is None or node.note is None:
             return ''
 
         m = re.search(r'jisx0401:(\d{2})', node.note)
@@ -408,7 +408,7 @@ class AddressNode(Base):
         """
         node = self.retrieve_upper_node([
             AddressLevel.CITY, AddressLevel.WORD])
-        if node is None:
+        if node is None or node.note is None:
             return ''
 
         m = re.search(r'jisx0402:(\d{5})', node.note)

@@ -1,15 +1,15 @@
 import logging
 import os
 import tempfile
-from typing import Optional, NoReturn, Union
+from typing import AnyStr, Optional, NoReturn, Union, TypeVar
 import urllib.request
 from urllib.error import URLError
 import zipfile
 
-from jageocoder.tree import AddressTree, get_db_dir
-from jageocoder.node import AddressNode
-from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.address import AddressLevel
+from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.node import AddressNode
+from jageocoder.tree import AddressTree, get_db_dir
 
 __all__ = [
     AddressLevel,  # Definition of levels of address elements
@@ -18,8 +18,12 @@ __all__ = [
     itaiji_converter,  # The singleton converter object
 ]
 
-_tree = None
+__version__ = '0.3.0rc1'  # The package version
+__dictionary_version__ = '20211109'  # Compatible dictionary version
 
+_tree = None  # The default AddressTree
+
+PathLike = TypeVar(os.PathLike, AnyStr, None)
 logger = logging.getLogger(__name__)
 
 
@@ -31,8 +35,8 @@ class JageocoderError(RuntimeError):
 
 
 def init(dsn: Optional[str] = None,
-         trie_path: Optional[str] = None,
-         db_dir: Optional[str] = None,
+         trie_path: Optional[PathLike] = None,
+         db_dir: Optional[PathLike] = None,
          mode: Optional[str] = 'r',
          debug: Optional[bool] = False) -> NoReturn:
     """
@@ -43,9 +47,9 @@ def init(dsn: Optional[str] = None,
     ----------
     dsn: str, optional
         Data Source Name of the database.
-    trie_path: str, optional
+    trie_path: PathLike, optional
         File path to save the TRIE index.
-    db_dir: str, optional
+    db_dir: PathLike, optional
         The database directory.
         If dsn and trie_path are omitted and db_dir is set,
         'address.db' and 'address.trie' under this directory will be used.
@@ -97,19 +101,45 @@ def get_module_tree() -> Union[AddressTree, None]:
     return _tree
 
 
-def install_dictionary(path_or_url: Optional[str] = 'jusho.zip',
-                       db_dir: Optional[str] = None) -> NoReturn:
+def download_dictionary(url: str) -> NoReturn:
+    """
+    Download address-dictionary from the specified url into
+    the current directory.
+
+    Parameters
+    ----------
+    url: str
+        The URL where the zipped address-dictionary file is available.
+    """
+    path = os.path.join(os.getcwd(),
+                        os.path.basename(url))
+
+    try:
+        # Try to download the file
+        logger.info((
+            'Downloading zipped dictionary file from {url}'
+            ' to {path}').format(url=url, path=path))
+        urllib.request.urlretrieve(url, path)
+        logger.info('.. download complete.')
+    except (URLError, ValueError,):
+        raise JageocoderError(
+            "The dictionary file could not be downloaded"
+            + " from the URL {}".format(url))
+
+
+def install_dictionary(
+        path_or_url: PathLike,
+        db_dir: Optional[PathLike] = None) -> NoReturn:
     """
     Install address-dictionary from the specified path or url.
 
     Parameters
     ----------
-    path_or_url: str, optional
+    path_or_url: PathLike
         The file path or url where the zipped address-dictionary file
         is available.
-        If omitted, try to open 'jusho.zip' in the current directory.
 
-    db_dir: str, optional
+    db_dir: PathLike, optional
         The directory where the database files will be installed.
         If omitted, it will be determined by `get_db_dir()`.
     """
@@ -119,6 +149,7 @@ def install_dictionary(path_or_url: Optional[str] = 'jusho.zip',
 
     # Open a local file
     tmppath = None
+
     if os.path.exists(path_or_url):
         path = path_or_url
     else:
@@ -126,18 +157,25 @@ def install_dictionary(path_or_url: Optional[str] = 'jusho.zip',
             # Try to download a file
             fp, path = tempfile.mkstemp()
             os.close(fp)
-            logger.debug(
+            logger.info(
                 'Downloading zipped dictionary from {}'.format(path_or_url))
             urllib.request.urlretrieve(path_or_url, path)
-            logger.debug('.. download complete.')
+            logger.info('.. download complete.')
             tmppath = path
         except (URLError, ValueError,):
             raise JageocoderError("Can't open file {}".format(path_or_url))
 
     # Unzip the file
     with zipfile.ZipFile(path) as zipf:
-        logger.debug('Extracting address.db to {}'.format(db_dir))
+        logger.info('Extracting {} to {}'.format(path, db_dir))
         zipf.extract(member='address.db', path=db_dir)
+        try:
+            zipf.extract(member='README.txt', path=db_dir)
+            logger.info(
+                'Please check {} for terms and conditions of use.'.format(
+                    os.path.join(db_dir, 'README.txt')))
+        except KeyError:
+            pass
 
     if tmppath:
         os.remove(tmppath)
@@ -145,9 +183,59 @@ def install_dictionary(path_or_url: Optional[str] = 'jusho.zip',
     # Create trie-index
     init(db_dir=db_dir, mode='a')
     global _tree
-    logger.debug('Creating TRIE index {}'.format(_tree.trie_path))
+    if not _tree.is_version_compatible():
+        logger.warning(('Updating the database file since'
+                        ' it is not compatible with the package.'))
+        _tree.update_name_index()
+
+    logger.info('Creating TRIE index at {}'.format(_tree.trie_path))
     _tree.create_trie_index()
-    logger.debug('Dictionary installation complete.')
+    logger.info('Installation completed.')
+
+
+def uninstall_dictionary(db_dir: Optional[PathLike] = None) -> NoReturn:
+    """
+    Uninstall address-dictionary.
+
+    Parameters
+    ----------
+    db_dir: PathLike, optional
+        The directory where the database files has been installed.
+        If omitted, it will be determined by `get_db_dir()`.
+    """
+    # Set default value
+    if db_dir is None:
+        db_dir = get_db_dir(mode='w')
+
+    # Remove the directory
+    logger.info('Removing directory {}'.format(db_dir))
+    import shutil
+    shutil.rmtree(db_dir)
+    logger.info('Dictionary has been uninstalled.')
+
+
+def upgrade_dictionary(db_dir: Optional[PathLike] = None) -> NoReturn:
+    """
+    Upgrade address-dictionary.
+
+    Parameters
+    ----------
+    db_dir: PathLike, optional
+        The directory where the database files has been installed.
+        If omitted, it will be determined by `get_db_dir()`.
+    """
+    # Set default value
+    if db_dir is None:
+        db_dir = get_db_dir(mode='a')
+
+    # Upgrade the name and trie index
+    init(db_dir=db_dir, mode='a')
+    global _tree
+    logger.info('Updating name index')
+    _tree.update_name_index()
+    logger.info('Updating TRIE index {}'.format(_tree.trie_path))
+    _tree.create_trie_index()
+    logger.info('The dictionary is successfully upgraded.')
 
 
 def search(query: str) -> dict:

@@ -105,6 +105,10 @@ class Converter(object):
         ------
         str
             The standardized address notation string.
+
+        Examples
+        --------
+
         """
         if notation is None or len(notation) == 0:
             return notation
@@ -115,9 +119,12 @@ class Converter(object):
         notation = notation.translate(
             self.trans_itaiji).translate(self.trans_z2h)
 
-        prectype, ctype, nctype = 0, 0, 0
+        prectype, ctype, nctype = strlib.ASCII, strlib.ASCII, strlib.ASCII
         new_notation = ""
         i = 0
+
+        kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
+        latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
 
         while i < len(notation):
             c = notation[i]
@@ -125,30 +132,32 @@ class Converter(object):
             ctype = nctype
 
             if i == len(notation) - 1:
-                nctype = 0
+                nctype = strlib.ASCII
             else:
                 nctype = strlib.get_ctype(notation[i + 1])
 
-            # Omit characters that may be omitted if they are
-            # sandwiched between kanji.
-            if c in 'ケヶガがツッつ' and \
-               prectype not in (4, 5) and nctype not in (4, 5):
-                ctype = prectype
+            # 'ノ' and 'の' between numeric or ascii letters
+            # are treated as hyphens.
+            if c in 'ノの' and prectype in latin1_letters and \
+                    nctype in latin1_letters:
+                new_notation += '-'
+                ctype = strlib.ASCII
                 i += 1
                 continue
 
-            # 'ノ' and 'の' between numbers or ascii letters
-            # are treated as hyphens.
-            if c in 'ノの' and prectype in (0, 2, 6) and nctype in (0, 2, 6):
-                new_notation += '-'
-                ctype = 0
+            # Remove optional characters when placed between
+            # kanji characters.
+            if c in 'ケヶガがツッつノの' and \
+               prectype not in (kana_letters) and \
+               nctype not in (kana_letters):
+                ctype = prectype
                 i += 1
                 continue
 
             # Replace hyphen-like characters with '-'
             if strlib.is_hyphen(c):
                 new_notation += '-'
-                ctype = 0
+                ctype = strlib.ASCII
                 i += 1
                 continue
 
@@ -160,7 +169,7 @@ class Converter(object):
                 i += ninfo['i']
                 if i < len(notation) and notation[i] == '.':
                     i += 1
-                ctype = 0
+                ctype = strlib.ASCII
                 continue
 
             new_notation += c
@@ -169,5 +178,7 @@ class Converter(object):
         return new_notation
 
 
-# Create the singleton object of a converter that normalizes address strings
-converter = Converter()
+# Create the singleton object of a converter
+# that normalizes address strings
+if 'converter' not in vars():
+    converter = Converter()

@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 
 class TestSearchMethods(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         jageocoder.init(mode='r')
 
     def test_sapporo(self):

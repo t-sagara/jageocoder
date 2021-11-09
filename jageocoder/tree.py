@@ -5,11 +5,12 @@ import os
 import re
 import site
 import sys
-from typing import Union, NoReturn, List, Optional, TextIO
+from typing import AnyStr, Union, NoReturn, List, Optional, TextIO,\
+    TypeVar
 
 from deprecated import deprecated
 from sqlalchemy import Index
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
@@ -18,8 +19,11 @@ from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.node import AddressNode
+from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
+import jageocoder.version
 
+PathLike = TypeVar(os.PathLike, AnyStr, None)
 logger = getLogger(__name__)
 
 
@@ -30,7 +34,7 @@ class AddressTreeException(RuntimeError):
     pass
 
 
-def get_db_dir(mode: Optional[str] = 'r') -> str:
+def get_db_dir(mode: str = 'r') -> PathLike:
     """
     Get the database directory.
 
@@ -134,8 +138,11 @@ class AddressTree(object):
         The mode in which this tree was opened.
     """
 
-    def __init__(self, dsn=None, trie_path=None, db_dir=None,
-                 mode='a', debug=False):
+    def __init__(self, dsn: Optional[str] = None,
+                 trie_path: Optional[PathLike] = None,
+                 db_dir: Optional[PathLike] = None,
+                 mode: str = 'a',
+                 debug: bool = False):
         """
         The initializer
 
@@ -143,13 +150,13 @@ class AddressTree(object):
         ----------
         dsn: str, optional
             Data Source Name of the database.
-        trie_path: str, optional
+        trie_path: PathLike, optional
             File path to save the TRIE index.
-        db_dir: str, optional
+        db_dir: PathLike, optional
             The database directory.
             If dsn and trie_path are omitted and db_dir is set,
             'address.db' and 'address.trie' under this directory will be used.
-        mode: str, optional(default='a')
+        mode: str (default='a')
             Specifies the mode for opening the database.
             - In the case of 'a', if the database already exists,
               use it. Otherwize create a new one.
@@ -157,7 +164,7 @@ class AddressTree(object):
               delete it first. Then create a new one.
             - In the case of 'r', if the database already exists,
               use it. Otherwise raise a JageocoderError exception.
-        debug: bool, Optional(default=False)
+        debug: bool default=False)
             Debugging flag.
         """
         # Set default values
@@ -204,7 +211,17 @@ class AddressTree(object):
         self.re_int = re.compile(r'^\-?\d+$')
         self.re_address = re.compile(r'^(\d+);(.*)$')
 
-    def close(self):
+        # Check database version
+        if self.mode == 'w':
+            self.__create_db()
+
+        db_version = self.get_version()
+        if not self.is_version_compatible():
+            logger.warning((
+                "The database ({}) is not compatible with the module ({})."
+            ).format(db_version, jageocoder.version.dictionary_version()))
+
+    def close(self) -> NoReturn:
         if self.session:
             self.session.close()
 
@@ -213,36 +230,62 @@ class AddressTree(object):
             del self.engine
             self.engine = None
 
-    def __not_in_readonly_mode(self):
+    def is_version_compatible(self) -> bool:
+        """
+        Check if the dictionary version is compatible with the package.
+
+        Returns
+        -------
+        bool
+            True if compatible, otherwize False.
+        """
+        current_dict_ver = self.get_version()
+        required_dict_ver = jageocoder.version.dictionary_version()
+        if current_dict_ver != required_dict_ver:
+            return False
+
+        return True
+
+    def __not_in_readonly_mode(self) -> NoReturn:
+        """
+        Check if the dictionary is not opened in the read-only mode.
+
+        If the mode is read-only, AddressTreeException will be raised.
+        """
         if self.mode == 'r':
             raise AddressTreeException(
                 'This method is not available in read-only mode.')
 
-    def create_db(self):
+    def __create_db(self) -> NoReturn:
         """
         Create database and tables.
         """
         self.__not_in_readonly_mode()
         Base.metadata.create_all(self.engine)
+        root = self.get_root()
+        root.save_recursive(self.session)
+        self.session.commit()
 
-    def get_session(self):
+    def get_session(self) -> Session:
         """
         Get the database session.
 
         Returns
         -------
-        The sqlalchemy.orm.Session object.
+        sqlalchemy.orm.Session:
+            The current session object.
         """
         return self.session
 
-    def get_root(self):
+    def get_root(self) -> AddressNode:
         """
         Get the root-node of the tree.
         If not set yet, create and get the node from the database.
 
         Returns
         -------
-        The AddressNode object.
+        AddressNode:
+            The root node object.
         """
         if self.root:
             return self.root
@@ -250,12 +293,29 @@ class AddressTree(object):
         # Try to get root from the database
         try:
             self.root = self.session.query(
-                AddressNode).filter_by(name='_root_').one()
+                AddressNode).filter_by(id=-1).one()
         except NoResultFound:
             # Create a new root
-            self.root = AddressNode(id=-1, name="_root_", parent_id=None)
+            self.root = AddressNode(
+                id=-1, name="_root_", parent_id=None,
+                note=jageocoder.version.dictionary_version())
 
         return self.root
+
+    def get_version(self) -> str:
+        """
+        Get the version of the tree file.
+
+        Return
+        ------
+        str:
+            The version string.
+        """
+        root_node = self.get_root()
+        if root_node.note is None:
+            return "(no version)"
+
+        return root_node.note
 
     def check_line_format(self, args: List[str]) -> int:
         """
@@ -366,6 +426,10 @@ class AddressTree(object):
         """
 
         def fv(val: str) -> Union[float, None]:
+            """
+            Convert str to float value.
+            If the str is empty, return None.
+            """
             if val == '':
                 return None
             return float(val)
@@ -394,8 +458,11 @@ class AddressTree(object):
         raise AddressTreeException(
             'Unexpected line format id: {}'.format(format_id))
 
-    def add_address(self, address_names, do_update=False,
-                    cache=None, **kwargs):
+    def add_address(self,
+                    address_names: List[str],
+                    do_update: bool = False,
+                    cache: Optional[LRU] = None,
+                    **kwargs) -> AddressNode:
         """
         Create a new AddressNode and add to the tree.
 
@@ -408,7 +475,7 @@ class AddressTree(object):
             When an address with the same name already exists,
             update it with the value of kwargs if 'do_update' is true,
             otherwise do nothing.
-        cache : LRU
+        cache : LRU, optional
             A dict object to use as a cache for improving performance,
             whose keys are the address notation from the prefecture level
             and whose values are the corresponding nodes.
@@ -421,7 +488,7 @@ class AddressTree(object):
 
         Return
         ------
-        AddressNode
+        AddressNode:
             The added node.
         """
         self.__not_in_readonly_mode()
@@ -472,7 +539,51 @@ class AddressTree(object):
 
         return cur_node
 
-    def create_trie_index(self):
+    def update_name_index(self) -> int:
+        """
+        Update `name_index` field using the standardizing logic
+        of the current version.
+
+        Note
+        ----
+        This method also updates the version information of
+        the dictionary.
+
+        Return
+        ------
+        int:
+            Number of records updated.
+        """
+        self.__not_in_readonly_mode()
+        counts = self.session.query(AddressNode).count()
+        pagesize = 100000
+        diffs = 0
+        for offset in range(0, counts, pagesize):
+            logger.info("Updated {} / {}".format(offset, counts))
+            nodes = self.session.query(
+                AddressNode).offset(offset).limit(pagesize)
+            for node in nodes:
+                new_name_index = itaiji_converter.standardize(node.name)
+                if node.name_index != new_name_index:
+                    logger.info((
+                        'The index of "{}" was updated from "{}" to "{}"'
+                    ).format(node.name, node.name_index, new_name_index))
+                    node.name_index = new_name_index
+                    self.session.add(node)
+                    diffs += 1
+
+            self.session.commit()
+
+        logger.info("Update completed.")
+        # Update version
+        root_node = self.get_root()
+        root_node.note = jageocoder.version.dictionary_version()
+        self.session.add(root_node)
+        self.session.commit()
+
+        return diffs
+
+    def create_trie_index(self) -> NoReturn:
         """
         Create the TRIE index from the tree.
         """
@@ -487,7 +598,7 @@ class AddressTree(object):
 
         self._set_index_table()
 
-    def _get_index_table(self):
+    def _get_index_table(self) -> NoReturn:
         """
         Collect the names of all address elements
         to be registered in the TRIE index.
@@ -502,11 +613,13 @@ class AddressTree(object):
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
         for node in self.session.query(
-            AddressNode.id, AddressNode.name, AddressNode.parent_id).filter(
+            AddressNode.id, AddressNode.name,
+            AddressNode.parent_id).filter(
                 AddressNode.level <= AddressLevel.OAZA):
             tmp_id_name_table[node.id] = node
 
-        logger.debug("  {} records found.".format(len(tmp_id_name_table)))
+        logger.debug("  {} records found.".format(
+            len(tmp_id_name_table)))
 
         # Create index_table
         self.index_table = {}
@@ -536,7 +649,7 @@ class AddressTree(object):
 
         self.session.commit()
 
-    def _set_index_table(self):
+    def _set_index_table(self) -> NoReturn:
         """
         Map all the id of the TRIE index (TRIE id) to the node id.
 
@@ -573,7 +686,7 @@ class AddressTree(object):
         self.session.commit()
         logger.debug("  done.")
 
-    def save_all(self):
+    def save_all(self) -> NoReturn:
         """
         Save all AddressNode in the tree to the database.
         """
@@ -583,19 +696,20 @@ class AddressTree(object):
         self.session.commit()
         logger.debug("Finished save tree.")
 
-    def read_file(self, path, do_update=False):
+    def read_file(self, path: PathLike,
+                  do_update: bool = False) -> NoReturn:
         """
         Add AddressNodes from a text file.
         See 'data/test.txt' for the format of the text file.
 
         Parameters
         ----------
-        path : str
+        path : PathLike
             Text file path.
         do_update : bool (default=False)
             When an address with the same name already exists,
-            update it with the value of the new data if 'do_update' is true,
-            otherwise do nothing.
+            update it with the value of the new data
+            if 'do_update' is true, otherwise do nothing.
         """
         raise AddressTreeException(
             'This method is not available in read-only mode.')
@@ -604,7 +718,8 @@ class AddressTree(object):
                   errors='backslashreplace') as f:
             self.read_stream(f, do_update=do_update)
 
-    def read_stream(self, fp: TextIO, do_update: bool = False) -> NoReturn:
+    def read_stream(self, fp: TextIO,
+                    do_update: bool = False) -> NoReturn:
         """
         Add AddressNodes to the tree from a stream.
 
@@ -614,8 +729,8 @@ class AddressTree(object):
             Input text stream.
         do_update : bool (default=False)
             When an address with the same name already exists,
-            update it with the value of the new data if 'do_update' is true,
-            otherwise do nothing.
+            update it with the value of the new data
+            if 'do_update' is true, otherwise do nothing.
         """
         self.__not_in_readonly_mode()
         nread = 0
@@ -686,7 +801,7 @@ class AddressTree(object):
 
         logger.debug("Done.")
 
-    def drop_indexes(self):
+    def drop_indexes(self) -> NoReturn:
         """
         Drop indexes to improve the speed of bulk insertion.
         - ix_node_parent_id ON node (parent_id)
@@ -697,7 +812,7 @@ class AddressTree(object):
         self.session.execute("DROP INDEX ix_node_parent_id")
         logger.debug("  done.")
 
-    def create_tree_index(self):
+    def create_tree_index(self) -> NoReturn:
         """
         Add index later that were not initially defined.
         - ix_node_parent_id ON node (parent_id)
@@ -713,7 +828,7 @@ class AddressTree(object):
 
         logger.debug("  done.")
 
-    def search_by_tree(self, address_names):
+    def search_by_tree(self, address_names: List[str]) -> AddressNode:
         """
         Get the corresponding node id from the list of address element names,
         recursively search for child nodes using the tree.
@@ -730,7 +845,8 @@ class AddressTree(object):
 
         Return
         ------
-        The last matched node.
+        AddressNode:
+            The node matched last.
         """
         cur_node = self.get_root()
         for name in address_names:
@@ -743,7 +859,8 @@ class AddressTree(object):
 
         return cur_node
 
-    def search_by_trie(self, query: str, best_only=True):
+    def search_by_trie(self, query: str,
+                       best_only: bool = True) -> dict:
         """
         Get the list of corresponding nodes using the TRIE index.
         Returns a list of address element nodes that match
@@ -798,10 +915,11 @@ class AddressTree(object):
 
     @deprecated(('Renamed to `searchNode()` because it was confusing'
                  ' with jageocoder.search()'))
-    def search(self, query: str, **kwargs):
+    def search(self, query: str, **kwargs) -> list:
         return self.searchNode(query, **kwargs)
 
-    def searchNode(self, query: str, best_only: Optional[bool] = True):
+    def searchNode(self, query: str,
+                   best_only: bool = True) -> List[Result]:
         """
         Searches for address nodes corresponding to an address notation
         and returns the matching substring and a list of nodes.
@@ -810,19 +928,19 @@ class AddressTree(object):
         ----------
         query : str
             An address notation to be searched.
-        best_only: bool, optional
+        best_only: bool (default = True)
             If set to False, Returns all candidates whose prefix matches.
 
         Return
         ------
-        list
+        list:
             A list of AddressNode and matched substring pairs.
 
         Note
         ----
         The `search_by_trie` function returns the standardized string
-        as the match string. In contrast, the `searchNode` function returns
-        the de-starndized string.
+        as the match string. In contrast, the `searchNode` function
+        returns the de-starndized string.
 
         Example
         -------
@@ -838,6 +956,7 @@ class AddressTree(object):
                         key=lambda v: len(v[1]))
 
         matched_substring = {}
+        results = []
         for v in values:
             if v[1] in matched_substring:
                 matched = matched_substring[v[1]]
@@ -845,11 +964,11 @@ class AddressTree(object):
                 matched = self._get_matched_substring(query, v[1])
                 matched_substring[v[1]] = matched
 
-            v[1] = matched
+            results.append(Result(v[0], matched))
 
-        return values
+        return results
 
-    def _get_matched_substring(self, query, matched):
+    def _get_matched_substring(self, query: str, matched: str) -> str:
         """
         From the substring matched standardized string,
         recover the corresponding substring of the original search string.
@@ -863,7 +982,8 @@ class AddressTree(object):
 
         Return
         ------
-        The recovered substring.
+        str:
+            The recovered substring.
         """
         l_result = len(matched)
         pos = l_result if l_result <= len(query) else len(query)
