@@ -1,10 +1,8 @@
 from logging import getLogger
 
+from jageocoder.exceptions import AddressLevelError
+
 logger = getLogger(__name__)
-
-
-class AddressLevelError(RuntimeError):
-    pass
 
 
 class AddressLevel(object):

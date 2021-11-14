@@ -5,8 +5,7 @@ import os
 import re
 import site
 import sys
-from typing import AnyStr, Union, NoReturn, List, Optional, TextIO,\
-    TypeVar
+from typing import Union, NoReturn, List, Optional, TextIO
 
 from deprecated import deprecated
 from sqlalchemy import Index
@@ -17,24 +16,17 @@ from sqlalchemy.exc import OperationalError
 
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
+from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
 import jageocoder.version
 
-PathLike = TypeVar(os.PathLike, AnyStr, None)
 logger = getLogger(__name__)
 
 
-class AddressTreeException(RuntimeError):
-    """
-    Custom exception classes sent out by AddressTree submodule.
-    """
-    pass
-
-
-def get_db_dir(mode: str = 'r') -> PathLike:
+def get_db_dir(mode: str = 'r') -> os.PathLike:
     """
     Get the database directory.
 
@@ -139,8 +131,8 @@ class AddressTree(object):
     """
 
     def __init__(self, dsn: Optional[str] = None,
-                 trie_path: Optional[PathLike] = None,
-                 db_dir: Optional[PathLike] = None,
+                 trie_path: Optional[os.PathLike] = None,
+                 db_dir: Optional[os.PathLike] = None,
                  mode: str = 'a',
                  debug: bool = False):
         """
@@ -150,9 +142,9 @@ class AddressTree(object):
         ----------
         dsn: str, optional
             Data Source Name of the database.
-        trie_path: PathLike, optional
+        trie_path: os.PathLike, optional
             File path to save the TRIE index.
-        db_dir: PathLike, optional
+        db_dir: os.PathLike, optional
             The database directory.
             If dsn and trie_path are omitted and db_dir is set,
             'address.db' and 'address.trie' under this directory will be used.
@@ -177,9 +169,9 @@ class AddressTree(object):
         default_dsn = 'sqlite:///' + os.path.join(db_dir, 'address.db')
         default_trie_path = os.path.join(db_dir, 'address.trie')
 
-        self.dsn = dsn if dsn else default_dsn
+        self.dsn = dsn or default_dsn
         self.db_path = self.dsn[len('sqlite:///'):]
-        self.trie_path = trie_path if trie_path else default_trie_path
+        self.trie_path = trie_path or default_trie_path
 
         # Options
         self.debug = debug
@@ -556,10 +548,10 @@ class AddressTree(object):
         """
         self.__not_in_readonly_mode()
         counts = self.session.query(AddressNode).count()
-        pagesize = 100000
+        pct = 0
+        pagesize = int(counts / 100) + 1
         diffs = 0
         for offset in range(0, counts, pagesize):
-            logger.info("Updated {} / {}".format(offset, counts))
             nodes = self.session.query(
                 AddressNode).offset(offset).limit(pagesize)
             for node in nodes:
@@ -573,6 +565,9 @@ class AddressTree(object):
                     diffs += 1
 
             self.session.commit()
+            pct += 1
+            logger.info("Updated {pct}% ({offset}/{total})".format(
+                pct=pct, offset=offset + pagesize, total=counts))
 
         logger.info("Update completed.")
         # Update version
@@ -696,7 +691,7 @@ class AddressTree(object):
         self.session.commit()
         logger.debug("Finished save tree.")
 
-    def read_file(self, path: PathLike,
+    def read_file(self, path: os.PathLike,
                   do_update: bool = False) -> NoReturn:
         """
         Add AddressNodes from a text file.
@@ -704,7 +699,7 @@ class AddressTree(object):
 
         Parameters
         ----------
-        path : PathLike
+        path : os.PathLike
             Text file path.
         do_update : bool (default=False)
             When an address with the same name already exists,
@@ -961,14 +956,16 @@ class AddressTree(object):
             if v[1] in matched_substring:
                 matched = matched_substring[v[1]]
             else:
-                matched = self._get_matched_substring(query, v[1])
+                matched = self._get_matched_substring(query, v)
                 matched_substring[v[1]] = matched
 
             results.append(Result(v[0], matched))
 
         return results
 
-    def _get_matched_substring(self, query: str, matched: str) -> str:
+    def _get_matched_substring(
+            self, query: str,
+            retrieved: list) -> str:
         """
         From the substring matched standardized string,
         recover the corresponding substring of the original search string.
@@ -985,18 +982,42 @@ class AddressTree(object):
         str:
             The recovered substring.
         """
+        recovered = None
+        node, matched = retrieved
         l_result = len(matched)
         pos = l_result if l_result <= len(query) else len(query)
+        pos_history = [pos]
 
         while True:
             substr = query[0:pos]
             standardized = itaiji_converter.standardize(substr)
             l_standardized = len(standardized)
-            if l_standardized == l_result:
-                matched = substr
-                return substr
 
-            if l_standardized < l_result:
+            if l_standardized == l_result:
+                recovered = substr
+                break
+
+            if l_standardized <= l_result:
                 pos += 1
             else:
                 pos -= 1
+
+            if pos < 0 or pos > len(query):
+                break
+
+            if pos in pos_history:
+                message = "Can't de-standardize matched {} in {}".format(
+                    matched, query)
+                raise AddressTreeException(message)
+
+        if pos < len(query) and node.name != '':
+            if query[pos] == node.name[-1]:
+                # If the last character of the node name matches
+                # the next character in the query string,
+                # add up to that character to the result.
+                recovered = query[0:pos+1]
+            elif query[-2:] in ('通り', '通リ'):
+                # '通' can be expressed as '通り'
+                recovered = query[0:pos+1]
+
+        return recovered

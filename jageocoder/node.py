@@ -9,12 +9,9 @@ from sqlalchemy.orm import backref, relationship
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.strlib import strlib
 
 logger = getLogger(__name__)
-
-
-class AddressNodeError(RuntimeError):
-    pass
 
 
 class AddressNode(Base):
@@ -196,6 +193,32 @@ class AddressNode(Base):
 
                 continue
 
+            if child.name_index.endswith('.') and \
+                    index.startswith(child.name_index[0:-1]):
+                # Unusual cases:
+                # If the name ends with '.', it may be interpreted as
+                # a single number concatenated with subsequent numbers.
+                # Therefore, if the part excluding the period matches,
+                # it is considered an exact match.
+                # ex. index='与14.' and child.name_index='与1.'
+                offset = len(child.name_index) - 1
+                rest_index = index[offset:]
+                logger.debug(
+                    "child:{} match {} chars in the middle of a number".format(
+                        child, offset))
+                did_child_match = False
+                for cand in child.search_recursive(
+                        rest_index, session):
+                    if cand[1] != '':
+                        did_child_match = True
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + child.name_index[0:-1] + cand[1]
+                        ])
+
+                if did_child_match:
+                    continue
+
             l_optional_postfix = itaiji_converter.check_optional_postfixes(
                 child.name_index)
             if l_optional_postfix > 0:
@@ -211,15 +234,22 @@ class AddressNode(Base):
                         offset += 1
 
                     rest_index = index[offset:]
-                    logger.debug(
-                        "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(rest_index, session):
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + index[0: offset] + cand[1]
-                        ])
+                    if rest_index == '' or \
+                            strlib.get_ctype(rest_index[0]) in (
+                                strlib.KATAKANA, strlib.HIRAGANA, strlib.ASCII,
+                                strlib.NUMERIC, strlib.ALPHABET) or \
+                            rest_index[0] in ('字甲乙丙'):
 
-                    continue
+                        logger.debug(
+                            "child:{} match {} chars".format(child, offset))
+                        for cand in child.search_recursive(
+                                rest_index, session):
+                            candidates.append([
+                                cand[0],
+                                optional_prefix + index[0: offset] + cand[1]
+                            ])
+
+                        continue
 
             if '条' in child.name_index:
                 # Support for Sapporo City and other cities that use

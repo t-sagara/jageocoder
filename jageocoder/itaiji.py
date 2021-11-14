@@ -1,14 +1,21 @@
 import json
+from logging import getLogger
 import os
 from typing import Union
 
 from jageocoder.strlib import strlib
 
+logger = getLogger(__name__)
+
 
 class Converter(object):
 
     optional_prefixes = ['字', '大字', '小字']
-    optional_postfixes = ['条', '線', '丁', '丁目', '番', '番地', '号']
+    optional_postfixes = ['条', '線', '丁', '丁目', '番', '番地', '号',
+                          '市', '区', '町', '村']
+
+    kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
+    latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
 
     def __init__(self):
         """
@@ -117,39 +124,45 @@ class Converter(object):
         notation = notation[l_optional_prefix:]
 
         notation = notation.translate(
-            self.trans_itaiji).translate(self.trans_z2h)
+            self.trans_itaiji).translate(self.trans_z2h).upper()
+
+        notation = notation.replace('通り', '通')
 
         prectype, ctype, nctype = strlib.ASCII, strlib.ASCII, strlib.ASCII
         new_notation = ""
         i = 0
 
-        kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
-        latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
-
         while i < len(notation):
             c = notation[i]
             prectype = ctype
-            ctype = nctype
+            if i == 0:
+                ctype = strlib.get_ctype(c)
+            else:
+                ctype = nctype
 
             if i == len(notation) - 1:
                 nctype = strlib.ASCII
             else:
                 nctype = strlib.get_ctype(notation[i + 1])
 
+            # logger.debug(
+            #    "c:{c}, pret:{prectype}, ct:{ctype}, nt:{nctype}".format(
+            #    c = c, prectype = prectype, ctype = ctype, nctype = nctype))
+
             # 'ノ' and 'の' between numeric or ascii letters
             # are treated as hyphens.
-            if c in 'ノの' and prectype in latin1_letters and \
-                    nctype in latin1_letters:
+            if c in 'ノの' and prectype in self.latin1_letters and \
+                    nctype in self.latin1_letters:
                 new_notation += '-'
                 ctype = strlib.ASCII
                 i += 1
                 continue
 
             # Remove optional characters when placed between
-            # kanji characters.
+            # characters except Kana.
             if c in 'ケヶガがツッつノの' and \
-               prectype not in (kana_letters) and \
-               nctype not in (kana_letters):
+               prectype not in self.kana_letters and \
+               nctype not in self.kana_letters:
                 ctype = prectype
                 i += 1
                 continue
