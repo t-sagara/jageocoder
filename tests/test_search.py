@@ -13,6 +13,21 @@ class TestSearchMethods(unittest.TestCase):
     def setUpClass(cls):
         jageocoder.init(mode='r')
 
+    def test_jukyo(self):
+        """
+        Test for addresses followed by other strings.
+        """
+        query = "多摩市落合1-15多摩センタートーセイビル"
+        result = jageocoder.search(query)
+        self.assertEqual(result['matched'], '多摩市落合1-15')
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0]
+        self.assertEqual(top['level'], 7)
+        self.assertEqual(
+            top['fullname'],
+            ['東京都', '多摩市', '落合', '一丁目', '15番地'])
+
     def test_sapporo(self):
         """
         Test a notation which is omitting '条' in Sapporo city.
@@ -113,6 +128,17 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(
             top['fullname'],
             ['北海道', '札幌市', '中央区', '北十一条', '西十三丁目'])
+
+        query = '山形市大字十文字１'
+        result = jageocoder.search(query)
+        self.assertEqual(result['matched'], '山形市大字十文字１')
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0]
+        self.assertEqual(top['level'], 7)
+        self.assertEqual(
+            top['fullname'],
+            ['山形県', '山形市', '大字十文字', '1番地'])
 
     def test_kana_no(self):
         """

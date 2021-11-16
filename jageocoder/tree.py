@@ -14,6 +14,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 
+import jageocoder
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.exceptions import AddressTreeException
@@ -21,7 +22,6 @@ from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
-import jageocoder.version
 
 logger = getLogger(__name__)
 
@@ -211,7 +211,7 @@ class AddressTree(object):
         if not self.is_version_compatible():
             logger.warning((
                 "The database ({}) is not compatible with the module ({})."
-            ).format(db_version, jageocoder.version.dictionary_version()))
+            ).format(db_version, jageocoder.dictionary_version()))
 
     def close(self) -> NoReturn:
         if self.session:
@@ -232,7 +232,7 @@ class AddressTree(object):
             True if compatible, otherwize False.
         """
         current_dict_ver = self.get_version()
-        required_dict_ver = jageocoder.version.dictionary_version()
+        required_dict_ver = jageocoder.dictionary_version()
         if current_dict_ver != required_dict_ver:
             return False
 
@@ -290,7 +290,7 @@ class AddressTree(object):
             # Create a new root
             self.root = AddressNode(
                 id=-1, name="_root_", parent_id=None,
-                note=jageocoder.version.dictionary_version())
+                note=jageocoder.dictionary_version())
 
         return self.root
 
@@ -572,7 +572,7 @@ class AddressTree(object):
         logger.info("Update completed.")
         # Update version
         root_node = self.get_root()
-        root_node.note = jageocoder.version.dictionary_version()
+        root_node.note = jageocoder.dictionary_version()
         self.session.add(root_node)
         self.session.commit()
 
@@ -1011,10 +1011,14 @@ class AddressTree(object):
                 raise AddressTreeException(message)
 
         if pos < len(query) and node.name != '':
-            if query[pos] == node.name[-1]:
-                # If the last character of the node name matches
-                # the next character in the query string,
-                # add up to that character to the result.
+            if query[pos] == node.name[-1] and \
+                    len(itaiji_converter.standardize(
+                        query[0:pos+1])) == l_result:
+                # When the last letter of a node name is omitted
+                # by normalization, and if the query string contains
+                # that letter, it is determined to have matched
+                # up to that letter.
+                # Ex. "兵庫県宍粟市山崎町上ノ１５０２" will match "上ノ".
                 recovered = query[0:pos+1]
             elif query[-2:] in ('通り', '通リ'):
                 # '通' can be expressed as '通り'

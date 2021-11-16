@@ -220,36 +220,32 @@ class AddressNode(Base):
                     continue
 
             l_optional_postfix = itaiji_converter.check_optional_postfixes(
-                child.name_index)
+                child.name_index, child.level)
             if l_optional_postfix > 0:
                 # In case the index string of the child node with optional
                 # postfixes removed is completely included in the beginning
                 # of the search string.
                 # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
-                child.name_index[-l_optional_postfix:]
                 alt_child_index = child.name_index[0: -l_optional_postfix]
+                logger.debug(
+                    "child:{} has optional postfix {}".format(
+                        child, child.name_index[l_optional_postfix:]))
                 if index.startswith(alt_child_index):
                     offset = len(alt_child_index)
                     if len(index) > offset and index[offset] == '-':
                         offset += 1
 
                     rest_index = index[offset:]
-                    if rest_index == '' or \
-                            strlib.get_ctype(rest_index[0]) in (
-                                strlib.KATAKANA, strlib.HIRAGANA, strlib.ASCII,
-                                strlib.NUMERIC, strlib.ALPHABET) or \
-                            rest_index[0] in ('字甲乙丙'):
+                    logger.debug(
+                        "child:{} match {} chars".format(child, offset))
+                    for cand in child.search_recursive(
+                            rest_index, session):
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + index[0: offset] + cand[1]
+                        ])
 
-                        logger.debug(
-                            "child:{} match {} chars".format(child, offset))
-                        for cand in child.search_recursive(
-                                rest_index, session):
-                            candidates.append([
-                                cand[0],
-                                optional_prefix + index[0: offset] + cand[1]
-                            ])
-
-                        continue
+                    continue
 
             if '条' in child.name_index:
                 # Support for Sapporo City and other cities that use

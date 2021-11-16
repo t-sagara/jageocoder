@@ -6,6 +6,7 @@ import urllib.request
 from urllib.error import URLError
 import zipfile
 
+import jageocoder
 from jageocoder.exceptions import JageocoderError
 from jageocoder.tree import AddressTree, get_db_dir
 
@@ -299,3 +300,11 @@ def create_trie_index() -> NoReturn:
 
     global _tree
     _tree.create_trie_index()
+
+
+def version():
+    return jageocoder.__version__
+
+
+def dictionary_version():
+    return jageocoder.__dictionary_version__

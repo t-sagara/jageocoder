@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 import jageocoder
-import jageocoder.version
+from jageocoder.exceptions import JageocoderError
 from docopt import docopt
 
 HELP = """
@@ -45,7 +45,8 @@ Examples:
 """.format(p='jageocoder')
 
 
-def get_download_url(level: Optional[str] = None):
+def get_download_url(level: Optional[str] = None,
+                     version: Optional[str] = None):
     """
     Generate dictionary file download url.
 
@@ -55,15 +56,19 @@ def get_download_url(level: Optional[str] = None):
         The basename of the dictionary file.
         The default value is 'jusho'.
 
+    version: str, optional
+        Version string.
+        If ommitted, use compatible version with the package.
+
     Returns
     -------
     str
         The download URL.
     """
     base = level or 'jusho'
-    url = 'https://www.info-proto.com/static/{base}-{dict_ver}.zip'
-    url = url.format(base=base,
-                     dict_ver=jageocoder.version.dictionary_version())
+    version = version or jageocoder.dictionary_version()
+    url = 'https://www.info-proto.com/static/{base}-{version}.zip'
+    url = url.format(base=base, version=version)
 
     return url
 
@@ -80,13 +85,28 @@ if __name__ == '__main__':
     if args['download-dictionary']:
         level = 'gaiku' if args['--gaiku'] else 'jusho'
         url = args['<url>'] or get_download_url(level)
-        jageocoder.download_dictionary(url=url)
+        try:
+            jageocoder.download_dictionary(url=url)
+        except JageocoderError:
+            logging.warning((
+                'Could not find a compatible version of the dictionary.'
+                ' Download the latest version instead.'))
+            jageocoder.download_dictionary(
+                url=get_download_url(level, 'latest'))
+
     elif args['install-dictionary']:
         level = 'gaiku' if args['--gaiku'] else 'jusho'
         path_or_url = args['<url_or_path>'] or get_download_url(level)
-        jageocoder.install_dictionary(
-            path_or_url=path_or_url,
-            db_dir=args['--db-dir'])
+        try:
+            jageocoder.install_dictionary(
+                path_or_url=path_or_url,
+                db_dir=args['--db-dir'])
+        except JageocoderError:
+            logging.warning((
+                'Could not find a compatible version of the dictionary. '
+                'Run "download-dictionary" to download '
+                'the latest version instead.'))
+
     elif args['uninstall-dictionary']:
         jageocoder.uninstall_dictionary(
             db_dir=args['--db-dir'])

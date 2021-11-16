@@ -3,6 +3,7 @@ from logging import getLogger
 import os
 from typing import Union
 
+from jageocoder.address import AddressLevel
 from jageocoder.strlib import strlib
 
 logger = getLogger(__name__)
@@ -11,8 +12,14 @@ logger = getLogger(__name__)
 class Converter(object):
 
     optional_prefixes = ['字', '大字', '小字']
-    optional_postfixes = ['条', '線', '丁', '丁目', '番', '番地', '号',
-                          '市', '区', '町', '村']
+    optional_postfixes = {
+        AddressLevel.CITY: ['市', '区', '町', '村'],
+        AddressLevel.WORD: ['区'],
+        AddressLevel.OAZA: ['町', '条', '線', '丁', '丁目'],
+        AddressLevel.AZA: ['町', '条', '線', '丁', '丁目'],
+        AddressLevel.BLOCK: ['番', '番地'],
+        AddressLevel.BLD: ['号', '番地'],
+    }
 
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
@@ -50,12 +57,13 @@ class Converter(object):
 
         Parameters
         ----------
-        notation : str
+        notation: str
             The address notation to be checked.
 
         Return
         ------
-        The length of optional prefixes string.
+        int
+            The length of optional prefixes string.
 
         Examples
         --------
@@ -71,7 +79,7 @@ class Converter(object):
 
         return 0
 
-    def check_optional_postfixes(self, notation):
+    def check_optional_postfixes(self, notation: str, level: int) -> int:
         """
         Check optional postfixes in the notation and
         return the length of the postfix string.
@@ -80,20 +88,26 @@ class Converter(object):
         ----------
         notation : str
             The address notation to be checked.
+        level: int
+            Address level of the target element.
 
         Return
         ------
-        The length of optional postfixes string.
+        int
+            The length of optional postfixes string.
 
         Examples
         --------
         >>> from jageocoder.itaiji import converter
-        >>> converter.check_optional_postfixes('1番地')
+        >>> converter.check_optional_postfixes('1番地', 7)
         2
-        >>> converter.check_optional_postfixes('15号')
+        >>> converter.check_optional_postfixes('15号', 8)
         1
         """
-        for postfix in self.__class__.optional_postfixes:
+        if level not in self.__class__.optional_postfixes:
+            return 0
+
+        for postfix in self.__class__.optional_postfixes[level]:
             if notation.endswith(postfix):
                 return len(postfix)
 
