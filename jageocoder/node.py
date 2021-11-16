@@ -4,6 +4,7 @@ from typing import List
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
 from sqlalchemy import or_
+from sqlalchemy.orm import deferred
 from sqlalchemy.orm import backref, relationship
 
 from jageocoder.address import AddressLevel
@@ -43,12 +44,12 @@ class AddressNode(Base):
     __tablename__ = 'node'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(256), nullable=False)
+    name = deferred(Column(String(256), nullable=False))
     name_index = Column(String(256), nullable=False)
-    x = Column(Float, nullable=True)
-    y = Column(Float, nullable=True)
+    x = deferred(Column(Float, nullable=True))
+    y = deferred(Column(Float, nullable=True))
     level = Column(Integer, nullable=True)
-    note = Column(Text, nullable=True)
+    note = deferred(Column(Text, nullable=True))
     parent_id = Column(Integer, ForeignKey('node.id'), nullable=True)
     children = relationship(
         "AddressNode",
@@ -264,7 +265,7 @@ class AddressNode(Base):
 
                     continue
 
-        if self.level == AddressLevel.WORD and self.parent.name == '京都市':
+        if self.level == AddressLevel.WARD and self.parent.name == '京都市':
             # Street name (通り名) support in Kyoto City
             # If a matching part of the search string is found in the
             # child nodes, the part before the name is skipped
@@ -421,7 +422,7 @@ class AddressNode(Base):
         Returns the name of city that contains this node.
         """
         node = self.retrieve_upper_node([
-            AddressLevel.CITY, AddressLevel.WORD])
+            AddressLevel.CITY, AddressLevel.WARD])
         if node is None:
             return ''
 
@@ -433,7 +434,7 @@ class AddressNode(Base):
         contains this node.
         """
         node = self.retrieve_upper_node([
-            AddressLevel.CITY, AddressLevel.WORD])
+            AddressLevel.CITY, AddressLevel.WARD])
         if node is None or node.note is None:
             return ''
 

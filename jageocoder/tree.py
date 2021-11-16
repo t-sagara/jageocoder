@@ -213,6 +213,29 @@ class AddressTree(object):
                 "The database ({}) is not compatible with the module ({})."
             ).format(db_version, jageocoder.dictionary_version()))
 
+        self.kyoto_wards = None
+
+    def _set_kyoto_wards(self) -> NoReturn:
+        """
+        To process street names in Kyoto, create a list of IDs of the wards
+        that will be subject to exception handling.
+        """
+        if self.kyoto_wards is not None:
+            return
+
+        # Get node-id of words in Kyoto-city
+        self.kyoto_wards = []
+        try:
+            kyoto_city_id = next(iter(
+                self.search_by_trie_new('京都府京都市').keys()))
+        except StopIteration:
+            return
+
+        for node in self.session.execute(
+            'SELECT id FROM node WHERE parent_id={} AND level={}'.format(
+                kyoto_city_id, AddressLevel.WARD)):
+            self.kyoto_wards.append(node.id)
+
     def close(self) -> NoReturn:
         if self.session:
             self.session.close()
@@ -308,6 +331,37 @@ class AddressTree(object):
             return "(no version)"
 
         return root_node.note
+
+    def get_node_by_id(self, node_id: int) -> AddressNode:
+        """
+        Get the full node information by its id.
+
+        Parameters
+        ----------
+        node_id: int
+            The target node id.
+
+        Return
+        ------
+        AddressNode
+        """
+        return self.session.query(AddressNode).get(node_id)
+
+    def get_node_fullname(self, node: Union[AddressNode, int]) -> List[str]:
+        if isinstance(node, AddressNode):
+            node_id = node.id
+        else:
+            node_id = node
+
+        names = []
+        while node_id >= 0:
+            node = self.session.execute(
+                'SELECT parent_id, name FROM node WHERE id={}'.format(
+                    node_id)).one()
+            names.insert(0, node.name)
+            node_id = node.parent_id
+
+        return names
 
     def check_line_format(self, args: List[str]) -> int:
         """
@@ -908,6 +962,61 @@ class AddressTree(object):
 
         return results
 
+    def search_by_trie_new(self, query: str,
+                           best_only: bool = True) -> dict:
+        """
+        Get the list of corresponding nodes using the TRIE index.
+        Returns a list of address element nodes that match
+        the query string in the longest part from the beginning.
+
+        For example, '中央区中央1丁目' will return the nodes
+        corresponding to '千葉県千葉市中央区中央一丁目' and
+        '神奈川県相模原市中央区中央一丁目'.
+
+        Parameters
+        ----------
+        query : str
+            An address notation to be searched.
+        best_only : bool (option, default=True)
+            If true, get the best candidates will be returned.
+
+        Return
+        ------
+        A dict object whose key is a node id
+        and whose value is a list of node and substrings
+        that match the query.
+        """
+        index = itaiji_converter.standardize(query)
+        candidates = self.trie.common_prefixes(index)
+        results = {}
+        max_len = 0
+
+        self._set_kyoto_wards()
+        for k, id in candidates.items():
+            trienodes = self.session.query(
+                TrieNode).filter_by(trie_id=id).all()
+            offset = len(k)
+            rest_index = index[offset:]
+            for trienode in trienodes:
+                node = trienode.node
+                results_by_node = self.search_recursive(
+                    node.id, rest_index)
+                for cand in results_by_node:
+                    _len = offset + len(cand[1])
+                    if best_only:
+                        if _len > max_len:
+                            results = {}
+                            max_len = _len
+
+                        if _len == max_len and cand[0] not in results:
+                            results[cand[0]] = [cand[0], k + cand[1]]
+
+                    else:
+                        results[cand[0]] = [cand[0], k + cand[1]]
+                        max_len = _len if _len > max_len else max_len
+
+        return results
+
     @deprecated(('Renamed to `searchNode()` because it was confusing'
                  ' with jageocoder.search()'))
     def search(self, query: str, **kwargs) -> list:
@@ -945,14 +1054,14 @@ class AddressTree(object):
         >>> tree.searchNode('多摩市落合1-15-2')
         [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
         """
-        results = self.search_by_trie(query, best_only)
-
+        results = self.search_by_trie_new(query, best_only)
         values = sorted(results.values(), reverse=True,
                         key=lambda v: len(v[1]))
 
         matched_substring = {}
         results = []
         for v in values:
+            v[0] = self.session.query(AddressNode).get(v[0])
             if v[1] in matched_substring:
                 matched = matched_substring[v[1]]
             else:
@@ -1025,3 +1134,171 @@ class AddressTree(object):
                 recovered = query[0:pos+1]
 
         return recovered
+
+    def search_recursive(self, node_id: int, index: str):
+        """
+        Search nodes recursively that match the specified address notation.
+
+        Parameter
+        ---------
+        node_id: int
+            The node id.
+        index : str
+            The standardized address notation.
+
+        Return
+        ------
+        A list of relevant AddressNode.
+        """
+        l_optional_prefix = itaiji_converter.check_optional_prefixes(index)
+        optional_prefix = index[0: l_optional_prefix]
+        index = index[l_optional_prefix:]
+
+        logger.debug("node:{}, index:{}, optional_prefix:{}".format(
+            node_id, index, optional_prefix))
+        if len(index) == 0:
+            return [[node_id, optional_prefix]]
+
+        conds = []
+
+        if '0' <= index[0] and index[0] <= '9':
+            # If it starts with a number,
+            # look for a node that matches the numeric part exactly.
+            for i in range(0, len(index)):
+                if index[i] == '.':
+                    break
+
+            substr = index[0:i+1] + '%'
+            conds.append("name_index LIKE '{}'".format(substr))
+            logger.debug("  conds: name_index LIKE '{}'".format(substr))
+        else:
+            # If it starts with not a number,
+            # look for a node with a maching first letter.
+            substr = index[0:1] + '%'
+            conds.append("name_index LIKE '{}'".format(substr))
+            logger.debug("  conds: name_index LIKE '{}'".format(substr))
+
+        statement = 'SELECT id, name_index, level FROM node '\
+            + 'WHERE parent_id={node_id} AND {conds}'.format(
+                node_id=node_id, conds=' OR '.join(conds))
+        result = self.session.execute(statement)
+        logger.debug("Executing: {}".format(statement))
+
+        candidates = []
+        for child in result:
+            logger.debug("-> comparing; {}".format(child.name_index))
+
+            if index.startswith(child.name_index):
+                # In case the index string of the child node is
+                # completely included in the beginning of the search string.
+                # ex. index='東京都新宿区...' and child.name_index='東京都'
+                offset = len(child.name_index)
+                rest_index = index[offset:]
+                logger.debug("child:{} match {} chars".format(child, offset))
+                for cand in self.search_recursive(child.id, rest_index):
+                    candidates.append([
+                        cand[0],
+                        optional_prefix + child.name_index + cand[1]
+                    ])
+
+                continue
+
+            if child.name_index.endswith('.') and \
+                    index.startswith(child.name_index[0:-1]):
+                # Unusual cases:
+                # If the name ends with '.', it may be interpreted as
+                # a single number concatenated with subsequent numbers.
+                # Therefore, if the part excluding the period matches,
+                # it is considered an exact match.
+                # ex. index='与14.' and child.name_index='与1.'
+                offset = len(child.name_index) - 1
+                rest_index = index[offset:]
+                logger.debug(
+                    "child:{} match {} chars in the middle of a number".format(
+                        child, offset))
+                did_child_match = False
+                for cand in self.search_recursive(child.id, rest_index):
+                    if cand[1] != '':
+                        did_child_match = True
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + child.name_index[0:-1] + cand[1]
+                        ])
+
+                if did_child_match:
+                    continue
+
+            l_optional_postfix = itaiji_converter.check_optional_postfixes(
+                child.name_index, child.level)
+            if l_optional_postfix > 0:
+                # In case the index string of the child node with optional
+                # postfixes removed is completely included in the beginning
+                # of the search string.
+                # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
+                alt_child_index = child.name_index[0: -l_optional_postfix]
+                logger.debug(
+                    "child:{} has optional postfix {}".format(
+                        child.name_index,
+                        child.name_index[l_optional_postfix:]))
+                if index.startswith(alt_child_index):
+                    offset = len(alt_child_index)
+                    if len(index) > offset and index[offset] == '-':
+                        offset += 1
+
+                    rest_index = index[offset:]
+                    logger.debug(
+                        "child:{} match {} chars".format(
+                            child.name_index, offset))
+                    for cand in self.search_recursive(
+                            child.id, rest_index):
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + index[0: offset] + cand[1]
+                        ])
+
+                    continue
+
+            if '条' in child.name_index:
+                # Support for Sapporo City and other cities that use
+                # "北3西1" instead of "北3条西１丁目".
+                alt_name_index = child.name_index.replace('条', '', 1)
+                if index.startswith(alt_name_index):
+                    offset = len(alt_name_index)
+                    rest_index = index[offset:]
+                    logger.debug(
+                        "child:{} match {} chars".format(
+                            child.id, offset))
+                    for cand in child.search_recursive(
+                            child.id, rest_index):
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + alt_name_index + cand[1]
+                        ])
+
+                    continue
+
+        if node_id in self.kyoto_wards:
+            # Street name (通り名) support in Kyoto City
+            # If a matching part of the search string is found in the
+            # child nodes, the part before the name is skipped
+            # as a street name.
+            cur_node = self.session.query(AddressNode).get(node_id)
+            for child in cur_node.children:
+                pos = index.find(child.name_index)
+                if pos > 0:
+                    offset = pos + len(child.name_index)
+                    rest_index = index[offset:]
+                    logger.debug(
+                        "child:{} match {} chars".format(child, offset))
+                    for cand in self.search_recursive(child.id, rest_index):
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + index[0: offset] + cand[1]
+                        ])
+
+        if len(candidates) == 0:
+            candidates = [[node_id, '']]
+
+        logger.debug("node:{} returns {}".format(node_id, candidates))
+
+        return candidates

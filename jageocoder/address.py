@@ -24,7 +24,7 @@ class AddressLevel(object):
     PREF = 1
     COUNTY = 2
     CITY = 3
-    WORD = 4
+    WARD = 4
     OAZA = 5
     AZA = 6
     BLOCK = 7
@@ -68,7 +68,7 @@ class AddressLevel(object):
 
         if lastchar == '区':
             if parent.level == cls.CITY:
-                return cls.WORD
+                return cls.WARD
 
             if parent.name == '東京都':
                 return cls.CITY

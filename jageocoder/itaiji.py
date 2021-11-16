@@ -14,7 +14,7 @@ class Converter(object):
     optional_prefixes = ['字', '大字', '小字']
     optional_postfixes = {
         AddressLevel.CITY: ['市', '区', '町', '村'],
-        AddressLevel.WORD: ['区'],
+        AddressLevel.WARD: ['区'],
         AddressLevel.OAZA: ['町', '条', '線', '丁', '丁目'],
         AddressLevel.AZA: ['町', '条', '線', '丁', '丁目'],
         AddressLevel.BLOCK: ['番', '番地'],
