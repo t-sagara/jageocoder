@@ -1,8 +1,10 @@
 # jageocoder - A Python Japanese geocoder
 
+日本語版は README_ja.md をお読みください。
+
 This is a Python port of the Japanese-address geocoder used in CSIS at the University of Tokyo's ["Address Matching Service"](https://newspat.csis.u-tokyo.ac.jp/geocode/modules/addmatch/index.php?content_id=1) and [GSI Maps](https://maps.gsi.go.jp/).
 
-## Getting Started
+# Getting Started
 
 This package provides address-geocoding functionality for Python programs. The basic usage is to specify a dictionary with `init()` then call `search()` to get geocoding results.
 
@@ -14,27 +16,27 @@ python
 {'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 5961406, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
 ```
 
-### Prerequisites
+# How to install
 
-Requires Python 3.6.x or later and the following packages.
+## Prerequisites
+
+Requires Python 3.6.x or later.
+
+The following packages will be installed automatically.
 
 - [marisa-trie](https://pypi.org/project/marisa-trie/)
     for building and retrieving TRIE index
 - [SQLAlchemy](https://pypi.org/project/SQLAlchemy/)
     for abstracting access to the RDBMS
 
-### Installing
+## Install instructions
 
-- Install the package using `pip install jageocoder`
-- Download the latest zipped dictionary data from [here](https://www.info-proto.com/jageocoder/#data)
-- Install the dictionary.
+- Install the package with `pip install jageocoder`
+- Install the dictionary with `install-dictionary` command
 
 ```sh
 pip install jageocoder
-curl https://www.info-proto.com/static/jusho.zip -o jusho.zip
-python
->>> import jageocoder
->>> jageocoder.install_dictionary('jusho.zip')
+python -m jageocoder install-dictionary
 ```
 
 The dictionary database will be created under
@@ -43,30 +45,59 @@ write permission there `{site.USER_DATA}/jageocoder/db/`
 by default.
 
 If you need to know the location of the directory containing
-the dictionary database, perform `get_db_dir()` as follows.
+the dictionary database, perform `get-db-dir` command as follows,
+or call `jageocoder.get_db_dir()` in your script.
 
 ```sh
-python
->>> import jageocoder
->>> jageocoder.get_db_dir()
+python -m jageocoder get-db-dir
 ```
 
 If you prefer to create it in another location, set the environment
-variable `JAGEOCODER_DB_DIR` before executing `install_dictionary()`.
+variable `JAGEOCODER_DB_DIR` before executing `install_dictionary()`
+to specify the directory.
 
 ```sh
 export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
-python
->>> import jageocoder
->>> jageocoder.install_dictionary('jusho.zip')
+python -m install-dictionary
 ```
 
-## Uninstalling
+## Update dictinary
 
-Remove the directory containing the database.
-Then, do `pip uninstall jageocoder`.
+The `install-dictionary` command will download and install
+a version of the address dictionary file that is compatible with
+the currently installed jageocoder package.
 
-## Running the tests
+If you upgrade the jageocoder package after installing
+the address dictionary file, it may no longer be compatible with
+the installed address dictionary file.
+In which case you will need to reinstall or update the dictionary.
+
+To update the dictionary, run the `upgrade-dictionary` command.
+This process may take a long time.
+
+```sh
+python -m upgrade-dictionary
+```
+
+## Uninstall instructions
+
+Remove the directory containing the database, or perform 
+`uninstall-dictionary` command as follows.
+
+```sh
+python -m jageocoder uninstall-dictionary
+```
+
+Then, uninstall the package with `pip` command.
+
+```sh
+pip uninstall jageocoder
+```
+
+
+# For developers
+
+## Running the unittests
 
 ```python
 python -m unittest
@@ -81,12 +112,6 @@ python -m unittest
 
 Please use the dictionary coverter
 [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter).
-
-## Deployment
-
-At this time, this package has been developed more to illustrate the logic of Japanese-address geocoding than for actual use. Because of the emphasis on readability and ease of installation, it is about 50 times slower than the version developed in C++ in 2000.
-
-If you are assuming practical use, consider putting SQLite3 files on fast storages like tmpfs, using cache mechanisms, or using other RDBMS such as PostgreSQL.
 
 ## ToDos
 

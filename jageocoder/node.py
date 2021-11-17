@@ -1,20 +1,18 @@
 from logging import getLogger
 import re
-from typing import List, NoReturn, Optional
+from typing import List
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
 from sqlalchemy import or_
+from sqlalchemy.orm import deferred
 from sqlalchemy.orm import backref, relationship
 
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.strlib import strlib
 
 logger = getLogger(__name__)
-
-
-class AddressNodeError(RuntimeError):
-    pass
 
 
 class AddressNode(Base):
@@ -46,12 +44,12 @@ class AddressNode(Base):
     __tablename__ = 'node'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(256), nullable=False)
+    name = deferred(Column(String(256), nullable=False))
     name_index = Column(String(256), nullable=False)
-    x = Column(Float, nullable=True)
-    y = Column(Float, nullable=True)
+    x = deferred(Column(Float, nullable=True))
+    y = deferred(Column(Float, nullable=True))
     level = Column(Integer, nullable=True)
-    note = Column(Text, nullable=True)
+    note = deferred(Column(Text, nullable=True))
     parent_id = Column(Integer, ForeignKey('node.id'), nullable=True)
     children = relationship(
         "AddressNode",
@@ -196,15 +194,43 @@ class AddressNode(Base):
 
                 continue
 
+            if child.name_index.endswith('.') and \
+                    index.startswith(child.name_index[0:-1]):
+                # Unusual cases:
+                # If the name ends with '.', it may be interpreted as
+                # a single number concatenated with subsequent numbers.
+                # Therefore, if the part excluding the period matches,
+                # it is considered an exact match.
+                # ex. index='与14.' and child.name_index='与1.'
+                offset = len(child.name_index) - 1
+                rest_index = index[offset:]
+                logger.debug(
+                    "child:{} match {} chars in the middle of a number".format(
+                        child, offset))
+                did_child_match = False
+                for cand in child.search_recursive(
+                        rest_index, session):
+                    if cand[1] != '':
+                        did_child_match = True
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + child.name_index[0:-1] + cand[1]
+                        ])
+
+                if did_child_match:
+                    continue
+
             l_optional_postfix = itaiji_converter.check_optional_postfixes(
-                child.name_index)
+                child.name_index, child.level)
             if l_optional_postfix > 0:
                 # In case the index string of the child node with optional
                 # postfixes removed is completely included in the beginning
                 # of the search string.
                 # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
-                child.name_index[-l_optional_postfix:]
                 alt_child_index = child.name_index[0: -l_optional_postfix]
+                logger.debug(
+                    "child:{} has optional postfix {}".format(
+                        child, child.name_index[l_optional_postfix:]))
                 if index.startswith(alt_child_index):
                     offset = len(alt_child_index)
                     if len(index) > offset and index[offset] == '-':
@@ -213,7 +239,8 @@ class AddressNode(Base):
                     rest_index = index[offset:]
                     logger.debug(
                         "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(rest_index, session):
+                    for cand in child.search_recursive(
+                            rest_index, session):
                         candidates.append([
                             cand[0],
                             optional_prefix + index[0: offset] + cand[1]
@@ -238,7 +265,7 @@ class AddressNode(Base):
 
                     continue
 
-        if self.level == AddressLevel.WORD and self.parent.name == '京都市':
+        if self.level == AddressLevel.WARD and self.parent.name == '京都市':
             # Street name (通り名) support in Kyoto City
             # If a matching part of the search string is found in the
             # child nodes, the part before the name is skipped
@@ -257,7 +284,7 @@ class AddressNode(Base):
                         ])
 
         if len(candidates) == 0:
-            candidates = [[self, optional_prefix]]
+            candidates = [[self, '']]
 
         logger.debug("node:{} returns {}".format(self, candidates))
 
@@ -370,7 +397,7 @@ class AddressNode(Base):
         contains this node.
         """
         node = self.retrieve_upper_node([AddressLevel.PREF])
-        if node is None:
+        if node is None or node.note is None:
             return ''
 
         m = re.search(r'jisx0401:(\d{2})', node.note)
@@ -395,7 +422,7 @@ class AddressNode(Base):
         Returns the name of city that contains this node.
         """
         node = self.retrieve_upper_node([
-            AddressLevel.CITY, AddressLevel.WORD])
+            AddressLevel.CITY, AddressLevel.WARD])
         if node is None:
             return ''
 
@@ -407,8 +434,8 @@ class AddressNode(Base):
         contains this node.
         """
         node = self.retrieve_upper_node([
-            AddressLevel.CITY, AddressLevel.WORD])
-        if node is None:
+            AddressLevel.CITY, AddressLevel.WARD])
+        if node is None or node.note is None:
             return ''
 
         m = re.search(r'jisx0402:(\d{5})', node.note)

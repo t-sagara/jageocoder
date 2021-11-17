@@ -9,28 +9,24 @@ from typing import Union, NoReturn, List, Optional, TextIO
 
 from deprecated import deprecated
 from sqlalchemy import Index
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 
+import jageocoder
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
+from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import converter as itaiji_converter
 from jageocoder.node import AddressNode
+from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
 
 logger = getLogger(__name__)
 
 
-class AddressTreeException(RuntimeError):
-    """
-    Custom exception classes sent out by AddressTree submodule.
-    """
-    pass
-
-
-def get_db_dir(mode: Optional[str] = 'r') -> str:
+def get_db_dir(mode: str = 'r') -> os.PathLike:
     """
     Get the database directory.
 
@@ -134,8 +130,11 @@ class AddressTree(object):
         The mode in which this tree was opened.
     """
 
-    def __init__(self, dsn=None, trie_path=None, db_dir=None,
-                 mode='a', debug=False):
+    def __init__(self, dsn: Optional[str] = None,
+                 trie_path: Optional[os.PathLike] = None,
+                 db_dir: Optional[os.PathLike] = None,
+                 mode: str = 'a',
+                 debug: bool = False):
         """
         The initializer
 
@@ -143,13 +142,13 @@ class AddressTree(object):
         ----------
         dsn: str, optional
             Data Source Name of the database.
-        trie_path: str, optional
+        trie_path: os.PathLike, optional
             File path to save the TRIE index.
-        db_dir: str, optional
+        db_dir: os.PathLike, optional
             The database directory.
             If dsn and trie_path are omitted and db_dir is set,
             'address.db' and 'address.trie' under this directory will be used.
-        mode: str, optional(default='a')
+        mode: str (default='a')
             Specifies the mode for opening the database.
             - In the case of 'a', if the database already exists,
               use it. Otherwize create a new one.
@@ -157,7 +156,7 @@ class AddressTree(object):
               delete it first. Then create a new one.
             - In the case of 'r', if the database already exists,
               use it. Otherwise raise a JageocoderError exception.
-        debug: bool, Optional(default=False)
+        debug: bool default=False)
             Debugging flag.
         """
         # Set default values
@@ -170,9 +169,9 @@ class AddressTree(object):
         default_dsn = 'sqlite:///' + os.path.join(db_dir, 'address.db')
         default_trie_path = os.path.join(db_dir, 'address.trie')
 
-        self.dsn = dsn if dsn else default_dsn
+        self.dsn = dsn or default_dsn
         self.db_path = self.dsn[len('sqlite:///'):]
-        self.trie_path = trie_path if trie_path else default_trie_path
+        self.trie_path = trie_path or default_trie_path
 
         # Options
         self.debug = debug
@@ -204,7 +203,40 @@ class AddressTree(object):
         self.re_int = re.compile(r'^\-?\d+$')
         self.re_address = re.compile(r'^(\d+);(.*)$')
 
-    def close(self):
+        # Check database version
+        if self.mode == 'w':
+            self.__create_db()
+
+        db_version = self.get_version()
+        if not self.is_version_compatible():
+            logger.warning((
+                "The database ({}) is not compatible with the module ({})."
+            ).format(db_version, jageocoder.dictionary_version()))
+
+        self.kyoto_wards = None
+
+    def _set_kyoto_wards(self) -> NoReturn:
+        """
+        To process street names in Kyoto, create a list of IDs of the wards
+        that will be subject to exception handling.
+        """
+        if self.kyoto_wards is not None:
+            return
+
+        # Get node-id of words in Kyoto-city
+        self.kyoto_wards = []
+        try:
+            kyoto_city_id = next(iter(
+                self.search_by_trie_new('京都府京都市').keys()))
+        except StopIteration:
+            return
+
+        for node in self.session.execute(
+            'SELECT id FROM node WHERE parent_id={} AND level={}'.format(
+                kyoto_city_id, AddressLevel.WARD)):
+            self.kyoto_wards.append(node.id)
+
+    def close(self) -> NoReturn:
         if self.session:
             self.session.close()
 
@@ -213,36 +245,62 @@ class AddressTree(object):
             del self.engine
             self.engine = None
 
-    def __not_in_readonly_mode(self):
+    def is_version_compatible(self) -> bool:
+        """
+        Check if the dictionary version is compatible with the package.
+
+        Returns
+        -------
+        bool
+            True if compatible, otherwize False.
+        """
+        current_dict_ver = self.get_version()
+        required_dict_ver = jageocoder.dictionary_version()
+        if current_dict_ver != required_dict_ver:
+            return False
+
+        return True
+
+    def __not_in_readonly_mode(self) -> NoReturn:
+        """
+        Check if the dictionary is not opened in the read-only mode.
+
+        If the mode is read-only, AddressTreeException will be raised.
+        """
         if self.mode == 'r':
             raise AddressTreeException(
                 'This method is not available in read-only mode.')
 
-    def create_db(self):
+    def __create_db(self) -> NoReturn:
         """
         Create database and tables.
         """
         self.__not_in_readonly_mode()
         Base.metadata.create_all(self.engine)
+        root = self.get_root()
+        root.save_recursive(self.session)
+        self.session.commit()
 
-    def get_session(self):
+    def get_session(self) -> Session:
         """
         Get the database session.
 
         Returns
         -------
-        The sqlalchemy.orm.Session object.
+        sqlalchemy.orm.Session:
+            The current session object.
         """
         return self.session
 
-    def get_root(self):
+    def get_root(self) -> AddressNode:
         """
         Get the root-node of the tree.
         If not set yet, create and get the node from the database.
 
         Returns
         -------
-        The AddressNode object.
+        AddressNode:
+            The root node object.
         """
         if self.root:
             return self.root
@@ -250,12 +308,60 @@ class AddressTree(object):
         # Try to get root from the database
         try:
             self.root = self.session.query(
-                AddressNode).filter_by(name='_root_').one()
+                AddressNode).filter_by(id=-1).one()
         except NoResultFound:
             # Create a new root
-            self.root = AddressNode(id=-1, name="_root_", parent_id=None)
+            self.root = AddressNode(
+                id=-1, name="_root_", parent_id=None,
+                note=jageocoder.dictionary_version())
 
         return self.root
+
+    def get_version(self) -> str:
+        """
+        Get the version of the tree file.
+
+        Return
+        ------
+        str:
+            The version string.
+        """
+        root_node = self.get_root()
+        if root_node.note is None:
+            return "(no version)"
+
+        return root_node.note
+
+    def get_node_by_id(self, node_id: int) -> AddressNode:
+        """
+        Get the full node information by its id.
+
+        Parameters
+        ----------
+        node_id: int
+            The target node id.
+
+        Return
+        ------
+        AddressNode
+        """
+        return self.session.query(AddressNode).get(node_id)
+
+    def get_node_fullname(self, node: Union[AddressNode, int]) -> List[str]:
+        if isinstance(node, AddressNode):
+            node_id = node.id
+        else:
+            node_id = node
+
+        names = []
+        while node_id >= 0:
+            node = self.session.execute(
+                'SELECT parent_id, name FROM node WHERE id={}'.format(
+                    node_id)).one()
+            names.insert(0, node.name)
+            node_id = node.parent_id
+
+        return names
 
     def check_line_format(self, args: List[str]) -> int:
         """
@@ -366,6 +472,10 @@ class AddressTree(object):
         """
 
         def fv(val: str) -> Union[float, None]:
+            """
+            Convert str to float value.
+            If the str is empty, return None.
+            """
             if val == '':
                 return None
             return float(val)
@@ -394,8 +504,11 @@ class AddressTree(object):
         raise AddressTreeException(
             'Unexpected line format id: {}'.format(format_id))
 
-    def add_address(self, address_names, do_update=False,
-                    cache=None, **kwargs):
+    def add_address(self,
+                    address_names: List[str],
+                    do_update: bool = False,
+                    cache: Optional[LRU] = None,
+                    **kwargs) -> AddressNode:
         """
         Create a new AddressNode and add to the tree.
 
@@ -408,7 +521,7 @@ class AddressTree(object):
             When an address with the same name already exists,
             update it with the value of kwargs if 'do_update' is true,
             otherwise do nothing.
-        cache : LRU
+        cache : LRU, optional
             A dict object to use as a cache for improving performance,
             whose keys are the address notation from the prefecture level
             and whose values are the corresponding nodes.
@@ -421,7 +534,7 @@ class AddressTree(object):
 
         Return
         ------
-        AddressNode
+        AddressNode:
             The added node.
         """
         self.__not_in_readonly_mode()
@@ -472,7 +585,54 @@ class AddressTree(object):
 
         return cur_node
 
-    def create_trie_index(self):
+    def update_name_index(self) -> int:
+        """
+        Update `name_index` field using the standardizing logic
+        of the current version.
+
+        Note
+        ----
+        This method also updates the version information of
+        the dictionary.
+
+        Return
+        ------
+        int:
+            Number of records updated.
+        """
+        self.__not_in_readonly_mode()
+        counts = self.session.query(AddressNode).count()
+        pct = 0
+        pagesize = int(counts / 100) + 1
+        diffs = 0
+        for offset in range(0, counts, pagesize):
+            nodes = self.session.query(
+                AddressNode).offset(offset).limit(pagesize)
+            for node in nodes:
+                new_name_index = itaiji_converter.standardize(node.name)
+                if node.name_index != new_name_index:
+                    logger.info((
+                        'The index of "{}" was updated from "{}" to "{}"'
+                    ).format(node.name, node.name_index, new_name_index))
+                    node.name_index = new_name_index
+                    self.session.add(node)
+                    diffs += 1
+
+            self.session.commit()
+            pct += 1
+            logger.info("Updated {pct}% ({offset}/{total})".format(
+                pct=pct, offset=offset + pagesize, total=counts))
+
+        logger.info("Update completed.")
+        # Update version
+        root_node = self.get_root()
+        root_node.note = jageocoder.dictionary_version()
+        self.session.add(root_node)
+        self.session.commit()
+
+        return diffs
+
+    def create_trie_index(self) -> NoReturn:
         """
         Create the TRIE index from the tree.
         """
@@ -487,7 +647,7 @@ class AddressTree(object):
 
         self._set_index_table()
 
-    def _get_index_table(self):
+    def _get_index_table(self) -> NoReturn:
         """
         Collect the names of all address elements
         to be registered in the TRIE index.
@@ -502,11 +662,13 @@ class AddressTree(object):
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
         for node in self.session.query(
-            AddressNode.id, AddressNode.name, AddressNode.parent_id).filter(
+            AddressNode.id, AddressNode.name,
+            AddressNode.parent_id).filter(
                 AddressNode.level <= AddressLevel.OAZA):
             tmp_id_name_table[node.id] = node
 
-        logger.debug("  {} records found.".format(len(tmp_id_name_table)))
+        logger.debug("  {} records found.".format(
+            len(tmp_id_name_table)))
 
         # Create index_table
         self.index_table = {}
@@ -536,7 +698,7 @@ class AddressTree(object):
 
         self.session.commit()
 
-    def _set_index_table(self):
+    def _set_index_table(self) -> NoReturn:
         """
         Map all the id of the TRIE index (TRIE id) to the node id.
 
@@ -573,7 +735,7 @@ class AddressTree(object):
         self.session.commit()
         logger.debug("  done.")
 
-    def save_all(self):
+    def save_all(self) -> NoReturn:
         """
         Save all AddressNode in the tree to the database.
         """
@@ -583,19 +745,20 @@ class AddressTree(object):
         self.session.commit()
         logger.debug("Finished save tree.")
 
-    def read_file(self, path, do_update=False):
+    def read_file(self, path: os.PathLike,
+                  do_update: bool = False) -> NoReturn:
         """
         Add AddressNodes from a text file.
         See 'data/test.txt' for the format of the text file.
 
         Parameters
         ----------
-        path : str
+        path : os.PathLike
             Text file path.
         do_update : bool (default=False)
             When an address with the same name already exists,
-            update it with the value of the new data if 'do_update' is true,
-            otherwise do nothing.
+            update it with the value of the new data
+            if 'do_update' is true, otherwise do nothing.
         """
         raise AddressTreeException(
             'This method is not available in read-only mode.')
@@ -604,7 +767,8 @@ class AddressTree(object):
                   errors='backslashreplace') as f:
             self.read_stream(f, do_update=do_update)
 
-    def read_stream(self, fp: TextIO, do_update: bool = False) -> NoReturn:
+    def read_stream(self, fp: TextIO,
+                    do_update: bool = False) -> NoReturn:
         """
         Add AddressNodes to the tree from a stream.
 
@@ -614,8 +778,8 @@ class AddressTree(object):
             Input text stream.
         do_update : bool (default=False)
             When an address with the same name already exists,
-            update it with the value of the new data if 'do_update' is true,
-            otherwise do nothing.
+            update it with the value of the new data
+            if 'do_update' is true, otherwise do nothing.
         """
         self.__not_in_readonly_mode()
         nread = 0
@@ -686,7 +850,7 @@ class AddressTree(object):
 
         logger.debug("Done.")
 
-    def drop_indexes(self):
+    def drop_indexes(self) -> NoReturn:
         """
         Drop indexes to improve the speed of bulk insertion.
         - ix_node_parent_id ON node (parent_id)
@@ -697,7 +861,7 @@ class AddressTree(object):
         self.session.execute("DROP INDEX ix_node_parent_id")
         logger.debug("  done.")
 
-    def create_tree_index(self):
+    def create_tree_index(self) -> NoReturn:
         """
         Add index later that were not initially defined.
         - ix_node_parent_id ON node (parent_id)
@@ -713,7 +877,7 @@ class AddressTree(object):
 
         logger.debug("  done.")
 
-    def search_by_tree(self, address_names):
+    def search_by_tree(self, address_names: List[str]) -> AddressNode:
         """
         Get the corresponding node id from the list of address element names,
         recursively search for child nodes using the tree.
@@ -730,7 +894,8 @@ class AddressTree(object):
 
         Return
         ------
-        The last matched node.
+        AddressNode:
+            The node matched last.
         """
         cur_node = self.get_root()
         for name in address_names:
@@ -743,7 +908,8 @@ class AddressTree(object):
 
         return cur_node
 
-    def search_by_trie(self, query: str, best_only=True):
+    def search_by_trie(self, query: str,
+                       best_only: bool = True) -> dict:
         """
         Get the list of corresponding nodes using the TRIE index.
         Returns a list of address element nodes that match
@@ -796,12 +962,68 @@ class AddressTree(object):
 
         return results
 
+    def search_by_trie_new(self, query: str,
+                           best_only: bool = True) -> dict:
+        """
+        Get the list of corresponding nodes using the TRIE index.
+        Returns a list of address element nodes that match
+        the query string in the longest part from the beginning.
+
+        For example, '中央区中央1丁目' will return the nodes
+        corresponding to '千葉県千葉市中央区中央一丁目' and
+        '神奈川県相模原市中央区中央一丁目'.
+
+        Parameters
+        ----------
+        query : str
+            An address notation to be searched.
+        best_only : bool (option, default=True)
+            If true, get the best candidates will be returned.
+
+        Return
+        ------
+        A dict object whose key is a node id
+        and whose value is a list of node and substrings
+        that match the query.
+        """
+        index = itaiji_converter.standardize(query)
+        candidates = self.trie.common_prefixes(index)
+        results = {}
+        max_len = 0
+
+        self._set_kyoto_wards()
+        for k, id in candidates.items():
+            trienodes = self.session.query(
+                TrieNode).filter_by(trie_id=id).all()
+            offset = len(k)
+            rest_index = index[offset:]
+            for trienode in trienodes:
+                node = trienode.node
+                results_by_node = self.search_recursive(
+                    node.id, rest_index)
+                for cand in results_by_node:
+                    _len = offset + len(cand[1])
+                    if best_only:
+                        if _len > max_len:
+                            results = {}
+                            max_len = _len
+
+                        if _len == max_len and cand[0] not in results:
+                            results[cand[0]] = [cand[0], k + cand[1]]
+
+                    else:
+                        results[cand[0]] = [cand[0], k + cand[1]]
+                        max_len = _len if _len > max_len else max_len
+
+        return results
+
     @deprecated(('Renamed to `searchNode()` because it was confusing'
                  ' with jageocoder.search()'))
-    def search(self, query: str, **kwargs):
+    def search(self, query: str, **kwargs) -> list:
         return self.searchNode(query, **kwargs)
 
-    def searchNode(self, query: str, best_only: Optional[bool] = True):
+    def searchNode(self, query: str,
+                   best_only: bool = True) -> List[Result]:
         """
         Searches for address nodes corresponding to an address notation
         and returns the matching substring and a list of nodes.
@@ -810,19 +1032,19 @@ class AddressTree(object):
         ----------
         query : str
             An address notation to be searched.
-        best_only: bool, optional
+        best_only: bool (default = True)
             If set to False, Returns all candidates whose prefix matches.
 
         Return
         ------
-        list
+        list:
             A list of AddressNode and matched substring pairs.
 
         Note
         ----
         The `search_by_trie` function returns the standardized string
-        as the match string. In contrast, the `searchNode` function returns
-        the de-starndized string.
+        as the match string. In contrast, the `searchNode` function
+        returns the de-starndized string.
 
         Example
         -------
@@ -832,24 +1054,27 @@ class AddressTree(object):
         >>> tree.searchNode('多摩市落合1-15-2')
         [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
         """
-        results = self.search_by_trie(query, best_only)
-
+        results = self.search_by_trie_new(query, best_only)
         values = sorted(results.values(), reverse=True,
                         key=lambda v: len(v[1]))
 
         matched_substring = {}
+        results = []
         for v in values:
+            v[0] = self.session.query(AddressNode).get(v[0])
             if v[1] in matched_substring:
                 matched = matched_substring[v[1]]
             else:
-                matched = self._get_matched_substring(query, v[1])
+                matched = self._get_matched_substring(query, v)
                 matched_substring[v[1]] = matched
 
-            v[1] = matched
+            results.append(Result(v[0], matched))
 
-        return values
+        return results
 
-    def _get_matched_substring(self, query, matched):
+    def _get_matched_substring(
+            self, query: str,
+            retrieved: list) -> str:
         """
         From the substring matched standardized string,
         recover the corresponding substring of the original search string.
@@ -863,20 +1088,217 @@ class AddressTree(object):
 
         Return
         ------
-        The recovered substring.
+        str:
+            The recovered substring.
         """
+        recovered = None
+        node, matched = retrieved
         l_result = len(matched)
         pos = l_result if l_result <= len(query) else len(query)
+        pos_history = [pos]
 
         while True:
             substr = query[0:pos]
             standardized = itaiji_converter.standardize(substr)
             l_standardized = len(standardized)
-            if l_standardized == l_result:
-                matched = substr
-                return substr
 
-            if l_standardized < l_result:
+            if l_standardized == l_result:
+                recovered = substr
+                break
+
+            if l_standardized <= l_result:
                 pos += 1
             else:
                 pos -= 1
+
+            if pos < 0 or pos > len(query):
+                break
+
+            if pos in pos_history:
+                message = "Can't de-standardize matched {} in {}".format(
+                    matched, query)
+                raise AddressTreeException(message)
+
+        if pos < len(query) and node.name != '':
+            if query[pos] == node.name[-1] and \
+                    len(itaiji_converter.standardize(
+                        query[0:pos+1])) == l_result:
+                # When the last letter of a node name is omitted
+                # by normalization, and if the query string contains
+                # that letter, it is determined to have matched
+                # up to that letter.
+                # Ex. "兵庫県宍粟市山崎町上ノ１５０２" will match "上ノ".
+                recovered = query[0:pos+1]
+            elif query[-2:] in ('通り', '通リ'):
+                # '通' can be expressed as '通り'
+                recovered = query[0:pos+1]
+
+        return recovered
+
+    def search_recursive(self, node_id: int, index: str):
+        """
+        Search nodes recursively that match the specified address notation.
+
+        Parameter
+        ---------
+        node_id: int
+            The node id.
+        index : str
+            The standardized address notation.
+
+        Return
+        ------
+        A list of relevant AddressNode.
+        """
+        l_optional_prefix = itaiji_converter.check_optional_prefixes(index)
+        optional_prefix = index[0: l_optional_prefix]
+        index = index[l_optional_prefix:]
+
+        logger.debug("node:{}, index:{}, optional_prefix:{}".format(
+            node_id, index, optional_prefix))
+        if len(index) == 0:
+            return [[node_id, optional_prefix]]
+
+        conds = []
+
+        if '0' <= index[0] and index[0] <= '9':
+            # If it starts with a number,
+            # look for a node that matches the numeric part exactly.
+            for i in range(0, len(index)):
+                if index[i] == '.':
+                    break
+
+            substr = index[0:i+1] + '%'
+            conds.append("name_index LIKE '{}'".format(substr))
+            logger.debug("  conds: name_index LIKE '{}'".format(substr))
+        else:
+            # If it starts with not a number,
+            # look for a node with a maching first letter.
+            substr = index[0:1] + '%'
+            conds.append("name_index LIKE '{}'".format(substr))
+            logger.debug("  conds: name_index LIKE '{}'".format(substr))
+
+        statement = 'SELECT id, name_index, level FROM node '\
+            + 'WHERE parent_id={node_id} AND {conds}'.format(
+                node_id=node_id, conds=' OR '.join(conds))
+        result = self.session.execute(statement)
+        logger.debug("Executing: {}".format(statement))
+
+        candidates = []
+        for child in result:
+            logger.debug("-> comparing; {}".format(child.name_index))
+
+            if index.startswith(child.name_index):
+                # In case the index string of the child node is
+                # completely included in the beginning of the search string.
+                # ex. index='東京都新宿区...' and child.name_index='東京都'
+                offset = len(child.name_index)
+                rest_index = index[offset:]
+                logger.debug("child:{} match {} chars".format(child, offset))
+                for cand in self.search_recursive(child.id, rest_index):
+                    candidates.append([
+                        cand[0],
+                        optional_prefix + child.name_index + cand[1]
+                    ])
+
+                continue
+
+            if child.name_index.endswith('.') and \
+                    index.startswith(child.name_index[0:-1]):
+                # Unusual cases:
+                # If the name ends with '.', it may be interpreted as
+                # a single number concatenated with subsequent numbers.
+                # Therefore, if the part excluding the period matches,
+                # it is considered an exact match.
+                # ex. index='与14.' and child.name_index='与1.'
+                offset = len(child.name_index) - 1
+                rest_index = index[offset:]
+                logger.debug(
+                    "child:{} match {} chars in the middle of a number".format(
+                        child, offset))
+                did_child_match = False
+                for cand in self.search_recursive(child.id, rest_index):
+                    if cand[1] != '':
+                        did_child_match = True
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + child.name_index[0:-1] + cand[1]
+                        ])
+
+                if did_child_match:
+                    continue
+
+            l_optional_postfix = itaiji_converter.check_optional_postfixes(
+                child.name_index, child.level)
+            if l_optional_postfix > 0:
+                # In case the index string of the child node with optional
+                # postfixes removed is completely included in the beginning
+                # of the search string.
+                # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
+                alt_child_index = child.name_index[0: -l_optional_postfix]
+                logger.debug(
+                    "child:{} has optional postfix {}".format(
+                        child.name_index,
+                        child.name_index[l_optional_postfix:]))
+                if index.startswith(alt_child_index):
+                    offset = len(alt_child_index)
+                    if len(index) > offset and index[offset] == '-':
+                        offset += 1
+
+                    rest_index = index[offset:]
+                    logger.debug(
+                        "child:{} match {} chars".format(
+                            child.name_index, offset))
+                    for cand in self.search_recursive(
+                            child.id, rest_index):
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + index[0: offset] + cand[1]
+                        ])
+
+                    continue
+
+            if '条' in child.name_index:
+                # Support for Sapporo City and other cities that use
+                # "北3西1" instead of "北3条西１丁目".
+                alt_name_index = child.name_index.replace('条', '', 1)
+                if index.startswith(alt_name_index):
+                    offset = len(alt_name_index)
+                    rest_index = index[offset:]
+                    logger.debug(
+                        "child:{} match {} chars".format(
+                            child.id, offset))
+                    for cand in child.search_recursive(
+                            child.id, rest_index):
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + alt_name_index + cand[1]
+                        ])
+
+                    continue
+
+        if node_id in self.kyoto_wards:
+            # Street name (通り名) support in Kyoto City
+            # If a matching part of the search string is found in the
+            # child nodes, the part before the name is skipped
+            # as a street name.
+            cur_node = self.session.query(AddressNode).get(node_id)
+            for child in cur_node.children:
+                pos = index.find(child.name_index)
+                if pos > 0:
+                    offset = pos + len(child.name_index)
+                    rest_index = index[offset:]
+                    logger.debug(
+                        "child:{} match {} chars".format(child, offset))
+                    for cand in self.search_recursive(child.id, rest_index):
+                        candidates.append([
+                            cand[0],
+                            optional_prefix + index[0: offset] + cand[1]
+                        ])
+
+        if len(candidates) == 0:
+            candidates = [[node_id, '']]
+
+        logger.debug("node:{} returns {}".format(node_id, candidates))
+
+        return candidates

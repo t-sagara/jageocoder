@@ -4,6 +4,14 @@ from typing import Union
 
 class Strlib(object):
 
+    UNKNOWN = -1
+    ASCII = 0
+    KANJI = 1
+    NUMERIC = 2
+    HIRAGANA = 4
+    KATAKANA = 5
+    ALPHABET = 6
+
     def __init__(self):
         self.hyphen = ("\u002D\uFE63\uFF0D\u2010\u2011\u2043\u02D6"
                        "\u2212\u2012\u2013\u2014\u2015\uFE58\u30FC")
@@ -172,6 +180,10 @@ class Strlib(object):
         {'n': 135, 'i': 3}
         >>> strlib.get_number('二千四十五万円')
         {'n': 20450000, 'i': 6}
+        >>> strlib.get_number('四十二１０１')
+        {'n': 42, 'i': 3}
+        >>> strlib.get_number('4千2百')
+        {'n': 4200, 'i': 4}
         >>> strlib.get_number('こんにちは')
         {'n': 0, 'i': 0}
         """
@@ -181,10 +193,19 @@ class Strlib(object):
 
         pos = 0
         for i, c in enumerate(string):
-            if c in '0123456789' or self.is_arabic_number(c):
+            if mode != 1 and \
+                    (c in '0123456789' or self.is_arabic_number(c)):
                 k = self.get_numeric_char(c)
                 curval = curval * 10 + k
                 mode = 0
+                pos += 1
+
+            elif c in '十百千万':
+                k = self.get_numeric_char(c)
+                curval = 1 if curval == 0 else curval
+                total = total * k if total % k > 0 else total
+                total += curval * k
+                curval = 0
                 pos += 1
 
             elif mode == 0:
@@ -196,14 +217,6 @@ class Strlib(object):
                     break
 
                 curval = curval * 10 + k
-                mode = 1
-                pos += 1
-            elif c in '十百千万':
-                k = self.get_numeric_char(c)
-                curval = 1 if curval == 0 else curval
-                total = total * k if total % k > 0 else total
-                total += curval * k
-                curval = 0
                 mode = 1
                 pos += 1
 
@@ -250,19 +263,20 @@ class Strlib(object):
         1
         """
         if self.re_hira.match(c):
-            return 4  # ひらがな
+            return self.HIRAGANA  # ひらがな
         elif self.re_kata.match(c):
-            return 5  # カタカナ
+            return self.KATAKANA  # カタカナ
         elif self.re_en.match(c):
-            return 6  # 半角アルファベット
+            return self.ALPHABET  # 半角アルファベット
         elif self.re_ascii.match(c):
-            return 0  # アスキー文字
+            return self.ASCII     # アスキー文字
         elif c in self.arabic or c in self.kansuji:
-            return 2  # 数字
+            return self.NUMERIC   # 数字
         elif self.re_cjk.match(c):
-            return 1  # 漢字
+            return self.KANJI     # 漢字
 
-        return -1  # 不明
+        return self.UNKNOWN       # 不明
 
 
-strlib = Strlib()  # singleton
+if 'strlib' not in vars():
+    strlib = Strlib()  # singleton

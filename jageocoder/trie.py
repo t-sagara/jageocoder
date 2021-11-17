@@ -6,6 +6,7 @@ from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from jageocoder.base import Base
+from jageocoder.exceptions import AddressTrieError
 
 logger = getLogger(__name__)
 
@@ -39,13 +40,6 @@ class TrieNode(Base):
     node_id = Column(Integer, ForeignKey('node.id'), nullable=False)
 
     node = relationship("AddressNode")
-
-
-class AddressTrieError(RuntimeError):
-    """
-    Custom exception classes sent out by AddressTrie submodule.
-    """
-    pass
 
 
 class AddressTrie(object):

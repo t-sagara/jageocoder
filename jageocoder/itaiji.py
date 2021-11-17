@@ -1,14 +1,28 @@
 import json
+from logging import getLogger
 import os
 from typing import Union
 
+from jageocoder.address import AddressLevel
 from jageocoder.strlib import strlib
+
+logger = getLogger(__name__)
 
 
 class Converter(object):
 
     optional_prefixes = ['字', '大字', '小字']
-    optional_postfixes = ['条', '線', '丁', '丁目', '番', '番地', '号']
+    optional_postfixes = {
+        AddressLevel.CITY: ['市', '区', '町', '村'],
+        AddressLevel.WARD: ['区'],
+        AddressLevel.OAZA: ['町', '条', '線', '丁', '丁目'],
+        AddressLevel.AZA: ['町', '条', '線', '丁', '丁目'],
+        AddressLevel.BLOCK: ['番', '番地'],
+        AddressLevel.BLD: ['号', '番地'],
+    }
+
+    kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
+    latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
 
     def __init__(self):
         """
@@ -43,12 +57,13 @@ class Converter(object):
 
         Parameters
         ----------
-        notation : str
+        notation: str
             The address notation to be checked.
 
         Return
         ------
-        The length of optional prefixes string.
+        int
+            The length of optional prefixes string.
 
         Examples
         --------
@@ -64,7 +79,7 @@ class Converter(object):
 
         return 0
 
-    def check_optional_postfixes(self, notation):
+    def check_optional_postfixes(self, notation: str, level: int) -> int:
         """
         Check optional postfixes in the notation and
         return the length of the postfix string.
@@ -73,20 +88,26 @@ class Converter(object):
         ----------
         notation : str
             The address notation to be checked.
+        level: int
+            Address level of the target element.
 
         Return
         ------
-        The length of optional postfixes string.
+        int
+            The length of optional postfixes string.
 
         Examples
         --------
         >>> from jageocoder.itaiji import converter
-        >>> converter.check_optional_postfixes('1番地')
+        >>> converter.check_optional_postfixes('1番地', 7)
         2
-        >>> converter.check_optional_postfixes('15号')
+        >>> converter.check_optional_postfixes('15号', 8)
         1
         """
-        for postfix in self.__class__.optional_postfixes:
+        if level not in self.__class__.optional_postfixes:
+            return 0
+
+        for postfix in self.__class__.optional_postfixes[level]:
             if notation.endswith(postfix):
                 return len(postfix)
 
@@ -105,6 +126,10 @@ class Converter(object):
         ------
         str
             The standardized address notation string.
+
+        Examples
+        --------
+
         """
         if notation is None or len(notation) == 0:
             return notation
@@ -113,42 +138,53 @@ class Converter(object):
         notation = notation[l_optional_prefix:]
 
         notation = notation.translate(
-            self.trans_itaiji).translate(self.trans_z2h)
+            self.trans_itaiji).translate(self.trans_z2h).upper()
 
-        prectype, ctype, nctype = 0, 0, 0
+        notation = notation.replace('通り', '通')
+
+        prectype, ctype, nctype = strlib.ASCII, strlib.ASCII, strlib.ASCII
         new_notation = ""
         i = 0
 
         while i < len(notation):
             c = notation[i]
             prectype = ctype
-            ctype = nctype
+            if i == 0:
+                ctype = strlib.get_ctype(c)
+            else:
+                ctype = nctype
 
             if i == len(notation) - 1:
-                nctype = 0
+                nctype = strlib.ASCII
             else:
                 nctype = strlib.get_ctype(notation[i + 1])
 
-            # Omit characters that may be omitted if they are
-            # sandwiched between kanji.
-            if c in 'ケヶガがツッつ' and \
-               prectype not in (4, 5) and nctype not in (4, 5):
-                ctype = prectype
+            # logger.debug(
+            #    "c:{c}, pret:{prectype}, ct:{ctype}, nt:{nctype}".format(
+            #    c = c, prectype = prectype, ctype = ctype, nctype = nctype))
+
+            # 'ノ' and 'の' between numeric or ascii letters
+            # are treated as hyphens.
+            if c in 'ノの' and prectype in self.latin1_letters and \
+                    nctype in self.latin1_letters:
+                new_notation += '-'
+                ctype = strlib.ASCII
                 i += 1
                 continue
 
-            # 'ノ' and 'の' between numbers or ascii letters
-            # are treated as hyphens.
-            if c in 'ノの' and prectype in (0, 2, 6) and nctype in (0, 2, 6):
-                new_notation += '-'
-                ctype = 0
+            # Remove optional characters when placed between
+            # characters except Kana.
+            if c in 'ケヶガがツッつノの' and \
+               prectype not in self.kana_letters and \
+               nctype not in self.kana_letters:
+                ctype = prectype
                 i += 1
                 continue
 
             # Replace hyphen-like characters with '-'
             if strlib.is_hyphen(c):
                 new_notation += '-'
-                ctype = 0
+                ctype = strlib.ASCII
                 i += 1
                 continue
 
@@ -160,7 +196,7 @@ class Converter(object):
                 i += ninfo['i']
                 if i < len(notation) and notation[i] == '.':
                     i += 1
-                ctype = 0
+                ctype = strlib.ASCII
                 continue
 
             new_notation += c
@@ -169,5 +205,7 @@ class Converter(object):
         return new_notation
 
 
-# Create the singleton object of a converter that normalizes address strings
-converter = Converter()
+# Create the singleton object of a converter
+# that normalizes address strings
+if 'converter' not in vars():
+    converter = Converter()

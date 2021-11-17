@@ -8,6 +8,7 @@ sqlalchemy = "*"
 jaconv = "*"
 jageocoder = {editable = true, path = "."}
 deprecated = "*"
+docopt = "*"
 
 [dev-packages]
 autopep8 = "*"
