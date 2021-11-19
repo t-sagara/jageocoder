@@ -267,6 +267,26 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(top['fullname'],
                          ['北海道', '紋別郡', '滝上町', '字滝ノ上市街地一条通'])
 
+    def test_jou_in_middle(self):
+        """
+        '条' in the middle of element names cannot be omitted.
+        """
+        query = '愛知県春日井市上条町１'
+        result = jageocoder.search(query)
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(
+            candidates[0]['fullname'],
+            ['愛知県', '春日井市', '上条町', '一丁目'])
+
+        query = '愛知県春日井市上町１'
+        result = jageocoder.search(query)
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(
+            candidates[0]['fullname'],
+            ['愛知県', '春日井市', '上ノ町', '一丁目'])
+
 
 if __name__ == '__main__':
     unittest.main()
