@@ -248,7 +248,7 @@ class AddressNode(Base):
 
                     continue
 
-            if '条' in child.name_index:
+            if child.name_index.endswith('.条'):
                 # Support for Sapporo City and other cities that use
                 # "北3西1" instead of "北3条西１丁目".
                 alt_name_index = child.name_index.replace('条', '', 1)
