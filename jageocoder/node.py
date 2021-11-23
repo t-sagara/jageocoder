@@ -3,7 +3,6 @@ import re
 from typing import List
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
-from sqlalchemy import or_
 from sqlalchemy.orm import deferred
 from sqlalchemy.orm import backref, relationship
 
@@ -154,116 +153,36 @@ class AddressNode(Base):
             return [[self, optional_prefix]]
 
         conds = []
-
-        if '0' <= index[0] and index[0] <= '9':
+        v = strlib.get_number(index)
+        if v['i'] > 0:
             # If it starts with a number,
             # look for a node that matches the numeric part exactly.
-            for i in range(0, len(index)):
-                if index[i] == '.':
-                    break
-
-            substr = index[0:i+1] + '%'
-            conds.append(self.__class__.name_index.like(substr))
+            substr = '{}.%'.format(v['n'])
+            conds.append(AddressNode.name_index.like(substr))
             logger.debug("  conds: name_index LIKE '{}'".format(substr))
         else:
             # If it starts with not a number,
             # look for a node with a maching first letter.
             substr = index[0:1] + '%'
-            conds.append(self.__class__.name_index.like(substr))
+            conds.append(AddressNode.name_index.like(substr))
             logger.debug("  conds: name_index LIKE '{}'".format(substr))
 
-        filtered_children = session.query(self.__class__).filter(
-            self.__class__.parent_id == self.id, or_(*conds))
+        if '字' in optional_prefix:
+            conds.append(AddressNode.level <= AddressLevel.AZA)
+            logger.debug("    and level <= {}".format(AddressLevel.AZA))
+
+        filtered_children = session.query(AddressNode).filter(
+            self.__class__.parent_id == self.id, *conds).order_by(
+            AddressNode.id)
 
         candidates = []
         for child in filtered_children:
             logger.debug("-> comparing; {}".format(child.name_index))
+            new_candidates = self._get_candidates_from_child(
+                child, index, optional_prefix, session)
 
-            if index.startswith(child.name_index):
-                # In case the index string of the child node is
-                # completely included in the beginning of the search string.
-                # ex. index='東京都新宿区...' and child.name_index='東京都'
-                offset = len(child.name_index)
-                rest_index = index[offset:]
-                logger.debug("child:{} match {} chars".format(child, offset))
-                for cand in child.search_recursive(rest_index, session):
-                    candidates.append([
-                        cand[0],
-                        optional_prefix + child.name_index + cand[1]
-                    ])
-
-                continue
-
-            if child.name_index.endswith('.') and \
-                    index.startswith(child.name_index[0:-1]):
-                # Unusual cases:
-                # If the name ends with '.', it may be interpreted as
-                # a single number concatenated with subsequent numbers.
-                # Therefore, if the part excluding the period matches,
-                # it is considered an exact match.
-                # ex. index='与14.' and child.name_index='与1.'
-                offset = len(child.name_index) - 1
-                rest_index = index[offset:]
-                logger.debug(
-                    "child:{} match {} chars in the middle of a number".format(
-                        child, offset))
-                did_child_match = False
-                for cand in child.search_recursive(
-                        rest_index, session):
-                    if cand[1] != '':
-                        did_child_match = True
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + child.name_index[0:-1] + cand[1]
-                        ])
-
-                if did_child_match:
-                    continue
-
-            l_optional_postfix = itaiji_converter.check_optional_postfixes(
-                child.name_index, child.level)
-            if l_optional_postfix > 0:
-                # In case the index string of the child node with optional
-                # postfixes removed is completely included in the beginning
-                # of the search string.
-                # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
-                alt_child_index = child.name_index[0: -l_optional_postfix]
-                logger.debug(
-                    "child:{} has optional postfix {}".format(
-                        child, child.name_index[l_optional_postfix:]))
-                if index.startswith(alt_child_index):
-                    offset = len(alt_child_index)
-                    if len(index) > offset and index[offset] == '-':
-                        offset += 1
-
-                    rest_index = index[offset:]
-                    logger.debug(
-                        "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(
-                            rest_index, session):
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + index[0: offset] + cand[1]
-                        ])
-
-                    continue
-
-            if child.name_index.endswith('.条'):
-                # Support for Sapporo City and other cities that use
-                # "北3西1" instead of "北3条西１丁目".
-                alt_name_index = child.name_index.replace('条', '', 1)
-                if index.startswith(alt_name_index):
-                    offset = len(alt_name_index)
-                    rest_index = index[offset:]
-                    logger.debug(
-                        "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(rest_index, session):
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + alt_name_index + cand[1]
-                        ])
-
-                    continue
+            if len(new_candidates) > 0:
+                candidates += new_candidates
 
         if self.level == AddressLevel.WARD and self.parent.name == '京都市':
             # Street name (通り名) support in Kyoto City
@@ -286,7 +205,75 @@ class AddressNode(Base):
         if len(candidates) == 0:
             candidates = [[self, '']]
 
-        logger.debug("node:{} returns {}".format(self, candidates))
+        logger.debug("node:{} returns {}".format(self.name, candidates))
+
+        return candidates
+
+    def _get_candidates_from_child(
+            self, child: 'AddressNode',
+            index: str, optional_prefix: str,
+            session) -> list:
+        """
+        Get candidates from the child.
+
+        Parameters
+        ----------
+        child: AddressNode
+            The starting child node.
+        index: str
+            Standardized query string. Numeric characters are kept as
+            original notation.
+        optional_prefix: str
+            The option string that preceded the string passed by index.
+        session: sqlalchemy.orm.Session
+            The session object used for DB access.
+
+        Returns
+        -------
+        list
+            The list of candidates.
+            Each element of the array has the matched AddressNode
+            as the first element and the matched string
+            as the second element.
+        """
+
+        match_len = itaiji_converter.match_len(index, child.name_index)
+        if match_len == 0:
+            l_optional_postfix = itaiji_converter.check_optional_postfixes(
+                child.name_index, child.level)
+            if l_optional_postfix > 0:
+                # In case the index string of the child node with optional
+                # postfixes removed is completely included in the beginning
+                # of the search string.
+                # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
+                alt_child_index = child.name_index[0: -l_optional_postfix]
+                logger.debug(
+                    "child:{} has optional postfix {}".format(
+                        child, child.name_index[-l_optional_postfix:]))
+                match_len = itaiji_converter.match_len(index, alt_child_index)
+                if match_len < len(index) and index[match_len] == '-':
+                    match_len += 1
+
+        if match_len == 0 and child.name_index.endswith('.条'):
+            # Support for Sapporo City and other cities that use
+            # "北3西1" instead of "北3条西１丁目".
+            alt_child_index = child.name_index.replace('条', '', 1)
+            logger.debug("child:{} ends with '.条'".format(child))
+            match_len = itaiji_converter.match_len(index, alt_child_index)
+
+        if match_len == 0:
+            logger.debug("{} doesn't match".format(child.name))
+            return []
+
+        candidates = []
+        offset = match_len
+        rest_index = index[offset:]
+        logger.debug("child:{} match {} chars".format(child, offset))
+        for cand in child.search_recursive(rest_index, session):
+            candidates.append([
+                cand[0],
+                optional_prefix + index[0:match_len] + cand[1]
+            ])
 
         return candidates
 

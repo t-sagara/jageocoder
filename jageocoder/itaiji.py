@@ -12,11 +12,12 @@ logger = getLogger(__name__)
 class Converter(object):
 
     optional_prefixes = ['字', '大字', '小字']
+    # Optional postfixes for each address level
     optional_postfixes = {
         AddressLevel.CITY: ['市', '区', '町', '村'],
         AddressLevel.WARD: ['区'],
-        AddressLevel.OAZA: ['町', '条', '線', '丁', '丁目'],
-        AddressLevel.AZA: ['町', '条', '線', '丁', '丁目'],
+        AddressLevel.OAZA: ['町', '条', '線', '丁', '丁目', '番', '号'],
+        AddressLevel.AZA: ['町', '条', '線', '丁', '丁目', '区', '番', '号'],
         AddressLevel.BLOCK: ['番', '番地'],
         AddressLevel.BLD: ['号', '番地'],
     }
@@ -113,7 +114,8 @@ class Converter(object):
 
         return 0
 
-    def standardize(self, notation: Union[str, None]) -> str:
+    def standardize(self, notation: Union[str, None],
+                    keep_numbers: bool = False) -> str:
         """
         Standardize an address notation.
 
@@ -121,6 +123,8 @@ class Converter(object):
         ----------
         notation : str
             The address notation to be standardized.
+        keep_numbers: bool, optional
+            If set to True, do not process numerical characters.
 
         Return
         ------
@@ -163,6 +167,7 @@ class Converter(object):
             #    "c:{c}, pret:{prectype}, ct:{ctype}, nt:{nctype}".format(
             #    c = c, prectype = prectype, ctype = ctype, nctype = nctype))
 
+            """
             # 'ノ' and 'の' between numeric or ascii letters
             # are treated as hyphens.
             if c in 'ノの' and prectype in self.latin1_letters and \
@@ -180,6 +185,7 @@ class Converter(object):
                 ctype = prectype
                 i += 1
                 continue
+            """
 
             # Replace hyphen-like characters with '-'
             if strlib.is_hyphen(c):
@@ -190,7 +196,7 @@ class Converter(object):
 
             # Replace numbers including Chinese characters
             # with number + '.' in the notation.
-            if strlib.get_numeric_char(c):
+            if not keep_numbers and strlib.get_numeric_char(c):
                 ninfo = strlib.get_number(notation[i:])
                 new_notation += str(ninfo['n']) + '.'
                 i += ninfo['i']
@@ -203,6 +209,74 @@ class Converter(object):
             i += 1
 
         return new_notation
+
+    def match_len(self, string: str, pattern: str) -> int:
+        """
+        Returns the length of the substring that matches the patern
+        from the beginning. The pattern must have been standardized.
+
+        Parameters
+        ----------
+        string: str
+            A long string starting with the pattern.
+        pattern: str
+            The search pattern.
+
+        Returns
+        -------
+        int
+            The length of the substring that matches the pattern.
+            If it does not match exactly, it returns 0.
+        """
+        logger.debug("Searching {} in {}".format(pattern, string))
+        pattern_pos = string_pos = 0
+        while pattern_pos < len(pattern):
+            if string_pos >= len(string):
+                return 0
+
+            c = pattern[pattern_pos]
+            if c < '0' or c > '9':
+                # Compare not numeric character
+                logger.debug("Comparing '{}' with '{}'".format(
+                    c, string[string_pos]))
+                if string[string_pos] != c:
+                    return 0
+
+                pattern_pos += 1
+                string_pos += 1
+                continue
+
+            # Compare numbers:
+            # Check if the numeric sequence of the search string
+            # matches the number expected by the pattern.
+            period_pos = pattern.find('.', pattern_pos)
+            if period_pos < 0:
+                raise RuntimeError(
+                    "No period after a number in the pattern string.")
+
+            expected = int(pattern[pattern_pos:period_pos])
+            logger.debug("Comparing string {} with expected value {}".format(
+                string[string_pos:], expected))
+            for span in range(string_pos + 1, len(string) + 1):
+                if strlib.get_numeric_char(string[span - 1]) is False:
+                    break
+
+                string_num = string[string_pos:span]
+                string_val = (strlib.get_number(string_num))['n']
+                logger.debug("  substring {} is interpreted to {}".format(
+                    string_num, string_val))
+                if string_val == expected:
+                    pattern_pos = period_pos + 1
+                    string_pos = span
+                    logger.debug("Substring {} matches".format(
+                        string_num))
+                    break
+
+            if pattern_pos < period_pos:
+                # The number did not match the expected value
+                return 0
+
+        return string_pos
 
 
 # Create the singleton object of a converter

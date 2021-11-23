@@ -34,6 +34,32 @@ class TestItaijiMethods(unittest.TestCase):
         self._test_qa("龍崎市", "竜崎市")
         self._test_qa("籠原駅", "篭原駅")
 
+    def test_match_len(self):
+        # Compare strings without numeric characters
+        r = converter.match_len(
+            string='東京都多摩市落合',
+            pattern='東京都多摩市落合')
+        self.assertEqual(r, 8)
+
+        # Compare strings containing numeric characters
+        string = converter.standardize(
+            '千代田区一ツ橋２-１', keep_numbers=True)
+        r = converter.match_len(
+            string=string,
+            pattern='1000.代田区1.っ橋2.-1.')
+        self.assertEqual(r, 10)
+
+        # Compare strings containing numeric characters,
+        # a complex case
+        string = converter.standardize(
+            '福島県浪江町高瀬丈六十に', keep_numbers=True)
+        r = converter.match_len(
+            string=string,
+            pattern='福島県浪江町高瀬丈6.10.')
+        self.assertEqual(r, 11)
+
 
 if __name__ == '__main__':
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
     unittest.main()

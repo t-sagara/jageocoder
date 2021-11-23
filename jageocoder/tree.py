@@ -75,7 +75,7 @@ def get_db_dir(mode: str = 'r') -> os.PathLike:
             fp = open(path, 'a')
             fp.close()
             return db_dir
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             continue
 
     return None
@@ -667,7 +667,8 @@ class AddressTree(object):
 
             for i in range(len(node_prefixes)):
                 label = ''.join(node_prefixes[i:])
-                label_standardized = itaiji_converter.standardize(label)
+                label_standardized = itaiji_converter.standardize(
+                    label)
                 if label_standardized in self.index_table:
                     self.index_table[label_standardized].append(v.id)
                 else:
@@ -909,20 +910,43 @@ class AddressTree(object):
         and whose value is a list of node and substrings
         that match the query.
         """
-        index = itaiji_converter.standardize(query)
-        candidates = self.trie.common_prefixes(index)
+        index = itaiji_converter.standardize(
+            query, keep_numbers=True)
+        index_for_trie = itaiji_converter.standardize(query)
+        candidates = self.trie.common_prefixes(index_for_trie)
         results = {}
         max_len = 0
 
-        for k, id in candidates.items():
+        keys = sorted(candidates.keys(),
+                      key=len, reverse=True)
+
+        search_aza = True
+
+        for k in keys:
+            trie_id = candidates[k]
             trienodes = self.session.query(
-                TrieNode).filter_by(trie_id=id).all()
-            offset = len(k)
+                TrieNode).filter_by(trie_id=trie_id).all()
+            offset = itaiji_converter.match_len(index, k)
+            key = index[0:offset]
             rest_index = index[offset:]
             for trienode in trienodes:
                 node = trienode.node
+                if node.level <= AddressLevel.WARD:
+                    # To make the process quicker, once a node higher
+                    # than the ward level is found, addresses starting
+                    # with nodes below the aza level are not searched
+                    # after this.
+                    logger.debug("A node with ward or higher levels found.")
+                    search_aza = False
+                elif not search_aza and best_only:
+                    # Skip Oaza or lower level node when any node
+                    # higher than the Ward level is already found.
+                    # However, if best_only is False, search all.
+                    continue
+
                 results_by_node = node.search_recursive(
                     rest_index, self.session)
+
                 for cand in results_by_node:
                     _len = offset + len(cand[1])
                     if best_only:
@@ -931,10 +955,10 @@ class AddressTree(object):
                             max_len = _len
 
                         if _len == max_len and cand[0].id not in results:
-                            results[cand[0].id] = [cand[0], k + cand[1]]
+                            results[cand[0].id] = [cand[0], key + cand[1]]
 
                     else:
-                        results[cand[0].id] = [cand[0], k + cand[1]]
+                        results[cand[0].id] = [cand[0], key + cand[1]]
                         max_len = _len if _len > max_len else max_len
 
         return results
@@ -997,15 +1021,16 @@ class AddressTree(object):
             self, query: str,
             retrieved: list) -> str:
         """
-        From the substring matched standardized string,
-        recover the corresponding substring of the original search string.
+        From the matched standardized substring,
+        recover the corresponding substring of
+        the original search string.
 
         Parameters
         ----------
         query : str
             The original search string.
         matchd : str
-            The substring matched standardized string.
+            The matched standardized substring.
 
         Return
         ------
@@ -1020,7 +1045,8 @@ class AddressTree(object):
 
         while True:
             substr = query[0:pos]
-            standardized = itaiji_converter.standardize(substr)
+            standardized = itaiji_converter.standardize(
+                substr, keep_numbers=True)
             l_standardized = len(standardized)
 
             if l_standardized == l_result:

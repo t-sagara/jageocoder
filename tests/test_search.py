@@ -43,6 +43,19 @@ class TestSearchMethods(unittest.TestCase):
             top['fullname'],
             ['北海道', '札幌市', '中央区', '北三条', '西一丁目', '7番地'])
 
+    def test_mie(self):
+        """
+        Test for an address beginning with a number.
+        """
+        query = '三重県津市広明町13番地'
+        result = jageocoder.search(query)
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0]
+        self.assertEqual(
+            top['fullname'],
+            ['三重県', '津市', '広明町', '13番地'])
+
     def test_akita(self):
         query = '秋田市山王4-1-1'
         result = jageocoder.search(query)
@@ -94,9 +107,9 @@ class TestSearchMethods(unittest.TestCase):
                       [['東京都', '西多摩郡', '瑞穂町', '箱根ケ崎', '2335番地'],
                        ['東京都', '西多摩郡', '瑞穂町', '大字箱根ケ崎', '2335番地']])
 
-    def test_oaza_extracted(self):
+    def test_split_consecutive_numbers_kansuji_arabic(self):
         """
-        Test whether difficult-to-split Oaza names are split correctly.
+        Split consecutive Kansuji-Arabic numbers in the middle.
         """
         query = '愛知県清須市助七１'
         result = jageocoder.search(query)
@@ -108,6 +121,10 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(top['fullname'],
                          ['愛知県', '清須市', '助七', '一丁目'])
 
+    def test_split_consecutive_numbers_kansuji_kansuji(self):
+        """
+        Split consecutive Kansuji numbers in the middle.
+        """
         query = '静岡県静岡市葵区与一四－１'
         result = jageocoder.search(query)
         self.assertEqual(result['matched'], '静岡県静岡市葵区与一四－１')
@@ -118,17 +135,25 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(top['fullname'],
                          ['静岡県', '静岡市', '葵区', '与一', '四丁目', '1番'])
 
-        query = '札幌市中央区北一一条西一三丁目'
+    def test_not_split_consecutive_numbers(self):
+        """
+        Do not split consecutive numbers in the middle..
+        """
+        query = '札幌市中央区北一一西一三－１'
         result = jageocoder.search(query)
-        self.assertEqual(result['matched'], '札幌市中央区北一一条西一三丁目')
+        self.assertEqual(result['matched'], '札幌市中央区北一一西一三－１')
         candidates = result['candidates']
         self.assertEqual(len(candidates), 1)
         top = candidates[0]
-        self.assertEqual(top['level'], 6)
+        self.assertEqual(top['level'], 7)
         self.assertEqual(
             top['fullname'],
-            ['北海道', '札幌市', '中央区', '北十一条', '西十三丁目'])
+            ['北海道', '札幌市', '中央区', '北十一条', '西十三丁目', '1番'])
 
+    def test_empty_aza(self):
+        """
+        Test parsing an address with an empty AZA name.
+        """
         query = '山形市大字十文字１'
         result = jageocoder.search(query)
         self.assertEqual(result['matched'], '山形市大字十文字１')
@@ -140,7 +165,31 @@ class TestSearchMethods(unittest.TestCase):
             top['fullname'],
             ['山形県', '山形市', '大字十文字', '1番地'])
 
-    def test_kana_no(self):
+    def test_sen_in_aza(self):
+        query = '鳥取県米子市古豊千6'
+        result = jageocoder.search(query)
+        self.assertEqual(result['matched'], '鳥取県米子市古豊千6')
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0]
+        self.assertEqual(top['level'], 7)
+        self.assertEqual(
+            top['fullname'],
+            ['鳥取県', '米子市', '古豊千', '6番地'])
+
+    def test_man_in_aza(self):
+        query = '鳥取県米子市福万619'
+        result = jageocoder.search(query)
+        self.assertEqual(result['matched'], '鳥取県米子市福万')
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0]
+        self.assertEqual(top['level'], 5)
+        self.assertEqual(
+            top['fullname'],
+            ['鳥取県', '米子市', '福万'])
+
+    def test_kana_no_in_kana_string(self):
         """
         The "ノ" in address notations must not be treated as a hyphen.
         """
@@ -154,7 +203,7 @@ class TestSearchMethods(unittest.TestCase):
         self.assertIn(top['fullname'],
                       [['徳島県', '阿南市', '富岡町', 'トノ町', '65番地']])
 
-    def test_kana_no_instring(self):
+    def test_kana_no_in_non_kana_string(self):
         """
         The "ノ" between Kanji can be omitted.
         """
@@ -193,6 +242,26 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(len(candidates), 1)
         top = candidates[0]
         self.assertEqual(top['level'], 5)
+
+    def test_kana_no_aza(self):
+        """
+        Check that Aza names is "ノ".
+        """
+        query = '石川県小松市軽海町ノ１４－１'
+        result = jageocoder.search(query)
+        self.assertEqual(result['matched'], '石川県小松市軽海町ノ１４－')
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0]
+        self.assertEqual(top['level'], 7)
+
+        query = '石川県小松市軽海町ノ－１４－１'
+        result = jageocoder.search(query)
+        self.assertEqual(result['matched'], '石川県小松市軽海町ノ－１４－')
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0]
+        self.assertEqual(top['level'], 7)
 
     def test_kana_ke_terminate(self):
         """
@@ -286,6 +355,51 @@ class TestSearchMethods(unittest.TestCase):
         self.assertEqual(
             candidates[0]['fullname'],
             ['愛知県', '春日井市', '上ノ町', '一丁目'])
+
+    def test_ban_at_aza(self):
+        query = '宮城県仙台市宮城野区福室字久保野２'
+        result = jageocoder.search(query)
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(
+            candidates[0]['fullname'],
+            ['宮城県', '仙台市', '宮城野区', '福室', '久保野二番'])
+
+    def test_gou_at_oaza(self):
+        query = '石川県白山市鹿島町１'
+        result = jageocoder.search(query)
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(
+            candidates[0]['fullname'],
+            ['石川県', '白山市', '鹿島町', '一号'])
+
+    def test_gou_at_aza(self):
+        query = '京都府南丹市園部町河原町４'
+        result = jageocoder.search(query)
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(
+            candidates[0]['fullname'],
+            ['京都府', '南丹市', '園部町河原町', '四号'])
+
+    def test_ku_at_aza(self):
+        query = '北海道北見市留辺蘂町温根湯温泉１'
+        result = jageocoder.search(query)
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(
+            candidates[0]['fullname'],
+            ['北海道', '北見市', '留辺蘂町温根湯温泉', '一区'])
+
+    def test_unnecessary_hyphen(self):
+        query = '涌谷町涌谷八方谷１の16'
+        result = jageocoder.search(query)
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(
+            candidates[0]['fullname'],
+            ['宮城県', '遠田郡', '涌谷町', '涌谷', '八方谷一', '16番地'])
 
 
 if __name__ == '__main__':
