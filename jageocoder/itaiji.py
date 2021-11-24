@@ -3,6 +3,8 @@ from logging import getLogger
 import os
 from typing import Union
 
+import jaconv
+
 from jageocoder.address import AddressLevel
 from jageocoder.strlib import strlib
 
@@ -141,8 +143,15 @@ class Converter(object):
         l_optional_prefix = self.check_optional_prefixes(notation)
         notation = notation[l_optional_prefix:]
 
+        # Convert the notation according to the following rules.
+        # 1. Variant characters with representative characters
+        # 2. ZENKAKU characters with HANKAKU characters
+        # 3. Lower case characters with capitalized characters
+        # 4. HIRAGANA with KATAKANA
         notation = notation.translate(
-            self.trans_itaiji).translate(self.trans_z2h).upper()
+            self.trans_itaiji).translate(
+            self.trans_z2h).upper()
+        notation = jaconv.hira2kata(notation)
 
         notation = notation.replace('通り', '通')
 
@@ -235,11 +244,34 @@ class Converter(object):
                 return 0
 
             c = pattern[pattern_pos]
+            s = string[string_pos]
             if c < '0' or c > '9':
                 # Compare not numeric character
                 logger.debug("Comparing '{}' with '{}'".format(
-                    c, string[string_pos]))
-                if string[string_pos] != c:
+                    c, s))
+                if c != s:
+                    if self.is_optional_char(string, string_pos) and \
+                            string_pos + 1 < len(string) and \
+                            string[string_pos + 1] == c:
+                        logger.debug('"{}" in "{}" is optional.'.format(
+                            s, string))
+                        string_pos += 1
+                        continue
+
+                    if self.is_optional_char(pattern, pattern_pos):
+                        if pattern_pos + 1 == len(pattern):
+                            logger.debug('"{}" in "{}" is optional.'.format(
+                                c, pattern))
+                            pattern_pos += 1
+                            continue
+
+                        if pattern_pos + 1 < len(pattern) and \
+                                pattern[pattern_pos + 1] == s:
+                            logger.debug('"{}" in "{}" is optional.'.format(
+                                c, pattern))
+                            pattern_pos += 1
+                            continue
+
                     return 0
 
                 pattern_pos += 1
@@ -277,6 +309,13 @@ class Converter(object):
                 return 0
 
         return string_pos
+
+    def is_optional_char(self, string: str, pos: int) -> bool:
+        c = string[pos]
+        if c in 'ケヶガがツッつノの':
+            return True
+
+        return False
 
 
 # Create the singleton object of a converter

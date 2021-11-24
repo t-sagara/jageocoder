@@ -920,6 +920,8 @@ class AddressTree(object):
         keys = sorted(candidates.keys(),
                       key=len, reverse=True)
 
+        logger.debug("Trie: {}".format(','.join(keys)))
+
         search_aza = True
 
         for k in keys:

@@ -13,21 +13,23 @@ class TestItaijiMethods(unittest.TestCase):
         # Numeric representations
         self._test_qa("１０１番地", "101.番地")
         self._test_qa("二十四号", "24.号")
-        self._test_qa("あ二五四線", "あ254.線")
+        self._test_qa("あ二五四線", "ア254.線")
 
     def test_replace_no(self):
-        # Replace 'の' between numeric characters
-        self._test_qa("２の１", "2.-1.")
+        # HIRAGANA 'の' will be replaced with KATAKANA 'ノ'
+        self._test_qa("２の１", "2.ノ1.")
 
-        # Omit 'の' between non-numeric characters
-        self._test_qa("井の頭公園駅", "井頭公園駅")
+        # Even 'の' is between non-numeric characters,
+        # do not replace in this version.
+        self._test_qa("井の頭公園駅", "井ノ頭公園駅")
 
     def test_ommit_ga(self):
-        # Ommit 'ケヶガがツッつ' between Kanji characters
-        self._test_qa("竜ヶ崎市", "竜崎市")
+        # Even 'ケヶガがツッつ' are between Kanji characters,
+        # do not ommit in this version.
+        self._test_qa("竜ヶ崎市", "竜ガ崎市")
 
         # Not delete those characters between Kana characters
-        self._test_qa("つつじが丘", "つつじが丘")
+        self._test_qa("つつじが丘", "ツツジガ丘")
 
     def test_replace_old_new(self):
         # Replace old-complex Kanji characters to new-simple alternatives
@@ -46,17 +48,17 @@ class TestItaijiMethods(unittest.TestCase):
             '千代田区一ツ橋２-１', keep_numbers=True)
         r = converter.match_len(
             string=string,
-            pattern='1000.代田区1.っ橋2.-1.')
+            pattern='1000.代田区1.ッ橋2.-1.')
         self.assertEqual(r, 10)
 
         # Compare strings containing numeric characters,
         # a complex case
         string = converter.standardize(
-            '福島県浪江町高瀬丈六十に', keep_numbers=True)
+            '福島県浪江町高瀬丈六十二', keep_numbers=True)
         r = converter.match_len(
             string=string,
-            pattern='福島県浪江町高瀬丈6.10.')
-        self.assertEqual(r, 11)
+            pattern='福島県浪江町高瀬丈6.12.')
+        self.assertEqual(r, 12)
 
 
 if __name__ == '__main__':

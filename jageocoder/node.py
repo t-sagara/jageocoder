@@ -175,6 +175,16 @@ class AddressNode(Base):
             self.__class__.parent_id == self.id, *conds).order_by(
             AddressNode.id)
 
+        # Check if the index begins with an extra hyphen
+        if filtered_children.count() == 0 and index[0] in '-ノ':
+            logger.debug("Beginning with an extra hyphen: {}".format(
+                index))
+            candidates = self.search_recursive(index[1:], session)
+            if len(candidates) > 0:
+                return [[x[0], index[0] + x[1]] for x in candidates]
+
+            return []
+
         candidates = []
         for child in filtered_children:
             logger.debug("-> comparing; {}".format(child.name_index))
@@ -251,7 +261,7 @@ class AddressNode(Base):
                     "child:{} has optional postfix {}".format(
                         child, child.name_index[-l_optional_postfix:]))
                 match_len = itaiji_converter.match_len(index, alt_child_index)
-                if match_len < len(index) and index[match_len] == '-':
+                if match_len < len(index) and index[match_len] in '-ノ':
                     match_len += 1
 
         if match_len == 0 and child.name_index.endswith('.条'):
