@@ -107,6 +107,19 @@ class TestSearchMethods(unittest.TestCase):
                       [['東京都', '西多摩郡', '瑞穂町', '箱根ケ崎', '2335番地'],
                        ['東京都', '西多摩郡', '瑞穂町', '大字箱根ケ崎', '2335番地']])
 
+    def test_oaza_not_in_dictionary(self):
+        """
+        Test notation with "大字" which is not included in the dictionary.
+        """
+        query = '大分県宇佐市安心院町大字古川字長坂'
+        result = jageocoder.search(query)
+        self.assertEqual(result['matched'], '大分県宇佐市安心院町大字古川')
+        candidates = result['candidates']
+        self.assertEqual(len(candidates), 1)
+        top = candidates[0]
+        self.assertEqual(top['fullname'],
+                         ['大分県', '宇佐市', '安心院町古川'])
+
     def test_split_consecutive_numbers_kansuji_arabic(self):
         """
         Split consecutive Kansuji-Arabic numbers in the middle.

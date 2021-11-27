@@ -148,58 +148,22 @@ class Converter(object):
         # 2. ZENKAKU characters with HANKAKU characters
         # 3. Lower case characters with capitalized characters
         # 4. HIRAGANA with KATAKANA
+        # 5. Other exceptions
         notation = notation.translate(
             self.trans_itaiji).translate(
             self.trans_z2h).upper()
         notation = jaconv.hira2kata(notation)
+        notation = notation.replace('通リ', '通')
 
-        notation = notation.replace('通り', '通')
-
-        prectype, ctype, nctype = strlib.ASCII, strlib.ASCII, strlib.ASCII
         new_notation = ""
         i = 0
 
         while i < len(notation):
             c = notation[i]
-            prectype = ctype
-            if i == 0:
-                ctype = strlib.get_ctype(c)
-            else:
-                ctype = nctype
-
-            if i == len(notation) - 1:
-                nctype = strlib.ASCII
-            else:
-                nctype = strlib.get_ctype(notation[i + 1])
-
-            # logger.debug(
-            #    "c:{c}, pret:{prectype}, ct:{ctype}, nt:{nctype}".format(
-            #    c = c, prectype = prectype, ctype = ctype, nctype = nctype))
-
-            """
-            # 'ノ' and 'の' between numeric or ascii letters
-            # are treated as hyphens.
-            if c in 'ノの' and prectype in self.latin1_letters and \
-                    nctype in self.latin1_letters:
-                new_notation += '-'
-                ctype = strlib.ASCII
-                i += 1
-                continue
-
-            # Remove optional characters when placed between
-            # characters except Kana.
-            if c in 'ケヶガがツッつノの' and \
-               prectype not in self.kana_letters and \
-               nctype not in self.kana_letters:
-                ctype = prectype
-                i += 1
-                continue
-            """
 
             # Replace hyphen-like characters with '-'
             if strlib.is_hyphen(c):
                 new_notation += '-'
-                ctype = strlib.ASCII
                 i += 1
                 continue
 
@@ -211,7 +175,6 @@ class Converter(object):
                 i += ninfo['i']
                 if i < len(notation) and notation[i] == '.':
                     i += 1
-                ctype = strlib.ASCII
                 continue
 
             new_notation += c
@@ -250,26 +213,29 @@ class Converter(object):
                 logger.debug("Comparing '{}' with '{}'".format(
                     c, s))
                 if c != s:
-                    if self.is_optional_char(string, string_pos) and \
-                            string_pos + 1 < len(string) and \
-                            string[string_pos + 1] == c:
+                    slen = self.optional_str_len(string, string_pos)
+                    if slen > 0 and string_pos + slen < len(string) and \
+                            string[string_pos + slen] == c:
                         logger.debug('"{}" in "{}" is optional.'.format(
-                            s, string))
-                        string_pos += 1
+                            string[string_pos: string_pos + slen], string))
+                        string_pos += slen
                         continue
 
-                    if self.is_optional_char(pattern, pattern_pos):
-                        if pattern_pos + 1 == len(pattern):
+                    plen = self.optional_str_len(pattern, pattern_pos)
+                    if plen > 0:
+                        if pattern_pos + plen == len(pattern):
                             logger.debug('"{}" in "{}" is optional.'.format(
-                                c, pattern))
-                            pattern_pos += 1
+                                pattern[pattern_pos: pattern_pos + plen],
+                                pattern))
+                            pattern_pos += plen
                             continue
 
-                        if pattern_pos + 1 < len(pattern) and \
-                                pattern[pattern_pos + 1] == s:
+                        if pattern_pos + plen < len(pattern) and \
+                                pattern[pattern_pos + plen] == s:
                             logger.debug('"{}" in "{}" is optional.'.format(
-                                c, pattern))
-                            pattern_pos += 1
+                                pattern[pattern_pos: pattern_pos + plen],
+                                pattern))
+                            pattern_pos += plen
                             continue
 
                     return 0
@@ -310,12 +276,14 @@ class Converter(object):
 
         return string_pos
 
-    def is_optional_char(self, string: str, pos: int) -> bool:
-        c = string[pos]
-        if c in 'ケヶガがツッつノの':
-            return True
+    def optional_str_len(self, string: str, pos: int) -> int:
+        if string[pos] in 'ケヶガツッノ字':
+            return 1
 
-        return False
+        if string[pos:pos + 2] in ['大字', '小字']:
+            return 2
+
+        return 0
 
 
 # Create the singleton object of a converter
