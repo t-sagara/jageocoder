@@ -639,7 +639,7 @@ class AddressTree(object):
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
         for node in self.session.query(
-            AddressNode.id, AddressNode.name,
+            AddressNode.id, AddressNode.name, AddressNode.name_index,
             AddressNode.parent_id).filter(
                 AddressNode.level <= AddressLevel.OAZA):
             tmp_id_name_table[node.id] = node
@@ -673,6 +673,14 @@ class AddressTree(object):
                     self.index_table[label_standardized].append(v.id)
                 else:
                     self.index_table[label_standardized] = [v.id]
+
+            # Also register variant notations for node labels
+            for candidate in itaiji_converter.standardized_candidates(
+                v.name_index):
+                if candidate in self.index_table:
+                    self.index_table[candidate].append(v.id)
+                else:
+                    self.index_table[candidate] = [v.id]
 
         self.session.commit()
 

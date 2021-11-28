@@ -1,7 +1,7 @@
 import json
 from logging import getLogger
 import os
-from typing import Union
+from typing import Union, List
 
 import jaconv
 
@@ -14,6 +14,8 @@ logger = getLogger(__name__)
 class Converter(object):
 
     optional_prefixes = ['字', '大字', '小字']
+    optional_letters_in_middle = 'ケヶガツッノ字区'
+    optional_strings_in_middle = ['大字', '小字']
     # Optional postfixes for each address level
     optional_postfixes = {
         AddressLevel.CITY: ['市', '区', '町', '村'],
@@ -210,8 +212,8 @@ class Converter(object):
             s = string[string_pos]
             if c < '0' or c > '9':
                 # Compare not numeric character
-                logger.debug("Comparing '{}' with '{}'".format(
-                    c, s))
+                logger.debug("Comparing '{}'({}) with '{}'({})".format(
+                    c, pattern_pos, s, string_pos))
                 if c != s:
                     slen = self.optional_str_len(string, string_pos)
                     if slen > 0 and string_pos + slen < len(string) and \
@@ -236,6 +238,26 @@ class Converter(object):
                                 pattern[pattern_pos: pattern_pos + plen],
                                 pattern))
                             pattern_pos += plen
+                            continue
+
+                    if string_pos > 0:
+                        slen = self.optional_str_len(string, string_pos - 1)
+                        if slen > 1 and string_pos:
+                            logger.debug('"{}" in "{}" is optional.'.format(
+                                string[string_pos - 1: string_pos - 1 + slen],
+                                string))
+                            string_pos += slen - 1
+                            pattern_pos -= 1
+                            continue
+
+                    if pattern_pos > 0:
+                        plen = self.optional_str_len(pattern, pattern_pos - 1)
+                        if plen > 1:
+                            logger.debug('"{}" in "{}" is optional.'.format(
+                                string[pattern_pos - 1: pattern_pos - 1 + plen],
+                                pattern))
+                            string_pos -= 1
+                            pattern_pos += plen - 1
                             continue
 
                     return 0
@@ -277,14 +299,32 @@ class Converter(object):
         return string_pos
 
     def optional_str_len(self, string: str, pos: int) -> int:
-        if string[pos] in 'ケヶガツッノ字':
+        if string[pos] in self.optional_letters_in_middle:
             return 1
 
-        if string[pos:pos + 2] in ['大字', '小字']:
+        if string[pos:pos + 2] in self.optional_strings_in_middle:
             return 2
 
         return 0
 
+    def standardized_candidates(
+            self, string:str, from_pos:int = 0) -> List[str]:
+        candidates = [string]
+        for pos in range(from_pos,
+            len(self.optional_letters_in_middle) + \
+            len(self.optional_strings_in_middle)):
+            if pos < len(self.optional_strings_in_middle):
+                substr = self.optional_strings_in_middle[pos]
+            else:
+                substr = self.optional_letters_in_middle[
+                pos - len(self.optional_strings_in_middle)]
+
+            if string.find(substr) >= 0:
+                logger.debug('"{}" is in "{}"'.format(substr, string))
+                candidates += self.standardized_candidates(
+                    string.replace(substr, ''), pos + 1)
+
+        return candidates
 
 # Create the singleton object of a converter
 # that normalizes address strings
