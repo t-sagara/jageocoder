@@ -91,7 +91,7 @@ if __name__ == '__main__':
         print(jageocoder.get_db_dir(mode='r'))
         exit(0)
 
-    logging.basicConfig(format='%(levelname)s:%(message)s',
+    logging.basicConfig(format='%(levelname)s:%(name)s:%(lineno)s:%(message)s',
                         level=log_level)
 
     if args['search']:

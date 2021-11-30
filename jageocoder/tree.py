@@ -676,7 +676,7 @@ class AddressTree(object):
 
             # Also register variant notations for node labels
             for candidate in itaiji_converter.standardized_candidates(
-                v.name_index):
+                    v.name_index):
                 if candidate in self.index_table:
                     self.index_table[candidate].append(v.id)
                 else:
@@ -930,7 +930,8 @@ class AddressTree(object):
 
         logger.debug("Trie: {}".format(','.join(keys)))
 
-        search_aza = True
+        search_ward = True
+        processed_nodes = []
 
         for k in keys:
             trie_id = candidates[k]
@@ -941,23 +942,39 @@ class AddressTree(object):
             rest_index = index[offset:]
             for trienode in trienodes:
                 node = trienode.node
-                if node.level <= AddressLevel.WARD:
+                if node.id in processed_nodes:
+                    logger.debug("Node {}({}) already processed.".format(
+                        node.name, node.id))
+                    continue
+
+                if search_ward and node.level < AddressLevel.WARD:
                     # To make the process quicker, once a node higher
-                    # than the ward level is found, addresses starting
-                    # with nodes below the aza level are not searched
+                    # than the city level is found, addresses starting
+                    # with nodes below the ward level are not searched
                     # after this.
-                    logger.debug("A node with ward or higher levels found.")
-                    search_aza = False
-                elif not search_aza and best_only:
+                    logger.debug("A node with city or higher levels found.")
+                    search_ward = False
+                elif node.level >= AddressLevel.CITY and \
+                        not search_ward and best_only:
                     # Skip Oaza or lower level node when any node
                     # higher than the Ward level is already found.
                     # However, if best_only is False, search all.
                     continue
 
+                logger.debug("Search '{}' under {}".format(
+                    rest_index, node.name))
                 results_by_node = node.search_recursive(
                     rest_index, self.session)
 
                 for cand in results_by_node:
+                    if cand[1] != '':
+                        cur_node = cand[0]
+                        while cur_node.parent:
+                            logger.debug('{}({}) marked as processed'.format(
+                                cur_node.name, cur_node.id))
+                            processed_nodes.append(cur_node.id)
+                            cur_node = cur_node.parent
+
                     _len = offset + len(cand[1])
                     if best_only:
                         if _len > max_len:

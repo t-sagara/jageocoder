@@ -212,11 +212,23 @@ class AddressNode(Base):
                             optional_prefix + index[0: offset] + cand[1]
                         ])
 
+        if self.level in (AddressLevel.OAZA, AddressLevel.AZA):
+            # Check optional_aza
+            azalen = itaiji_converter.optional_aza_len(index, 0)
+            if azalen > 0:
+                logger.debug('"{}" in index "{}" can be optional.'.format(
+                    index[:azalen], index))
+                sub_candidates = self.search_recursive(
+                    index[azalen:], session)
+                if sub_candidates[0][1] != '':
+                    candidates += [
+                        [x[0],
+                         index[0:azalen] + x[1]] for x in sub_candidates]
+
         if len(candidates) == 0:
             candidates = [[self, '']]
 
         logger.debug("node:{} returns {}".format(self.name, candidates))
-
         return candidates
 
     def _get_candidates_from_child(

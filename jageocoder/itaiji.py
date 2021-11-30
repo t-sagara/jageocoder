@@ -1,6 +1,7 @@
 import json
 from logging import getLogger
 import os
+import re
 from typing import Union, List
 
 import jaconv
@@ -13,25 +14,39 @@ logger = getLogger(__name__)
 
 class Converter(object):
 
+    # Optional postfixes for each address level
+    re_optional_postfixes = {
+        AddressLevel.CITY: re.compile(r'(市|区|町|村)$'),
+        AddressLevel.WARD: re.compile(r'(区)$'),
+        AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|番|号)$'),
+        AddressLevel.AZA: re.compile(r'(町|条|線|丁|丁目|区|番|号)$'),
+        AddressLevel.BLOCK: re.compile(r'(番|番地)$'),
+        AddressLevel.BLD: re.compile(r'(号|番地)$'),
+    }
+
     optional_prefixes = ['字', '大字', '小字']
     optional_letters_in_middle = 'ケヶガツッノ字区'
     optional_strings_in_middle = ['大字', '小字']
-    # Optional postfixes for each address level
-    optional_postfixes = {
-        AddressLevel.CITY: ['市', '区', '町', '村'],
-        AddressLevel.WARD: ['区'],
-        AddressLevel.OAZA: ['町', '条', '線', '丁', '丁目', '番', '号'],
-        AddressLevel.AZA: ['町', '条', '線', '丁', '丁目', '区', '番', '号'],
-        AddressLevel.BLOCK: ['番', '番地'],
-        AddressLevel.BLD: ['号', '番地'],
-    }
+
+    re_optional_prefixes = re.compile(r'^({})'.format(
+        '|'.join(optional_prefixes)))
+    re_optional_strings_in_middle = re.compile(r'^({})'.format(
+        '|'.join(list(optional_letters_in_middle) +
+                 optional_strings_in_middle)))
+    re_optional_aza = re.compile(r'(.{1,5})[甲乙丙丁イロハニホ][0-9０-９]')
 
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
 
-    def __init__(self):
+    def __init__(self, lookahead: bool = True):
         """
         Initialize the converter.
+
+        Parameters
+        ----------
+        lookahead: bool, optional
+            If True, it will look beyond the query string to find
+            a matching string. This will reduce the processing speed.
 
         Attributes
         ----------
@@ -54,6 +69,8 @@ class Converter(object):
             {chr(0x0021 + i): chr(0xFF01 + i) for i in range(94)})
         self.trans_z2h = str.maketrans(
             {chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
+
+        self.lookahead = lookahead
 
     def check_optional_prefixes(self, notation: str) -> int:
         """
@@ -78,9 +95,9 @@ class Converter(object):
         >>> converter.check_optional_prefixes('字貝取')
         1
         """
-        for prefix in self.__class__.optional_prefixes:
-            if notation.startswith(prefix):
-                return len(prefix)
+        m = self.re_optional_prefixes.match(notation)
+        if m:
+            return len(m.group(1))
 
         return 0
 
@@ -109,12 +126,12 @@ class Converter(object):
         >>> converter.check_optional_postfixes('15号', 8)
         1
         """
-        if level not in self.__class__.optional_postfixes:
+        if level not in self.__class__.re_optional_postfixes:
             return 0
 
-        for postfix in self.__class__.optional_postfixes[level]:
-            if notation.endswith(postfix):
-                return len(postfix)
+        m = self.re_optional_postfixes[level].search(notation)
+        if m:
+            return len(m.group(1))
 
         return 0
 
@@ -204,10 +221,13 @@ class Converter(object):
         """
         logger.debug("Searching {} in {}".format(pattern, string))
         pattern_pos = string_pos = 0
+        c = s = 'x'
         while pattern_pos < len(pattern):
             if string_pos >= len(string):
                 return 0
 
+            pre_c = c
+            pre_s = s
             c = pattern[pattern_pos]
             s = string[string_pos]
             if c < '0' or c > '9':
@@ -215,50 +235,48 @@ class Converter(object):
                 logger.debug("Comparing '{}'({}) with '{}'({})".format(
                     c, pattern_pos, s, string_pos))
                 if c != s:
+                    if pre_s + s in self.optional_strings_in_middle:
+                        logger.debug('"{}" in query "{}" is optional.'.format(
+                            string[string_pos - 1: string_pos + 1],
+                            string))
+                        string_pos += 1
+                        pattern_pos -= 1
+                        continue
+
+                    if pre_c + c in self.optional_strings_in_middle:
+                        msg = '"{}" in pattern "{}" is optional.'
+                        logger.debug(msg.format(
+                            string[pattern_pos - 1: pattern_pos + 1],
+                            pattern))
+                        string_pos -= 1
+                        pattern_pos += 1
+                        continue
+
                     slen = self.optional_str_len(string, string_pos)
-                    if slen > 0 and string_pos + slen < len(string) and \
-                            string[string_pos + slen] == c:
-                        logger.debug('"{}" in "{}" is optional.'.format(
+                    if slen > 0:
+                        logger.debug('"{}" in query "{}" is optional.'.format(
                             string[string_pos: string_pos + slen], string))
                         string_pos += slen
                         continue
 
                     plen = self.optional_str_len(pattern, pattern_pos)
                     if plen > 0:
-                        if pattern_pos + plen == len(pattern):
-                            logger.debug('"{}" in "{}" is optional.'.format(
-                                pattern[pattern_pos: pattern_pos + plen],
-                                pattern))
-                            pattern_pos += plen
-                            continue
+                        msg = '"{}" in pattern "{}" is optional.'
+                        logger.debug(msg.format(
+                            pattern[pattern_pos: pattern_pos + plen],
+                            pattern))
+                        pattern_pos += plen
+                        continue
 
-                        if pattern_pos + plen < len(pattern) and \
-                                pattern[pattern_pos + plen] == s:
-                            logger.debug('"{}" in "{}" is optional.'.format(
-                                pattern[pattern_pos: pattern_pos + plen],
-                                pattern))
-                            pattern_pos += plen
-                            continue
+                    if self.lookahead is False:
+                        return 0
 
-                    if string_pos > 0:
-                        slen = self.optional_str_len(string, string_pos - 1)
-                        if slen > 1 and string_pos:
-                            logger.debug('"{}" in "{}" is optional.'.format(
-                                string[string_pos - 1: string_pos - 1 + slen],
-                                string))
-                            string_pos += slen - 1
-                            pattern_pos -= 1
-                            continue
-
-                    if pattern_pos > 0:
-                        plen = self.optional_str_len(pattern, pattern_pos - 1)
-                        if plen > 1:
-                            logger.debug('"{}" in "{}" is optional.'.format(
-                                string[pattern_pos - 1: pattern_pos - 1 + plen],
-                                pattern))
-                            string_pos -= 1
-                            pattern_pos += plen - 1
-                            continue
+                    azalen = self.optional_aza_len(string, string_pos)
+                    if azalen > 0:
+                        logger.debug('"{}" in query "{}" is optional.'.format(
+                            string[string_pos: string_pos + azalen], string))
+                        string_pos += azalen
+                        continue
 
                     return 0
 
@@ -277,47 +295,46 @@ class Converter(object):
             expected = int(pattern[pattern_pos:period_pos])
             logger.debug("Comparing string {} with expected value {}".format(
                 string[string_pos:], expected))
-            for span in range(string_pos + 1, len(string) + 1):
-                if strlib.get_numeric_char(string[span - 1]) is False:
-                    break
-
-                string_num = string[string_pos:span]
-                string_val = (strlib.get_number(string_num))['n']
-                logger.debug("  substring {} is interpreted to {}".format(
-                    string_num, string_val))
-                if string_val == expected:
-                    pattern_pos = period_pos + 1
-                    string_pos = span
-                    logger.debug("Substring {} matches".format(
-                        string_num))
-                    break
-
-            if pattern_pos < period_pos:
+            number_pos = strlib.search_number_substring(
+                string[string_pos:], expected)
+            if number_pos > 0:
+                logger.debug("Substring {} matches".format(
+                    string[string_pos: string_pos + number_pos]))
+                pattern_pos = period_pos + 1
+                string_pos += number_pos
+            else:
                 # The number did not match the expected value
                 return 0
 
         return string_pos
 
     def optional_str_len(self, string: str, pos: int) -> int:
-        if string[pos] in self.optional_letters_in_middle:
-            return 1
+        m = self.re_optional_strings_in_middle.match(
+            string[pos:])
 
-        if string[pos:pos + 2] in self.optional_strings_in_middle:
-            return 2
+        if m:
+            return len(m.group(1))
+
+        return 0
+
+    def optional_aza_len(self, string: str, pos: int) -> int:
+        m = self.re_optional_aza.match(string[pos:])
+        if m:
+            return len(m.group(1))
 
         return 0
 
     def standardized_candidates(
-            self, string:str, from_pos:int = 0) -> List[str]:
+            self, string: str, from_pos: int = 0) -> List[str]:
         candidates = [string]
         for pos in range(from_pos,
-            len(self.optional_letters_in_middle) + \
-            len(self.optional_strings_in_middle)):
+                         len(self.optional_letters_in_middle) +
+                         len(self.optional_strings_in_middle)):
             if pos < len(self.optional_strings_in_middle):
                 substr = self.optional_strings_in_middle[pos]
             else:
                 substr = self.optional_letters_in_middle[
-                pos - len(self.optional_strings_in_middle)]
+                    pos - len(self.optional_strings_in_middle)]
 
             if string.find(substr) >= 0:
                 logger.debug('"{}" is in "{}"'.format(substr, string))
@@ -325,6 +342,7 @@ class Converter(object):
                     string.replace(substr, ''), pos + 1)
 
         return candidates
+
 
 # Create the singleton object of a converter
 # that normalizes address strings

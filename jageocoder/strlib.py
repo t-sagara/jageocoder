@@ -1,5 +1,8 @@
+from logging import getLogger
 import re
 from typing import Union
+
+logger = getLogger(__name__)
 
 
 class Strlib(object):
@@ -95,7 +98,7 @@ class Strlib(object):
         >>> strlib.is_arabic_number('８')
         True
         """
-        return (c in self.arabic)
+        return (c in '0123456789' or c in self.arabic)
 
     def get_numeric_char(self, c: str) -> Union[int, bool]:
         """
@@ -193,8 +196,7 @@ class Strlib(object):
 
         pos = 0
         for i, c in enumerate(string):
-            if mode != 1 and \
-                    (c in '0123456789' or self.is_arabic_number(c)):
+            if mode != 1 and self.is_arabic_number(c):
                 k = self.get_numeric_char(c)
                 curval = curval * 10 + k
                 mode = 0
@@ -276,6 +278,26 @@ class Strlib(object):
             return self.KANJI     # 漢字
 
         return self.UNKNOWN       # 不明
+
+    def search_number_substring(self, string: str,
+                                expected: int) -> int:
+        for pos in range(len(string)):
+            if self.get_numeric_char(string[pos]) is False:
+                break
+
+            if pos < len(string) - 1:
+                if self.is_arabic_number(string[pos]) and \
+                        self.is_arabic_number(string[pos + 1]):
+                    continue
+
+            string_num = string[:pos + 1]
+            string_val = (strlib.get_number(string_num))['n']
+            logger.debug("  substring {} is interpreted to {}".format(
+                string_num, string_val))
+            if string_val == expected:
+                return pos + 1
+
+        return 0
 
 
 if 'strlib' not in vars():
