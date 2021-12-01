@@ -359,6 +359,16 @@ class TestSearchMethods(unittest.TestCase):
             query='千葉県八街市八街字七本松ろ９７－１',
             fullname=['千葉県', '八街市', '八街ろ', '97番地'])
 
+    def test_mura_ooaza_koaza(self):
+        """
+        Test for an addresse containing Mura and Oaza in
+        the Oaza field, and Aza in Koaza field.
+        """
+        self._check(
+            query='脇町猪尻西上野61-1',
+            fullname=['徳島県', '美馬市', '脇町', '大字猪尻',
+                      '西上野', '61番地'])
+
 
 if __name__ == '__main__':
     unittest.main()

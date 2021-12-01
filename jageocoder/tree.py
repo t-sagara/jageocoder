@@ -677,6 +677,10 @@ class AddressTree(object):
             # Also register variant notations for node labels
             for candidate in itaiji_converter.standardized_candidates(
                     v.name_index):
+                if candidate == v.name_index:
+                    # The original notation has been already registered
+                    continue
+
                 if candidate in self.index_table:
                     self.index_table[candidate].append(v.id)
                 else:
@@ -930,11 +934,18 @@ class AddressTree(object):
 
         logger.debug("Trie: {}".format(','.join(keys)))
 
-        search_ward = True
+        min_key = ''
         processed_nodes = []
 
         for k in keys:
+            if len(k) < len(min_key):
+                logger.debug("Key '{}' is shorter than '{}'".format(
+                    k, min_key))
+                continue
+
             trie_id = candidates[k]
+            logger.debug("Trie_id of key '{}' = {}".format(
+                k, trie_id))
             trienodes = self.session.query(
                 TrieNode).filter_by(trie_id=trie_id).all()
             offset = itaiji_converter.match_len(index, k)
@@ -947,22 +958,17 @@ class AddressTree(object):
                         node.name, node.id))
                     continue
 
-                if search_ward and node.level < AddressLevel.WARD:
+                if min_key == '' and node.level < AddressLevel.WARD:
                     # To make the process quicker, once a node higher
-                    # than the city level is found, addresses starting
-                    # with nodes below the ward level are not searched
-                    # after this.
-                    logger.debug("A node with city or higher levels found.")
-                    search_ward = False
-                elif node.level >= AddressLevel.CITY and \
-                        not search_ward and best_only:
-                    # Skip Oaza or lower level node when any node
-                    # higher than the Ward level is already found.
-                    # However, if best_only is False, search all.
-                    continue
+                    # than the city level is found, addresses shorter
+                    # than the node are not searched after this.
+                    logger.debug((
+                        "A node with city or higher levels found. "
+                        "Set min_key to '{}'").format(k))
+                    min_key = k
 
-                logger.debug("Search '{}' under {}".format(
-                    rest_index, node.name))
+                logger.debug("Search '{}' under {}({})".format(
+                    rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
                     rest_index, self.session)
 
