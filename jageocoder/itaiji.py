@@ -295,13 +295,12 @@ class Converter(object):
             expected = int(pattern[pattern_pos:period_pos])
             logger.debug("Comparing string {} with expected value {}".format(
                 string[string_pos:], expected))
-            number_pos = strlib.search_number_substring(
-                string[string_pos:], expected)
-            if number_pos > 0:
+            candidate = strlib.get_number(string[string_pos:], expected)
+            if candidate['n'] == expected and candidate['i'] > 0:
                 logger.debug("Substring {} matches".format(
-                    string[string_pos: string_pos + number_pos]))
+                    string[string_pos: string_pos + candidate['i']]))
                 pattern_pos = period_pos + 1
-                string_pos += number_pos
+                string_pos += candidate['i']
             else:
                 # The number did not match the expected value
                 return 0
@@ -326,6 +325,23 @@ class Converter(object):
 
     def standardized_candidates(
             self, string: str, from_pos: int = 0) -> List[str]:
+        """
+        Enumerate possible candidates for the notation after standardization.
+
+        This method is called recursively.
+
+        Parameters
+        ----------
+        string: str
+            The original address notation.
+        from_pos: int, optional
+            The character indent from where the processing starts.
+
+        Results
+        -------
+        A list of str
+            A list of candidate strings.
+        """
         candidates = [string]
         for pos in range(from_pos,
                          len(self.optional_letters_in_middle) +
