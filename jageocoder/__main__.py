@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Optional
 
@@ -96,7 +97,9 @@ if __name__ == '__main__':
 
     if args['search']:
         jageocoder.init(db_dir=args['--db-dir'], mode='r')
-        print(jageocoder.search(args['<address>']))
+        print(json.dumps(
+            jageocoder.search(args['<address>']),
+            ensure_ascii=False))
 
     elif args['download-dictionary']:
         level = 'gaiku' if args['--gaiku'] else 'jusho'

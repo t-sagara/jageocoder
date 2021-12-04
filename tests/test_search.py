@@ -244,8 +244,9 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query='石川県羽咋市一ノ宮町ケ２８',
-            match='石川県羽咋市一ノ宮町',
-            level=5)
+            match='石川県羽咋市一ノ宮町ケ',
+            fullname=['石川県', '羽咋市', '一ノ宮町', 'ケ'],
+            level=6)
 
     def test_complement_cho(self):
         """
@@ -353,7 +354,7 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query='広島県府中市鵜飼町十輪谷甲１２４－１',
-            fullname=['広島県', '府中市', '鵜飼町', '甲124番地'])
+            fullname=['広島県', '府中市', '鵜飼町', '甲', '124番地'])
 
         self._check(
             query='千葉県八街市八街字七本松ろ９７－１',

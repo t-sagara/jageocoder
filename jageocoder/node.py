@@ -1,6 +1,7 @@
+from functools import lru_cache
 from logging import getLogger
 import re
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
 from sqlalchemy.orm import deferred
@@ -128,6 +129,22 @@ class AddressNode(Base):
 
         return None
 
+    @lru_cache(maxsize=512)
+    def search_child_with_criteria(self, session, pattern: str,
+                                   max_level: Optional[int] = None):
+        conds = []
+        conds.append(AddressNode.name_index.like(pattern))
+        logger.debug("  conds: name_index LIKE '{}'".format(pattern))
+
+        if max_level is not None:
+            conds.append(AddressNode.level <= max_level)
+            logger.debug("    and level <= {}".format(max_level))
+
+        filtered_children = session.query(AddressNode).filter(
+            self.__class__.parent_id == self.id, *conds).order_by(
+            AddressNode.id)
+        return filtered_children
+
     def search_recursive(self, index, session):
         """
         Search nodes recursively that match the specified address notation.
@@ -152,28 +169,25 @@ class AddressNode(Base):
         if len(index) == 0:
             return [[self, optional_prefix]]
 
-        conds = []
+        max_level = None
         v = strlib.get_number(index)
         if v['i'] > 0:
             # If it starts with a number,
             # look for a node that matches the numeric part exactly.
             substr = '{}.%'.format(v['n'])
-            conds.append(AddressNode.name_index.like(substr))
-            logger.debug("  conds: name_index LIKE '{}'".format(substr))
         else:
             # If it starts with not a number,
             # look for a node with a maching first letter.
             substr = index[0:1] + '%'
-            conds.append(AddressNode.name_index.like(substr))
-            logger.debug("  conds: name_index LIKE '{}'".format(substr))
 
         if '字' in optional_prefix:
-            conds.append(AddressNode.level <= AddressLevel.AZA)
-            logger.debug("    and level <= {}".format(AddressLevel.AZA))
+            max_level = AddressLevel.AZA
 
-        filtered_children = session.query(AddressNode).filter(
-            self.__class__.parent_id == self.id, *conds).order_by(
-            AddressNode.id)
+        # filtered_children = session.query(AddressNode).filter(
+        #     self.__class__.parent_id == self.id, *conds).order_by(
+        #     AddressNode.id)
+        filtered_children = self.search_child_with_criteria(
+            session, pattern=substr, max_level=max_level)
 
         # Check if the index begins with an extra hyphen
         if filtered_children.count() == 0 and index[0] in '-ノ':

@@ -33,7 +33,7 @@ class Converter(object):
     re_optional_strings_in_middle = re.compile(r'^({})'.format(
         '|'.join(list(optional_letters_in_middle) +
                  optional_strings_in_middle)))
-    re_optional_aza = re.compile(r'(.{1,5})[甲乙丙丁イロハニホ][0-9０-９]')
+    re_optional_aza = re.compile(r'(.{1,5})[甲乙丙丁イロハニホヘ][0-9０-９]')
 
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)

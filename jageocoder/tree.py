@@ -994,6 +994,7 @@ class AddressTree(object):
                         results[cand[0].id] = [cand[0], key + cand[1]]
                         max_len = _len if _len > max_len else max_len
 
+        logger.debug(AddressNode.search_child_with_criteria.cache_info())
         return results
 
     @deprecated(('Renamed to `searchNode()` because it was confusing'
