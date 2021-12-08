@@ -57,7 +57,7 @@ class TestItaijiMethods(unittest.TestCase):
             '福島県浪江町高瀬丈六十二', keep_numbers=True)
         r = converter.match_len(
             string=string,
-            pattern='福島県浪江町高瀬丈6.12.')
+            pattern='福島県波江町高瀬丈六十二')
         self.assertEqual(r, 12)
 
 

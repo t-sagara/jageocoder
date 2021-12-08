@@ -18,14 +18,14 @@ class Converter(object):
     re_optional_postfixes = {
         AddressLevel.CITY: re.compile(r'(市|区|町|村)$'),
         AddressLevel.WARD: re.compile(r'(区)$'),
-        AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|番|号)$'),
+        AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|番|号|番丁|番町)$'),
         AddressLevel.AZA: re.compile(r'(町|条|線|丁|丁目|区|番|号)$'),
         AddressLevel.BLOCK: re.compile(r'(番|番地)$'),
         AddressLevel.BLD: re.compile(r'(号|番地)$'),
     }
 
     optional_prefixes = ['字', '大字', '小字']
-    optional_letters_in_middle = 'ケヶガツッノ字区'
+    optional_letters_in_middle = 'ケヶガツッノ字区町'
     optional_strings_in_middle = ['大字', '小字']
 
     re_optional_prefixes = re.compile(r'^({})'.format(
@@ -33,7 +33,8 @@ class Converter(object):
     re_optional_strings_in_middle = re.compile(r'^({})'.format(
         '|'.join(list(optional_letters_in_middle) +
                  optional_strings_in_middle)))
-    re_optional_aza = re.compile(r'(.{1,5})[甲乙丙丁イロハニホヘ][0-9０-９]')
+    re_optional_aza = re.compile(
+        r'([^0-9０-９]{1,5}?)[甲乙丙丁イロハニホヘ0-9０-９]')
 
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
@@ -291,6 +292,13 @@ class Converter(object):
             if period_pos < 0:
                 raise RuntimeError(
                     "No period after a number in the pattern string.")
+
+            slen = self.optional_str_len(string, string_pos)
+            if slen > 0:
+                logger.debug('"{}" in query "{}" is optional.'.format(
+                    string[string_pos: string_pos + slen], string))
+                string_pos += slen
+                continue
 
             expected = int(pattern[pattern_pos:period_pos])
             logger.debug("Comparing string {} with expected value {}".format(

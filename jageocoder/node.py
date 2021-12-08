@@ -1,5 +1,5 @@
 from functools import lru_cache
-from logging import getLogger
+import logging
 import re
 from typing import List, Optional
 
@@ -10,9 +10,10 @@ from sqlalchemy.orm import backref, relationship
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.result import Result
 from jageocoder.strlib import strlib
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class AddressNode(Base):
@@ -145,7 +146,7 @@ class AddressNode(Base):
             AddressNode.id)
         return filtered_children
 
-    def search_recursive(self, index, session):
+    def search_recursive(self, index, session) -> List[Result]:
         """
         Search nodes recursively that match the specified address notation.
 
@@ -167,7 +168,7 @@ class AddressNode(Base):
         logger.debug("node:{}, index:{}, optional_prefix:{}".format(
             self, index, optional_prefix))
         if len(index) == 0:
-            return [[self, optional_prefix]]
+            return [Result(self, optional_prefix, 0)]
 
         max_level = None
         v = strlib.get_number(index)
@@ -195,9 +196,15 @@ class AddressNode(Base):
                 index))
             candidates = self.search_recursive(index[1:], session)
             if len(candidates) > 0:
-                return [[x[0], index[0] + x[1]] for x in candidates]
+                return [Result(x[0], index[0] + x[1], len(x[1]))
+                        for x in candidates]
 
             return []
+
+        if logger.isEnabledFor(logging.DEBUG):
+            msg = 'Children are; {}'.format(
+                ','.join([x.name for x in self.children]))
+            logger.debug(msg)
 
         candidates = []
         for child in filtered_children:
@@ -221,12 +228,15 @@ class AddressNode(Base):
                     logger.debug(
                         "child:{} match {} chars".format(child, offset))
                     for cand in child.search_recursive(rest_index, session):
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + index[0: offset] + cand[1]
-                        ])
+                        candidates.append(
+                            Result(cand[0],
+                                   optional_prefix +
+                                   index[0: offset] + cand[1],
+                                   len(child.name_index) + len(cand[1])
+                                   ))
 
-        if self.level in (AddressLevel.OAZA, AddressLevel.AZA):
+        if self.level >= AddressLevel.CITY and \
+                self.level <= AddressLevel.AZA:
             # Check optional_aza
             azalen = itaiji_converter.optional_aza_len(index, 0)
             if azalen > 0:
@@ -234,13 +244,15 @@ class AddressNode(Base):
                     index[:azalen], index))
                 sub_candidates = self.search_recursive(
                     index[azalen:], session)
-                if sub_candidates[0][1] != '':
-                    candidates += [
-                        [x[0],
-                         index[0:azalen] + x[1]] for x in sub_candidates]
+                if sub_candidates[0].matched != '':
+                    for cand in sub_candidates:
+                        candidates.append(Result(
+                            cand.node,
+                            optional_prefix + index[0:azalen] + cand.matched,
+                            cand.nchars))
 
         if len(candidates) == 0:
-            candidates = [[self, '']]
+            candidates = [Result(self, '', 0)]
 
         logger.debug("node:{} returns {}".format(self.name, candidates))
         return candidates
@@ -306,10 +318,10 @@ class AddressNode(Base):
         rest_index = index[offset:]
         logger.debug("child:{} match {} chars".format(child, offset))
         for cand in child.search_recursive(rest_index, session):
-            candidates.append([
-                cand[0],
-                optional_prefix + index[0:match_len] + cand[1]
-            ])
+            candidates.append(Result(
+                cand.node,
+                optional_prefix + index[0:match_len] + cand.matched,
+                match_len + cand.nchars))
 
         return candidates
 

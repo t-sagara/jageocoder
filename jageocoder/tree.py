@@ -953,10 +953,6 @@ class AddressTree(object):
             rest_index = index[offset:]
             for trienode in trienodes:
                 node = trienode.node
-                if node.id in processed_nodes:
-                    logger.debug("Node {}({}) already processed.".format(
-                        node.name, node.id))
-                    continue
 
                 if min_key == '' and node.level < AddressLevel.WARD:
                     # To make the process quicker, once a node higher
@@ -967,12 +963,21 @@ class AddressTree(object):
                         "Set min_key to '{}'").format(k))
                     min_key = k
 
+                if node.id in processed_nodes:
+                    logger.debug("Node {}({}) already processed.".format(
+                        node.name, node.id))
+                    continue
+
                 logger.debug("Search '{}' under {}({})".format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
                     rest_index, self.session)
+                processed_nodes.append(node.id)
+                logger.debug('{}({}) marked as processed'.format(
+                    node.name, node.id))
 
                 for cand in results_by_node:
+                    """
                     if cand[1] != '':
                         cur_node = cand[0]
                         while cur_node.parent:
@@ -980,18 +985,19 @@ class AddressTree(object):
                                 cur_node.name, cur_node.id))
                             processed_nodes.append(cur_node.id)
                             cur_node = cur_node.parent
+                    """
 
-                    _len = offset + len(cand[1])
+                    _len = offset + cand.nchars  # len(cand[1])
                     if best_only:
                         if _len > max_len:
                             results = {}
                             max_len = _len
 
-                        if _len == max_len and cand[0].id not in results:
-                            results[cand[0].id] = [cand[0], key + cand[1]]
+                        if _len == max_len and cand.node.id not in results:
+                            results[cand.node.id] = [cand.node, key + cand[1]]
 
                     else:
-                        results[cand[0].id] = [cand[0], key + cand[1]]
+                        results[cand.node.id] = [cand.node, key + cand[1]]
                         max_len = _len if _len > max_len else max_len
 
         logger.debug(AddressNode.search_child_with_criteria.cache_info())
@@ -1048,6 +1054,9 @@ class AddressTree(object):
                 matched_substring[v[1]] = matched
 
             results.append(Result(v[0], matched))
+
+        # Sort the results in descending order by node.level.
+        results.sort(key=lambda r: r.node.level, reverse=True)
 
         return results
 
