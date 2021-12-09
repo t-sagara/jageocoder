@@ -67,6 +67,7 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="三重県津市広明町13番地",
+            match="三重県津市広明町13番地",
             fullname=["三重県", "津市", "広明町", "13番地"])
 
     def test_akita(self):
@@ -90,7 +91,7 @@ class TestSearchMethods(unittest.TestCase):
         """
         Test notations with and without "大字"
         """
-        top = self._check(
+        self._check(
             query="東京都西多摩郡瑞穂町大字箱根ケ崎2335番地",
             match="東京都西多摩郡瑞穂町大字箱根ケ崎2335番地",
             fullname=[
@@ -430,6 +431,18 @@ class TestSearchMethods(unittest.TestCase):
             query="脇町猪尻西上野61-1",
             fullname=["徳島県", "美馬市", "脇町", "大字猪尻",
                       "西上野", "61番地"])
+
+    def test_select_best(self):
+        """
+        Check that the best answer is returned for ambiguous queries.
+        """
+        # "佐賀県鹿島市納富分字藤津甲２" can be parsed as
+        # - ["佐賀県", "鹿島市", "大字納富分", "藤津甲"] or
+        # - ["佐賀県", "鹿島市", "大字納富分", "甲", "2番地"]
+        self._check(
+            query="佐賀県鹿島市納富分字藤津甲２",
+            match="佐賀県鹿島市納富分字藤津甲",
+            fullname=["佐賀県", "鹿島市", "大字納富分", "藤津甲"])
 
 
 if __name__ == "__main__":

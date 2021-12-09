@@ -146,7 +146,8 @@ class AddressNode(Base):
             AddressNode.id)
         return filtered_children
 
-    def search_recursive(self, index, session) -> List[Result]:
+    def search_recursive(self, index, session,
+                         processed_nodes=None) -> List[Result]:
         """
         Search nodes recursively that match the specified address notation.
 
@@ -156,6 +157,8 @@ class AddressNode(Base):
             The standardized address notation.
         session : sqlalchemy.orm.Session
             The database session for executing SQL queries.
+        processed_nodes: List of int, optional
+            List of IDs of nodes that have already been processed.
 
         Return
         ------
@@ -194,10 +197,12 @@ class AddressNode(Base):
         if filtered_children.count() == 0 and index[0] in '-ノ':
             logger.debug("Beginning with an extra hyphen: {}".format(
                 index))
-            candidates = self.search_recursive(index[1:], session)
+            candidates = self.search_recursive(
+                index[1:], session, processed_nodes)
             if len(candidates) > 0:
-                return [Result(x[0], index[0] + x[1], len(x[1]))
-                        for x in candidates]
+                return [Result(
+                    x[0], index[0] + x[1], l_optional_prefix + len(x[1]))
+                    for x in candidates]
 
             return []
 
@@ -208,6 +213,11 @@ class AddressNode(Base):
 
         candidates = []
         for child in filtered_children:
+            if processed_nodes is not None and child.id in processed_nodes:
+                logger.debug("-> skipped; {}({})".format(
+                    child.name, child.id))
+                continue
+
             logger.debug("-> comparing; {}".format(child.name_index))
             new_candidates = self._get_candidates_from_child(
                 child, index, optional_prefix, session)
@@ -227,11 +237,13 @@ class AddressNode(Base):
                     rest_index = index[offset:]
                     logger.debug(
                         "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(rest_index, session):
+                    for cand in child.search_recursive(
+                            rest_index, session, processed_nodes):
                         candidates.append(
                             Result(cand[0],
                                    optional_prefix +
                                    index[0: offset] + cand[1],
+                                   l_optional_prefix +
                                    len(child.name_index) + len(cand[1])
                                    ))
 
@@ -243,13 +255,13 @@ class AddressNode(Base):
                 logger.debug('"{}" in index "{}" can be optional.'.format(
                     index[:azalen], index))
                 sub_candidates = self.search_recursive(
-                    index[azalen:], session)
+                    index[azalen:], session, processed_nodes)
                 if sub_candidates[0].matched != '':
                     for cand in sub_candidates:
                         candidates.append(Result(
                             cand.node,
                             optional_prefix + index[0:azalen] + cand.matched,
-                            cand.nchars))
+                            l_optional_prefix + cand.nchars))
 
         if len(candidates) == 0:
             candidates = [Result(self, '', 0)]
@@ -316,12 +328,13 @@ class AddressNode(Base):
         candidates = []
         offset = match_len
         rest_index = index[offset:]
+        l_optional_prefix = len(optional_prefix)
         logger.debug("child:{} match {} chars".format(child, offset))
         for cand in child.search_recursive(rest_index, session):
             candidates.append(Result(
                 cand.node,
                 optional_prefix + index[0:match_len] + cand.matched,
-                match_len + cand.nchars))
+                l_optional_prefix + match_len + cand.nchars))
 
         return candidates
 

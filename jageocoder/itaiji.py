@@ -20,7 +20,7 @@ class Converter(object):
         AddressLevel.WARD: re.compile(r'(区)$'),
         AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|番|号|番丁|番町)$'),
         AddressLevel.AZA: re.compile(r'(町|条|線|丁|丁目|区|番|号)$'),
-        AddressLevel.BLOCK: re.compile(r'(番|番地)$'),
+        AddressLevel.BLOCK: re.compile(r'(番|番地|号|地)$'),
         AddressLevel.BLD: re.compile(r'(号|番地)$'),
     }
 

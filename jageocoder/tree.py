@@ -972,7 +972,7 @@ class AddressTree(object):
                 logger.debug("Search '{}' under {}({})".format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
-                    rest_index, self.session)
+                    rest_index, self.session, processed_nodes)
                 processed_nodes.append(node.id)
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
@@ -989,16 +989,21 @@ class AddressTree(object):
                     """
 
                     _len = offset + cand.nchars
-                    _part = offset + len(cand[1])
+                    _part = offset + len(cand.matched)
+                    msg = "candidate: {} ({})"
+                    logger.debug(msg.format(key + cand.matched, _len))
                     if best_only:
                         if _len > max_len:
-                            results = {}
+                            results = {
+                                "cand.node.id": [cand.node, key + cand.matched]
+                            }
                             max_len = _len
                             min_part = _part
 
-                        if _len == max_len and cand.node.id not in results \
+                        elif _len == max_len and cand.node.id not in results \
                                 and (min_part is None or _part <= min_part):
-                            results[cand.node.id] = [cand.node, key + cand[1]]
+                            results[cand.node.id] = [
+                                cand.node, key + cand.matched]
                             min_part = _part
 
                     else:
