@@ -31,7 +31,10 @@ class TestSearchMethods(unittest.TestCase):
             self.assertEqual(top["level"], level)
 
         if fullname:
-            self.assertEqual(top["fullname"], fullname)
+            if isinstance(fullname[0], str):
+                self.assertEqual(top["fullname"], fullname)
+            else:
+                self.assertIn(top["fullname"], fullname)
 
         return top
 
@@ -90,11 +93,10 @@ class TestSearchMethods(unittest.TestCase):
         top = self._check(
             query="東京都西多摩郡瑞穂町大字箱根ケ崎2335番地",
             match="東京都西多摩郡瑞穂町大字箱根ケ崎2335番地",
+            fullname=[
+                ["東京都", "西多摩郡", "瑞穂町", "箱根ケ崎", "2335番地"],
+                ["東京都", "西多摩郡", "瑞穂町", "大字箱根ケ崎", "2335番地"]],
             level=7)
-
-        self.assertIn(top["fullname"],
-                      [["東京都", "西多摩郡", "瑞穂町", "箱根ケ崎", "2335番地"],
-                       ["東京都", "西多摩郡", "瑞穂町", "大字箱根ケ崎", "2335番地"]])
 
     def test_oaza_not_in_dictionary(self):
         """
@@ -403,10 +405,21 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["高知県", "安芸市", "赤野甲"])
 
         # But do not omit Aza name if matched.
-        # i.e. "青森県八戸市１" can be resolved to "八戸市一番町"
+        # If "鮫町骨沢" will be skipped, "青森県八戸市１"
+        # can be resolved to "八戸市一番町"
         self._check(
             query="青森県八戸市鮫町骨沢１",
             fullname=["青森県", "八戸市", "大字鮫町", "骨沢", "1番地"])
+
+        # If "字新得基線" will be skipped, "新得町１"
+        # can be resolved to "字新得1番地"
+        self._check(
+            query="北海道上川郡新得町字新得基線１",
+            match="北海道上川郡新得町字新得基線",
+            fullname=[
+                ["北海道", "上川郡", "新得町", "字新得", "基線"],
+                ["北海道", "上川郡", "新得町", "字新得基線"]
+            ])
 
     def test_mura_ooaza_koaza(self):
         """

@@ -928,6 +928,7 @@ class AddressTree(object):
         candidates = self.trie.common_prefixes(index_for_trie)
         results = {}
         max_len = 0
+        min_part = None
 
         keys = sorted(candidates.keys(),
                       key=len, reverse=True)
@@ -987,18 +988,26 @@ class AddressTree(object):
                             cur_node = cur_node.parent
                     """
 
-                    _len = offset + cand.nchars  # len(cand[1])
+                    _len = offset + cand.nchars
+                    _part = offset + len(cand[1])
                     if best_only:
                         if _len > max_len:
                             results = {}
                             max_len = _len
+                            min_part = _part
 
-                        if _len == max_len and cand.node.id not in results:
+                        if _len == max_len and cand.node.id not in results \
+                                and (min_part is None or _part <= min_part):
                             results[cand.node.id] = [cand.node, key + cand[1]]
+                            min_part = _part
 
                     else:
                         results[cand.node.id] = [cand.node, key + cand[1]]
-                        max_len = _len if _len > max_len else max_len
+                        max_len = max(_len, max_len)
+                        if min_part is None:
+                            min_part = _part
+                        else:
+                            min_part = min(min_part, _part)
 
         logger.debug(AddressNode.search_child_with_criteria.cache_info())
         return results
