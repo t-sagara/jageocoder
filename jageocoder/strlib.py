@@ -1,5 +1,8 @@
+from logging import getLogger
 import re
 from typing import Union
+
+logger = getLogger(__name__)
 
 
 class Strlib(object):
@@ -95,7 +98,7 @@ class Strlib(object):
         >>> strlib.is_arabic_number('８')
         True
         """
-        return (c in self.arabic)
+        return (c in '0123456789' or c in self.arabic)
 
     def get_numeric_char(self, c: str) -> Union[int, bool]:
         """
@@ -149,7 +152,7 @@ class Strlib(object):
 
         return False
 
-    def get_number(self, string: str) -> dict:
+    def get_number(self, string: str, expected: int = None) -> dict:
         """
         Parses a string as a number.
 
@@ -157,6 +160,11 @@ class Strlib(object):
         ----------
         string: str
             String to be examined.
+        expected: int, optional
+            The value to be extracted from this string.
+            If specified, the process will be aborted when the value is
+            equal to or greater than this value.
+            If omitted, the longest numeric string will be extracted.
 
         Return
         ------
@@ -172,6 +180,8 @@ class Strlib(object):
         {'n': 2, 'i': 1}
         >>> strlib.get_number('1234a')
         {'n': 1234, 'i': 4}
+        >>> strlib.get_number('12345', 12)
+        {'n': 12345, 'i': 5}
         >>> strlib.get_number('0015')
         {'n': 15, 'i': 4}
         >>> strlib.get_number('２４')
@@ -180,6 +190,8 @@ class Strlib(object):
         {'n': 135, 'i': 3}
         >>> strlib.get_number('二千四十五万円')
         {'n': 20450000, 'i': 6}
+        >>> strlib.get_number('二千四十五万円', 2004)
+        {'n': 2004, 'i': 3}
         >>> strlib.get_number('四十二１０１')
         {'n': 42, 'i': 3}
         >>> strlib.get_number('4千2百')
@@ -192,9 +204,17 @@ class Strlib(object):
         mode = -1   # -1: unset, 0: parsing arabic, 1: parsing kansuji
 
         pos = 0
+        arabic = False
+        pre_arabic = False
         for i, c in enumerate(string):
-            if mode != 1 and \
-                    (c in '0123456789' or self.is_arabic_number(c)):
+            pre_arabic = arabic
+            arabic = self.is_arabic_number(c)
+
+            if (not arabic or not pre_arabic) and \
+                    expected and total + curval >= expected:
+                break
+
+            if mode != 1 and arabic:
                 k = self.get_numeric_char(c)
                 curval = curval * 10 + k
                 mode = 0

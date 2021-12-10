@@ -75,7 +75,7 @@ def get_db_dir(mode: str = 'r') -> os.PathLike:
             fp = open(path, 'a')
             fp.close()
             return db_dir
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             continue
 
     return None
@@ -639,7 +639,7 @@ class AddressTree(object):
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
         for node in self.session.query(
-            AddressNode.id, AddressNode.name,
+            AddressNode.id, AddressNode.name, AddressNode.name_index,
             AddressNode.parent_id).filter(
                 AddressNode.level <= AddressLevel.OAZA):
             tmp_id_name_table[node.id] = node
@@ -667,11 +667,24 @@ class AddressTree(object):
 
             for i in range(len(node_prefixes)):
                 label = ''.join(node_prefixes[i:])
-                label_standardized = itaiji_converter.standardize(label)
+                label_standardized = itaiji_converter.standardize(
+                    label)
                 if label_standardized in self.index_table:
                     self.index_table[label_standardized].append(v.id)
                 else:
                     self.index_table[label_standardized] = [v.id]
+
+            # Also register variant notations for node labels
+            for candidate in itaiji_converter.standardized_candidates(
+                    v.name_index):
+                if candidate == v.name_index:
+                    # The original notation has been already registered
+                    continue
+
+                if candidate in self.index_table:
+                    self.index_table[candidate].append(v.id)
+                else:
+                    self.index_table[candidate] = [v.id]
 
         self.session.commit()
 
@@ -909,34 +922,99 @@ class AddressTree(object):
         and whose value is a list of node and substrings
         that match the query.
         """
-        index = itaiji_converter.standardize(query)
-        candidates = self.trie.common_prefixes(index)
+        index = itaiji_converter.standardize(
+            query, keep_numbers=True)
+        index_for_trie = itaiji_converter.standardize(query)
+        candidates = self.trie.common_prefixes(index_for_trie)
         results = {}
         max_len = 0
+        min_part = None
 
-        for k, id in candidates.items():
+        keys = sorted(candidates.keys(),
+                      key=len, reverse=True)
+
+        logger.debug("Trie: {}".format(','.join(keys)))
+
+        min_key = ''
+        processed_nodes = []
+
+        for k in keys:
+            if len(k) < len(min_key):
+                logger.debug("Key '{}' is shorter than '{}'".format(
+                    k, min_key))
+                continue
+
+            trie_id = candidates[k]
+            logger.debug("Trie_id of key '{}' = {}".format(
+                k, trie_id))
             trienodes = self.session.query(
-                TrieNode).filter_by(trie_id=id).all()
-            offset = len(k)
+                TrieNode).filter_by(trie_id=trie_id).all()
+            offset = itaiji_converter.match_len(index, k)
+            key = index[0:offset]
             rest_index = index[offset:]
             for trienode in trienodes:
                 node = trienode.node
+
+                if min_key == '' and node.level < AddressLevel.WARD:
+                    # To make the process quicker, once a node higher
+                    # than the city level is found, addresses shorter
+                    # than the node are not searched after this.
+                    logger.debug((
+                        "A node with city or higher levels found. "
+                        "Set min_key to '{}'").format(k))
+                    min_key = k
+
+                if node.id in processed_nodes:
+                    logger.debug("Node {}({}) already processed.".format(
+                        node.name, node.id))
+                    continue
+
+                logger.debug("Search '{}' under {}({})".format(
+                    rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
-                    rest_index, self.session)
+                    rest_index, self.session, processed_nodes)
+                processed_nodes.append(node.id)
+                logger.debug('{}({}) marked as processed'.format(
+                    node.name, node.id))
+
                 for cand in results_by_node:
-                    _len = offset + len(cand[1])
+                    """
+                    if cand[1] != '':
+                        cur_node = cand[0]
+                        while cur_node.parent:
+                            logger.debug('{}({}) marked as processed'.format(
+                                cur_node.name, cur_node.id))
+                            processed_nodes.append(cur_node.id)
+                            cur_node = cur_node.parent
+                    """
+
+                    _len = offset + cand.nchars
+                    _part = offset + len(cand.matched)
+                    msg = "candidate: {} ({})"
+                    logger.debug(msg.format(key + cand.matched, _len))
                     if best_only:
                         if _len > max_len:
-                            results = {}
+                            results = {
+                                "cand.node.id": [cand.node, key + cand.matched]
+                            }
                             max_len = _len
+                            min_part = _part
 
-                        if _len == max_len and cand[0].id not in results:
-                            results[cand[0].id] = [cand[0], k + cand[1]]
+                        elif _len == max_len and cand.node.id not in results \
+                                and (min_part is None or _part <= min_part):
+                            results[cand.node.id] = [
+                                cand.node, key + cand.matched]
+                            min_part = _part
 
                     else:
-                        results[cand[0].id] = [cand[0], k + cand[1]]
-                        max_len = _len if _len > max_len else max_len
+                        results[cand.node.id] = [cand.node, key + cand[1]]
+                        max_len = max(_len, max_len)
+                        if min_part is None:
+                            min_part = _part
+                        else:
+                            min_part = min(min_part, _part)
 
+        logger.debug(AddressNode.search_child_with_criteria.cache_info())
         return results
 
     @deprecated(('Renamed to `searchNode()` because it was confusing'
@@ -991,21 +1069,25 @@ class AddressTree(object):
 
             results.append(Result(v[0], matched))
 
+        # Sort the results in descending order by node.level.
+        results.sort(key=lambda r: r.node.level, reverse=True)
+
         return results
 
     def _get_matched_substring(
             self, query: str,
             retrieved: list) -> str:
         """
-        From the substring matched standardized string,
-        recover the corresponding substring of the original search string.
+        From the matched standardized substring,
+        recover the corresponding substring of
+        the original search string.
 
         Parameters
         ----------
         query : str
             The original search string.
         matchd : str
-            The substring matched standardized string.
+            The matched standardized substring.
 
         Return
         ------
@@ -1020,7 +1102,8 @@ class AddressTree(object):
 
         while True:
             substr = query[0:pos]
-            standardized = itaiji_converter.standardize(substr)
+            standardized = itaiji_converter.standardize(
+                substr, keep_numbers=True)
             l_standardized = len(standardized)
 
             if l_standardized == l_result:

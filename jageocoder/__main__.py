@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Optional
 
@@ -10,18 +11,24 @@ HELP = """
 
 Usage:
   {p} -h
-  {p} get-db-dir
-  {p} download-dictionary [--gaiku] [<url>]
-  {p} install-dictionary [--gaiku] [--db-dir=<dir>] [<url_or_path>]
-  {p} uninstall-dictionary [--db-dir=<dir>]
-  {p} upgrade-dictionary [--db-dir=<dir>]
+  {p} search [-d] <address>
+  {p} get-db-dir [-d]
+  {p} download-dictionary [-d] [--gaiku] [<url>]
+  {p} install-dictionary [-d] [--gaiku] [--db-dir=<dir>] [<url_or_path>]
+  {p} uninstall-dictionary [-d] [--db-dir=<dir>]
+  {p} upgrade-dictionary [-d] [--db-dir=<dir>]
 
 Options:
   -h --help       Show this help.
+  -d --debug      Show debug messages.
   --gaiku         Use block-level (default: building-level)
   --db-dir=<dir>  Specify dictionary directory.
 
 Examples:
+
+- Search address
+
+  python -m {p} search 多摩市落合1-15
 
 - Show dictionary directory
 
@@ -76,13 +83,25 @@ def get_download_url(level: Optional[str] = None,
 if __name__ == '__main__':
     args = docopt(HELP)
 
+    if args['--debug']:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+
     if args['get-db-dir']:
         print(jageocoder.get_db_dir(mode='r'))
         exit(0)
 
-    logging.basicConfig(format='%(levelname)s:%(message)s',
-                        level=logging.INFO)
-    if args['download-dictionary']:
+    logging.basicConfig(format='%(levelname)s:%(name)s:%(lineno)s:%(message)s',
+                        level=log_level)
+
+    if args['search']:
+        jageocoder.init(db_dir=args['--db-dir'], mode='r')
+        print(json.dumps(
+            jageocoder.search(args['<address>']),
+            ensure_ascii=False))
+
+    elif args['download-dictionary']:
         level = 'gaiku' if args['--gaiku'] else 'jusho'
         url = args['<url>'] or get_download_url(level)
         try:

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>Jageocoder Flask Demonstration</title>
+  </head>
+  <body>
+    <h1>Jageocoder のデモンストレーション</h1>
+    <form action="/search" method="GET">
+      検索したい住所を入力：<br />
+      <input size="80" value="{{ q }}" name="q" />
+      <input type="submit" value="検索" />
+    </form>
+
+    {% if results %}
+    <p>結果一覧 <a href="/">住所の例に戻る</a></p>
+    <ul id="results">
+      {% for result in results %}
+        <li class="node">
+          {% for name in result.node.get_fullname() %}
+          {{ name }}<nbsp;>
+          {% endfor %}
+          <ul>
+            <li>一致した文字列： {{ result.matched }}</li>
+            <li>座標：
+              経度 {{ result.node.x }}, 緯度 {{ result.node.y }}
+              <a href="{{ result.node.get_gsimap_link() }}" target="_gsimap">地理院地図</a></li>
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>住所の例</p>
+    <ul>
+      <li><dl>
+        <dt>多摩市落合1-15多摩センタートーセイビル</dt>
+        <dd>「番」「番地」をハイフンや「の」などで省略しても解析できます。ビル・マンション名には対応していません。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>茨城県竜ヶ崎市字米町3903</dt>
+        <dd>「竜」と「龍」などの異体字に対応しています。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>中央区中央1</dt>
+        <dd>都道府県名や市区町村名の省略に対応しています。候補が複数見つかった場合は複数の結果を返します。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>東京都西多摩郡瑞穂町箱根ケ崎2335番地</dt>
+        <dd>大字名の「大字」の省略に対応しています。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>埼玉県大里郡寄居町大字鷹巣</dt>
+        <dd>「鷹ノ巣」の「ノ」などの省略に対応しています。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>札幌市中央区北3西1-7</dt>
+        <dd>札幌市の「北三条西一丁目」を「北3西1」のように省略する表記に対応しています。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>京都市上京区下立売通新町西入薮ノ内町</dt>
+        <dd>京都市の通り名には部分的に対応していて、通り名部分をスキップして町名から処理します。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>長野県千曲市礒部字下河原１１３７</dt>
+        <dd>辞書にない字名が含まれていても、対応する地番を検索します。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>福島県いわき市平上高久塚田97乙</dt>
+        <dd>地番の脱落地に対応しています。</dd>
+      </dl></li>
+    </ul>
+    {% endif %}
+  </body>
+</html>

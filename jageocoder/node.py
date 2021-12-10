@@ -1,18 +1,19 @@
-from logging import getLogger
+from functools import lru_cache
+import logging
 import re
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
-from sqlalchemy import or_
 from sqlalchemy.orm import deferred
 from sqlalchemy.orm import backref, relationship
 
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.result import Result
 from jageocoder.strlib import strlib
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class AddressNode(Base):
@@ -129,7 +130,24 @@ class AddressNode(Base):
 
         return None
 
-    def search_recursive(self, index, session):
+    @lru_cache(maxsize=512)
+    def search_child_with_criteria(self, session, pattern: str,
+                                   max_level: Optional[int] = None):
+        conds = []
+        conds.append(AddressNode.name_index.like(pattern))
+        logger.debug("  conds: name_index LIKE '{}'".format(pattern))
+
+        if max_level is not None:
+            conds.append(AddressNode.level <= max_level)
+            logger.debug("    and level <= {}".format(max_level))
+
+        filtered_children = session.query(AddressNode).filter(
+            self.__class__.parent_id == self.id, *conds).order_by(
+            AddressNode.id)
+        return filtered_children
+
+    def search_recursive(self, index, session,
+                         processed_nodes=None) -> List[Result]:
         """
         Search nodes recursively that match the specified address notation.
 
@@ -139,6 +157,8 @@ class AddressNode(Base):
             The standardized address notation.
         session : sqlalchemy.orm.Session
             The database session for executing SQL queries.
+        processed_nodes: List of int, optional
+            List of IDs of nodes that have already been processed.
 
         Return
         ------
@@ -151,119 +171,59 @@ class AddressNode(Base):
         logger.debug("node:{}, index:{}, optional_prefix:{}".format(
             self, index, optional_prefix))
         if len(index) == 0:
-            return [[self, optional_prefix]]
+            return [Result(self, optional_prefix, 0)]
 
-        conds = []
-
-        if '0' <= index[0] and index[0] <= '9':
+        max_level = None
+        v = strlib.get_number(index)
+        if v['i'] > 0:
             # If it starts with a number,
             # look for a node that matches the numeric part exactly.
-            for i in range(0, len(index)):
-                if index[i] == '.':
-                    break
-
-            substr = index[0:i+1] + '%'
-            conds.append(self.__class__.name_index.like(substr))
-            logger.debug("  conds: name_index LIKE '{}'".format(substr))
+            substr = '{}.%'.format(v['n'])
         else:
             # If it starts with not a number,
             # look for a node with a maching first letter.
             substr = index[0:1] + '%'
-            conds.append(self.__class__.name_index.like(substr))
-            logger.debug("  conds: name_index LIKE '{}'".format(substr))
 
-        filtered_children = session.query(self.__class__).filter(
-            self.__class__.parent_id == self.id, or_(*conds))
+        if '字' in optional_prefix:
+            max_level = AddressLevel.AZA
+
+        # filtered_children = session.query(AddressNode).filter(
+        #     self.__class__.parent_id == self.id, *conds).order_by(
+        #     AddressNode.id)
+        filtered_children = self.search_child_with_criteria(
+            session, pattern=substr, max_level=max_level)
+
+        # Check if the index begins with an extra hyphen
+        if filtered_children.count() == 0 and index[0] in '-ノ':
+            logger.debug("Beginning with an extra hyphen: {}".format(
+                index))
+            candidates = self.search_recursive(
+                index[1:], session, processed_nodes)
+            if len(candidates) > 0:
+                return [Result(
+                    x[0], index[0] + x[1], l_optional_prefix + len(x[1]))
+                    for x in candidates]
+
+            return []
+
+        if logger.isEnabledFor(logging.DEBUG):
+            msg = 'Children are; {}'.format(
+                ','.join([x.name for x in self.children]))
+            logger.debug(msg)
 
         candidates = []
         for child in filtered_children:
-            logger.debug("-> comparing; {}".format(child.name_index))
-
-            if index.startswith(child.name_index):
-                # In case the index string of the child node is
-                # completely included in the beginning of the search string.
-                # ex. index='東京都新宿区...' and child.name_index='東京都'
-                offset = len(child.name_index)
-                rest_index = index[offset:]
-                logger.debug("child:{} match {} chars".format(child, offset))
-                for cand in child.search_recursive(rest_index, session):
-                    candidates.append([
-                        cand[0],
-                        optional_prefix + child.name_index + cand[1]
-                    ])
-
+            if processed_nodes is not None and child.id in processed_nodes:
+                logger.debug("-> skipped; {}({})".format(
+                    child.name, child.id))
                 continue
 
-            if child.name_index.endswith('.') and \
-                    index.startswith(child.name_index[0:-1]):
-                # Unusual cases:
-                # If the name ends with '.', it may be interpreted as
-                # a single number concatenated with subsequent numbers.
-                # Therefore, if the part excluding the period matches,
-                # it is considered an exact match.
-                # ex. index='与14.' and child.name_index='与1.'
-                offset = len(child.name_index) - 1
-                rest_index = index[offset:]
-                logger.debug(
-                    "child:{} match {} chars in the middle of a number".format(
-                        child, offset))
-                did_child_match = False
-                for cand in child.search_recursive(
-                        rest_index, session):
-                    if cand[1] != '':
-                        did_child_match = True
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + child.name_index[0:-1] + cand[1]
-                        ])
+            logger.debug("-> comparing; {}".format(child.name_index))
+            new_candidates = self._get_candidates_from_child(
+                child, index, optional_prefix, session)
 
-                if did_child_match:
-                    continue
-
-            l_optional_postfix = itaiji_converter.check_optional_postfixes(
-                child.name_index, child.level)
-            if l_optional_postfix > 0:
-                # In case the index string of the child node with optional
-                # postfixes removed is completely included in the beginning
-                # of the search string.
-                # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
-                alt_child_index = child.name_index[0: -l_optional_postfix]
-                logger.debug(
-                    "child:{} has optional postfix {}".format(
-                        child, child.name_index[l_optional_postfix:]))
-                if index.startswith(alt_child_index):
-                    offset = len(alt_child_index)
-                    if len(index) > offset and index[offset] == '-':
-                        offset += 1
-
-                    rest_index = index[offset:]
-                    logger.debug(
-                        "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(
-                            rest_index, session):
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + index[0: offset] + cand[1]
-                        ])
-
-                    continue
-
-            if child.name_index.endswith('.条'):
-                # Support for Sapporo City and other cities that use
-                # "北3西1" instead of "北3条西１丁目".
-                alt_name_index = child.name_index.replace('条', '', 1)
-                if index.startswith(alt_name_index):
-                    offset = len(alt_name_index)
-                    rest_index = index[offset:]
-                    logger.debug(
-                        "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(rest_index, session):
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + alt_name_index + cand[1]
-                        ])
-
-                    continue
+            if len(new_candidates) > 0:
+                candidates += new_candidates
 
         if self.level == AddressLevel.WARD and self.parent.name == '京都市':
             # Street name (通り名) support in Kyoto City
@@ -277,16 +237,104 @@ class AddressNode(Base):
                     rest_index = index[offset:]
                     logger.debug(
                         "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(rest_index, session):
-                        candidates.append([
-                            cand[0],
-                            optional_prefix + index[0: offset] + cand[1]
-                        ])
+                    for cand in child.search_recursive(
+                            rest_index, session, processed_nodes):
+                        candidates.append(
+                            Result(cand[0],
+                                   optional_prefix +
+                                   index[0: offset] + cand[1],
+                                   l_optional_prefix +
+                                   len(child.name_index) + len(cand[1])
+                                   ))
+
+        if self.level >= AddressLevel.CITY and \
+                self.level <= AddressLevel.AZA:
+            # Check optional_aza
+            azalen = itaiji_converter.optional_aza_len(index, 0)
+            if azalen > 0:
+                logger.debug('"{}" in index "{}" can be optional.'.format(
+                    index[:azalen], index))
+                sub_candidates = self.search_recursive(
+                    index[azalen:], session, processed_nodes)
+                if sub_candidates[0].matched != '':
+                    for cand in sub_candidates:
+                        candidates.append(Result(
+                            cand.node,
+                            optional_prefix + index[0:azalen] + cand.matched,
+                            l_optional_prefix + cand.nchars))
 
         if len(candidates) == 0:
-            candidates = [[self, '']]
+            candidates = [Result(self, '', 0)]
 
-        logger.debug("node:{} returns {}".format(self, candidates))
+        logger.debug("node:{} returns {}".format(self.name, candidates))
+        return candidates
+
+    def _get_candidates_from_child(
+            self, child: 'AddressNode',
+            index: str, optional_prefix: str,
+            session) -> list:
+        """
+        Get candidates from the child.
+
+        Parameters
+        ----------
+        child: AddressNode
+            The starting child node.
+        index: str
+            Standardized query string. Numeric characters are kept as
+            original notation.
+        optional_prefix: str
+            The option string that preceded the string passed by index.
+        session: sqlalchemy.orm.Session
+            The session object used for DB access.
+
+        Returns
+        -------
+        list
+            The list of candidates.
+            Each element of the array has the matched AddressNode
+            as the first element and the matched string
+            as the second element.
+        """
+
+        match_len = itaiji_converter.match_len(index, child.name_index)
+        if match_len == 0:
+            l_optional_postfix = itaiji_converter.check_optional_postfixes(
+                child.name_index, child.level)
+            if l_optional_postfix > 0:
+                # In case the index string of the child node with optional
+                # postfixes removed is completely included in the beginning
+                # of the search string.
+                # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
+                alt_child_index = child.name_index[0: -l_optional_postfix]
+                logger.debug(
+                    "child:{} has optional postfix {}".format(
+                        child, child.name_index[-l_optional_postfix:]))
+                match_len = itaiji_converter.match_len(index, alt_child_index)
+                if match_len < len(index) and index[match_len] in '-ノ':
+                    match_len += 1
+
+        if match_len == 0 and child.name_index.endswith('.条'):
+            # Support for Sapporo City and other cities that use
+            # "北3西1" instead of "北3条西１丁目".
+            alt_child_index = child.name_index.replace('条', '', 1)
+            logger.debug("child:{} ends with '.条'".format(child))
+            match_len = itaiji_converter.match_len(index, alt_child_index)
+
+        if match_len == 0:
+            logger.debug("{} doesn't match".format(child.name))
+            return []
+
+        candidates = []
+        offset = match_len
+        rest_index = index[offset:]
+        l_optional_prefix = len(optional_prefix)
+        logger.debug("child:{} match {} chars".format(child, offset))
+        for cand in child.search_recursive(rest_index, session):
+            candidates.append(Result(
+                cand.node,
+                optional_prefix + index[0:match_len] + cand.matched,
+                l_optional_prefix + match_len + cand.nchars))
 
         return candidates
 
@@ -473,3 +521,13 @@ class AddressNode(Base):
             checkdigit = str(11 - remainder)[-1]
 
         return orig_code + checkdigit
+
+    def get_gsimap_link(self) -> str:
+        """
+        Returns the URL for GSI Map with parameters.
+        ex. https://maps.gsi.go.jp/#13/35.713556/139.750385/
+        """
+        url = 'https://maps.gsi.go.jp/#{level:d}/{lat:.6f}/{lon:.6f}/'
+        return url.format(
+            level=9 + self.level,
+            lat=self.y, lon=self.x)
