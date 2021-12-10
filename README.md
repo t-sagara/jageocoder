@@ -113,6 +113,19 @@ python -m unittest
 Please use the dictionary coverter
 [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter).
 
+## Sample Web Application
+
+A sample of a simple web app using Flask is available under
+`flask-demo`.
+
+Perform the following steps. Then, access port 5000.
+
+```
+cd flask-demo
+pip install flask
+bash run.sh
+```
+
 ## ToDos
 
 - Supporting address changes

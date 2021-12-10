@@ -521,3 +521,13 @@ class AddressNode(Base):
             checkdigit = str(11 - remainder)[-1]
 
         return orig_code + checkdigit
+
+    def get_gsimap_link(self) -> str:
+        """
+        Returns the URL for GSI Map with parameters.
+        ex. https://maps.gsi.go.jp/#13/35.713556/139.750385/
+        """
+        url = 'https://maps.gsi.go.jp/#{level:d}/{lat:.6f}/{lon:.6f}/'
+        return url.format(
+            level=9 + self.level,
+            lat=self.y, lon=self.x)

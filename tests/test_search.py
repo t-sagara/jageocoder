@@ -444,6 +444,14 @@ class TestSearchMethods(unittest.TestCase):
             match="佐賀県鹿島市納富分字藤津甲",
             fullname=["佐賀県", "鹿島市", "大字納富分", "藤津甲"])
 
+    def test_datsurakuchi(self):
+        """
+        """
+        self._check(
+            query="福島県いわき市平上高久塚田97乙",
+            fullname=["福島県", "いわき市", "平上高久",
+                      "塚田", "97番", "乙地"])
+
 
 if __name__ == "__main__":
     unittest.main()

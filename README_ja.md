@@ -118,6 +118,18 @@ python -m unittest
 
 [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter).
 
+## サンプルウェブアプリ
+
+Flask を利用したシンプルなウェブアプリのサンプルが
+`flask-demo` の下にあります。
+
+次の手順を実行し、ポート 5000 にアクセスしてください。
+
+```
+cd flask-demo
+pip install flask
+bash run.sh
+```
 
 ## ToDo
 
