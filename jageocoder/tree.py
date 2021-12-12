@@ -19,7 +19,6 @@ from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import converter as itaiji_converter
-from jageocoder.itaiji import suggest_converter
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode

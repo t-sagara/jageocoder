@@ -379,19 +379,20 @@ class TestSearchMethods(unittest.TestCase):
             query="青森県八戸市南郷区大字島守字赤羽６",
             fullname=["青森県", "八戸市", "南郷", "大字島守"])
 
-
     def test_unnecessary_aza_name(self):
         """
         Testing for omitting Aza-names before Chiban.
 
-        Aza-names cannot be ommitted in this version.
+        Aza-names crossing elements cannot be ommitted in this version.
         """
-        return
 
         self._check(
             query="静岡県駿東郡小山町竹之下字上ノ原５５４",
-            match="静岡県駿東郡小山町竹之下字上ノ原５５４",
-            fullname=["静岡県", "駿東郡", "小山町", "竹之下", "554番地"])
+            match="静岡県駿東郡小山町竹之下",
+            fullname=["静岡県", "駿東郡", "小山町", "竹之下"],
+            # match="静岡県駿東郡小山町竹之下字上ノ原５５４",
+            # fullname=["静岡県", "駿東郡", "小山町", "竹之下", "554番地"]
+        )
 
         self._check(
             query="千葉県八街市八街字七本松ろ９７－１",
@@ -400,20 +401,29 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="長野県千曲市礒部字下河原１１３７",
-            match="長野県千曲市礒部字下河原１１３７",
-            fullname=["長野県", "千曲市", "大字磯部", "1137番地"])
+            match="長野県千曲市礒部",
+            fullname=["長野県", "千曲市", "大字磯部"],
+            # match="長野県千曲市礒部字下河原１１３７",
+            # fullname=["長野県", "千曲市", "大字磯部", "1137番地"]
+        )
 
         # Case where "ハ" is included in Aza name to be omitted
         self._check(
             query="佐賀県嬉野市嬉野町大字下野字長波須ハ丙１２２４",
-            match="佐賀県嬉野市嬉野町大字下野字長波須ハ丙",
-            fullname=["佐賀県", "嬉野市", "嬉野町", "大字下野", "丙"])
+            match="佐賀県嬉野市嬉野町大字下野",
+            fullname=["佐賀県", "嬉野市", "嬉野町", "大字下野"],
+            # match="佐賀県嬉野市嬉野町大字下野字長波須ハ丙",
+            # fullname=["佐賀県", "嬉野市", "嬉野町", "大字下野", "丙"]
+        )
 
         # Case where "ロ" is included in Aza name to be omitted
         self._check(
             query="高知県安芸市赤野字シロケ谷尻甲２９９４",
             match="高知県安芸市赤野字シロケ谷尻甲",
-            fullname=["高知県", "安芸市", "赤野甲"])
+            fullname=["高知県", "安芸市", "赤野甲"],
+            # match="高知県安芸市赤野字シロケ谷尻甲",
+            # fullname=["高知県", "安芸市", "赤野甲"]
+        )
 
         # But do not omit Aza name if matched.
         # If "鮫町骨沢" will be skipped, "青森県八戸市１"
@@ -441,9 +451,11 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="広島県府中市鵜飼町字十輪谷甲１２４－１",
-            match="広島県府中市鵜飼町字十輪谷甲１２４－",
-            fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"])
-
+            match="広島県府中市鵜飼町",
+            fullname=["広島県", "府中市", "鵜飼町"],
+            # match="広島県府中市鵜飼町字十輪谷甲１２４－",
+            # fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"]
+        )
 
     def test_mura_ooaza_koaza(self):
         """

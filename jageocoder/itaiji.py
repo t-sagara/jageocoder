@@ -366,7 +366,10 @@ class Converter(object):
         candidates = []
 
         if not self.lookahead:
-            return candidates
+            return []
+
+        if pos >= len(string):
+            return []
 
         if string[pos] in '0123456789０１２３４５６７８９':
             return candidates
@@ -424,7 +427,4 @@ class Converter(object):
 # Create the singleton object of a converter
 # that normalizes address strings
 if 'converter' not in vars():
-    converter = Converter()
-
-if 'sugguest_converter' not in vars():
-    suggest_converter = Converter(lookahead=True)
+    converter = Converter(lookahead=True)

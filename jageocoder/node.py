@@ -256,9 +256,9 @@ class AddressNode(Base):
                                    len(child.name_index) + len(cand[1])
                                    ))
 
-        if optional_prefix == '字' and \
+        # Search for subnodes with queries excludes Aza-name candidates
+        if False and optional_prefix == '字' and \
                 self.level >= AddressLevel.CITY and self.level <= AddressLevel.AZA:
-            # Check optional_aza
             aza_positions = converter.optional_aza_len(index, 0)
             if len(aza_positions) > 0:
                 for azalen in aza_positions:
