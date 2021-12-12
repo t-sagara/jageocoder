@@ -193,16 +193,24 @@ class AddressNode(Base):
         filtered_children = self.search_child_with_criteria(
             session, pattern=substr, max_level=max_level)
 
-        # Check if the index begins with an extra hyphen
-        if filtered_children.count() == 0 and index[0] in '-ノ':
-            logger.debug("Beginning with an extra hyphen: {}".format(
-                index))
+        # Check if the index begins with an extra character of
+        # the current node.
+        if filtered_children.count() == 0 and \
+                index[0] in itaiji_converter.extra_characters:
+            logger.debug("Beginning with an extra character: {}".format(
+                index[0]))
             candidates = self.search_recursive(
                 index[1:], session, processed_nodes)
             if len(candidates) > 0:
-                return [Result(
-                    x[0], index[0] + x[1], l_optional_prefix + len(x[1]))
-                    for x in candidates]
+                new_candidates = []
+                for candidate in candidates:
+                    new_candidate = Result(
+                        candidate.node,
+                        index[0] + candidate.matched,
+                        l_optional_prefix + candidate.nchars)
+                    new_candidates.append(new_candidate)
+
+                return new_candidates
 
             return []
 
@@ -247,21 +255,22 @@ class AddressNode(Base):
                                    len(child.name_index) + len(cand[1])
                                    ))
 
-        if self.level >= AddressLevel.CITY and \
-                self.level <= AddressLevel.AZA:
+        if optional_prefix == '字' and \
+                self.level >= AddressLevel.CITY and self.level <= AddressLevel.AZA:
             # Check optional_aza
-            azalen = itaiji_converter.optional_aza_len(index, 0)
-            if azalen > 0:
-                logger.debug('"{}" in index "{}" can be optional.'.format(
-                    index[:azalen], index))
-                sub_candidates = self.search_recursive(
-                    index[azalen:], session, processed_nodes)
-                if sub_candidates[0].matched != '':
-                    for cand in sub_candidates:
-                        candidates.append(Result(
-                            cand.node,
-                            optional_prefix + index[0:azalen] + cand.matched,
-                            l_optional_prefix + cand.nchars))
+            aza_positions = itaiji_converter.optional_aza_len(index, 0)
+            if len(aza_positions) > 0:
+                for azalen in aza_positions:
+                    logger.debug('"{}" in index "{}" can be optional.'.format(
+                        index[:azalen], index))
+                    sub_candidates = self.search_recursive(
+                        index[azalen:], session, processed_nodes)
+                    if sub_candidates[0].matched != '':
+                        for cand in sub_candidates:
+                            candidates.append(Result(
+                                cand.node,
+                                optional_prefix + index[0:azalen] + cand.matched,
+                                l_optional_prefix + cand.nchars))
 
         if len(candidates) == 0:
             candidates = [Result(self, '', 0)]

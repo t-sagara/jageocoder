@@ -375,14 +375,19 @@ class TestSearchMethods(unittest.TestCase):
             query="岩手県奥州市胆沢区小山",
             fullname=["岩手県", "奥州市", "胆沢小山"])
 
+        self._check(
+            query="青森県八戸市南郷区大字島守字赤羽６",
+            fullname=["青森県", "八戸市", "南郷", "大字島守"])
+
+
     def test_unnecessary_aza_name(self):
         """
         Testing for unnecessary Aza notation before Chiban.
         """
         self._check(
-            query="広島県府中市鵜飼町十輪谷甲１２４－１",
-            match="広島県府中市鵜飼町十輪谷甲１２４－",
-            fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"])
+            query="静岡県駿東郡小山町竹之下字上ノ原５５４",
+            match="静岡県駿東郡小山町竹之下字上ノ原５５４",
+            fullname=["静岡県", "駿東郡", "小山町", "竹之下", "554番地"])
 
         self._check(
             query="千葉県八街市八街字七本松ろ９７－１",
@@ -394,6 +399,7 @@ class TestSearchMethods(unittest.TestCase):
             match="長野県千曲市礒部字下河原１１３７",
             fullname=["長野県", "千曲市", "大字磯部", "1137番地"])
 
+        # Case where "ハ" is included in Aza name to be omitted
         self._check(
             query="佐賀県嬉野市嬉野町大字下野字長波須ハ丙１２２４",
             match="佐賀県嬉野市嬉野町大字下野字長波須ハ丙",
@@ -421,6 +427,19 @@ class TestSearchMethods(unittest.TestCase):
                 ["北海道", "上川郡", "新得町", "字新得", "基線"],
                 ["北海道", "上川郡", "新得町", "字新得基線"]
             ])
+
+        # In this version, Aza name must start with '字',
+        # so '十輪谷' does not be omitted.
+        self._check(
+            query="広島県府中市鵜飼町十輪谷甲１２４－１",
+            match="広島県府中市鵜飼町十",
+            fullname=["広島県", "府中市", "鵜飼町", "10番地"])
+
+        self._check(
+            query="広島県府中市鵜飼町字十輪谷甲１２４－１",
+            match="広島県府中市鵜飼町字十輪谷甲１２４－",
+            fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"])
+
 
     def test_mura_ooaza_koaza(self):
         """

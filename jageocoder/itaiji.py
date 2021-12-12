@@ -15,26 +15,39 @@ logger = getLogger(__name__)
 class Converter(object):
 
     # Optional postfixes for each address level
+    # which can be ommitted or represented by hyphens.
     re_optional_postfixes = {
         AddressLevel.CITY: re.compile(r'(市|区|町|村)$'),
         AddressLevel.WARD: re.compile(r'(区)$'),
-        AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|番|号|番丁|番町)$'),
+        AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|区|番|号|番丁|番町)$'),
         AddressLevel.AZA: re.compile(r'(町|条|線|丁|丁目|区|番|号)$'),
         AddressLevel.BLOCK: re.compile(r'(番|番地|号|地)$'),
         AddressLevel.BLD: re.compile(r'(号|番地)$'),
     }
 
+    # Prefixes that are sometimes added to words at will
     optional_prefixes = ['字', '大字', '小字']
-    optional_letters_in_middle = 'ケヶガツッノ字区町'
+
+    # Letters that are sometimes insereted to words at will
+    optional_letters_in_middle = 'ケヶガツッノ区町'
+
+    # Strings that are sometimes inserted to words at will
     optional_strings_in_middle = ['大字', '小字']
+
+    # Extra characters that may be added to the end of a word at will
+    extra_characters = '-ノ区町'
+
+    # Characters that may be the beginning of Chiban
+    chiban_heads = '甲乙丙丁イロハニホヘ'
+
+    # Max length of Aza-name which can be ommitted
+    max_skip_azaname = 5
 
     re_optional_prefixes = re.compile(r'^({})'.format(
         '|'.join(optional_prefixes)))
     re_optional_strings_in_middle = re.compile(r'^({})'.format(
         '|'.join(list(optional_letters_in_middle) +
                  optional_strings_in_middle)))
-    re_optional_aza = re.compile(
-        r'([^0-9０-９]{1,5}?)[甲乙丙丁イロハニホヘ0-9０-９]')
 
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
@@ -221,6 +234,7 @@ class Converter(object):
             If it does not match exactly, it returns 0.
         """
         logger.debug("Searching {} in {}".format(pattern, string))
+        aza_positions = []
         pattern_pos = string_pos = 0
         c = s = 'x'
         while pattern_pos < len(pattern):
@@ -272,11 +286,23 @@ class Converter(object):
                     if self.lookahead is False:
                         return 0
 
-                    azalen = self.optional_aza_len(string, string_pos)
-                    if azalen > 0:
+                    # Skip optional Aza-name
+                    if len(aza_positions) > 0:
+                        if aza_positions[0] <= string_pos:
+                            aza_positions.pop(0)
+                            continue
+
                         logger.debug('"{}" in query "{}" is optional.'.format(
-                            string[string_pos: string_pos + azalen], string))
-                        string_pos += azalen
+                                string[string_pos: aza_positions[0]],
+                                string))
+                        string_pos = aza_positions.pop(0)
+                        continue
+
+                    if string[string_pos] == '字':
+                        aza_positions = self.optional_aza_len(string, string_pos + 1)
+                        logger.debug('"{}" in query "{}" is optional.'.format(
+                            string[string_pos], string))
+                        string_pos += 1
                         continue
 
                     return 0
@@ -324,12 +350,38 @@ class Converter(object):
 
         return 0
 
-    def optional_aza_len(self, string: str, pos: int) -> int:
-        m = self.re_optional_aza.match(string[pos:])
-        if m:
-            return len(m.group(1))
+    def optional_aza_len(self, string: str, pos: int) -> List[int]:
+        """
+        Returns the length of Aza-name candidates that can be omitted.
 
-        return 0
+        Parameters
+        ----------
+        string: str
+            The query string which may contain Aza-name (standardized)
+        pos: int
+            Position to start analysis
+
+        Returns
+        -------
+        List[int]
+            Number of characters in the candidates.
+        """
+        candidates = []
+        if string[pos] in '0123456789０１２３４５６７８９':
+            return candidates
+
+        for i in range(1, self.max_skip_azaname + 1):
+            if pos + i >= len(string):
+                break
+
+            c = string[pos + i]
+            if c in self.chiban_heads:
+                candidates.append(pos + i)
+            elif c in '0123456789０１２３４５６７８９':
+                candidates.append(pos + i)
+                break
+
+        return candidates
 
     def standardized_candidates(
             self, string: str, from_pos: int = 0) -> List[str]:
