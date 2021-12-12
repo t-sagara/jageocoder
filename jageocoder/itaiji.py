@@ -52,7 +52,7 @@ class Converter(object):
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
 
-    def __init__(self, lookahead: bool = True):
+    def __init__(self, lookahead: bool = False):
         """
         Initialize the converter.
 
@@ -283,9 +283,6 @@ class Converter(object):
                         pattern_pos += plen
                         continue
 
-                    if self.lookahead is False:
-                        return 0
-
                     # Skip optional Aza-name
                     if len(aza_positions) > 0:
                         if aza_positions[0] <= string_pos:
@@ -367,6 +364,10 @@ class Converter(object):
             Number of characters in the candidates.
         """
         candidates = []
+
+        if not self.lookahead:
+            return candidates
+
         if string[pos] in '0123456789０１２３４５６７８９':
             return candidates
 
@@ -424,3 +425,6 @@ class Converter(object):
 # that normalizes address strings
 if 'converter' not in vars():
     converter = Converter()
+
+if 'sugguest_converter' not in vars():
+    suggest_converter = Converter(lookahead=True)

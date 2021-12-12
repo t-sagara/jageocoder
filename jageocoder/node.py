@@ -147,6 +147,7 @@ class AddressNode(Base):
         return filtered_children
 
     def search_recursive(self, index, session,
+                        converter=itaiji_converter,
                          processed_nodes=None) -> List[Result]:
         """
         Search nodes recursively that match the specified address notation.
@@ -164,7 +165,7 @@ class AddressNode(Base):
         ------
         A list of relevant AddressNode.
         """
-        l_optional_prefix = itaiji_converter.check_optional_prefixes(index)
+        l_optional_prefix = converter.check_optional_prefixes(index)
         optional_prefix = index[0: l_optional_prefix]
         index = index[l_optional_prefix:]
 
@@ -196,11 +197,11 @@ class AddressNode(Base):
         # Check if the index begins with an extra character of
         # the current node.
         if filtered_children.count() == 0 and \
-                index[0] in itaiji_converter.extra_characters:
+                index[0] in converter.extra_characters:
             logger.debug("Beginning with an extra character: {}".format(
                 index[0]))
             candidates = self.search_recursive(
-                index[1:], session, processed_nodes)
+                index[1:], session, converter, processed_nodes)
             if len(candidates) > 0:
                 new_candidates = []
                 for candidate in candidates:
@@ -228,7 +229,7 @@ class AddressNode(Base):
 
             logger.debug("-> comparing; {}".format(child.name_index))
             new_candidates = self._get_candidates_from_child(
-                child, index, optional_prefix, session)
+                child, index, optional_prefix, session, converter)
 
             if len(new_candidates) > 0:
                 candidates += new_candidates
@@ -246,7 +247,7 @@ class AddressNode(Base):
                     logger.debug(
                         "child:{} match {} chars".format(child, offset))
                     for cand in child.search_recursive(
-                            rest_index, session, processed_nodes):
+                            rest_index, session, converter, processed_nodes):
                         candidates.append(
                             Result(cand[0],
                                    optional_prefix +
@@ -258,13 +259,13 @@ class AddressNode(Base):
         if optional_prefix == '字' and \
                 self.level >= AddressLevel.CITY and self.level <= AddressLevel.AZA:
             # Check optional_aza
-            aza_positions = itaiji_converter.optional_aza_len(index, 0)
+            aza_positions = converter.optional_aza_len(index, 0)
             if len(aza_positions) > 0:
                 for azalen in aza_positions:
                     logger.debug('"{}" in index "{}" can be optional.'.format(
                         index[:azalen], index))
                     sub_candidates = self.search_recursive(
-                        index[azalen:], session, processed_nodes)
+                        index[azalen:], session, converter, processed_nodes)
                     if sub_candidates[0].matched != '':
                         for cand in sub_candidates:
                             candidates.append(Result(
@@ -281,7 +282,7 @@ class AddressNode(Base):
     def _get_candidates_from_child(
             self, child: 'AddressNode',
             index: str, optional_prefix: str,
-            session) -> list:
+            session, converter) -> list:
         """
         Get candidates from the child.
 
@@ -306,9 +307,9 @@ class AddressNode(Base):
             as the second element.
         """
 
-        match_len = itaiji_converter.match_len(index, child.name_index)
+        match_len = converter.match_len(index, child.name_index)
         if match_len == 0:
-            l_optional_postfix = itaiji_converter.check_optional_postfixes(
+            l_optional_postfix = converter.check_optional_postfixes(
                 child.name_index, child.level)
             if l_optional_postfix > 0:
                 # In case the index string of the child node with optional
@@ -319,7 +320,7 @@ class AddressNode(Base):
                 logger.debug(
                     "child:{} has optional postfix {}".format(
                         child, child.name_index[-l_optional_postfix:]))
-                match_len = itaiji_converter.match_len(index, alt_child_index)
+                match_len = converter.match_len(index, alt_child_index)
                 if match_len < len(index) and index[match_len] in '-ノ':
                     match_len += 1
 
@@ -328,7 +329,7 @@ class AddressNode(Base):
             # "北3西1" instead of "北3条西１丁目".
             alt_child_index = child.name_index.replace('条', '', 1)
             logger.debug("child:{} ends with '.条'".format(child))
-            match_len = itaiji_converter.match_len(index, alt_child_index)
+            match_len = converter.match_len(index, alt_child_index)
 
         if match_len == 0:
             logger.debug("{} doesn't match".format(child.name))
@@ -339,7 +340,7 @@ class AddressNode(Base):
         rest_index = index[offset:]
         l_optional_prefix = len(optional_prefix)
         logger.debug("child:{} match {} chars".format(child, offset))
-        for cand in child.search_recursive(rest_index, session):
+        for cand in child.search_recursive(rest_index, session, converter):
             candidates.append(Result(
                 cand.node,
                 optional_prefix + index[0:match_len] + cand.matched,

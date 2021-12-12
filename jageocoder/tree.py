@@ -19,6 +19,7 @@ from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.itaiji import suggest_converter
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
@@ -972,7 +973,7 @@ class AddressTree(object):
                 logger.debug("Search '{}' under {}({})".format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
-                    rest_index, self.session, processed_nodes)
+                    rest_index, self.session, itaiji_converter, processed_nodes)
                 processed_nodes.append(node.id)
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
