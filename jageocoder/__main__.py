@@ -11,7 +11,7 @@ HELP = """
 
 Usage:
   {p} -h
-  {p} search [-d] <address>
+  {p} search [-d] [--skip-aza] <address>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] [--gaiku] [<url>]
   {p} install-dictionary [-d] [--gaiku] [--db-dir=<dir>] [<url_or_path>]
@@ -21,6 +21,7 @@ Usage:
 Options:
   -h --help       Show this help.
   -d --debug      Show debug messages.
+  --skip-aza      Skip aza-names to find more candidates
   --gaiku         Use block-level (default: building-level)
   --db-dir=<dir>  Specify dictionary directory.
 
@@ -98,7 +99,9 @@ if __name__ == '__main__':
     if args['search']:
         jageocoder.init(db_dir=args['--db-dir'], mode='r')
         print(json.dumps(
-            jageocoder.search(args['<address>']),
+            jageocoder.search(
+                query=args['<address>'],
+                enable_aza_skip=args['--skip-aza'] or False),
             ensure_ascii=False))
 
     elif args['download-dictionary']:

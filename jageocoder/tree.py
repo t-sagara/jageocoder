@@ -899,7 +899,8 @@ class AddressTree(object):
         return cur_node
 
     def search_by_trie(self, query: str,
-                       best_only: bool = True) -> dict:
+                       best_only: bool = True,
+                       enable_aza_skip: bool = False) -> dict:
         """
         Get the list of corresponding nodes using the TRIE index.
         Returns a list of address element nodes that match
@@ -915,6 +916,8 @@ class AddressTree(object):
             An address notation to be searched.
         best_only : bool (option, default=True)
             If true, get the best candidates will be returned.
+        enable_aza_skip: bool (default = False)
+            If set to True, skip Aza-names to find more candidates.
 
         Return
         ------
@@ -972,7 +975,10 @@ class AddressTree(object):
                 logger.debug("Search '{}' under {}({})".format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
-                    rest_index, self.session, itaiji_converter, processed_nodes)
+                    index=rest_index,
+                    session=self.session,
+                    processed_nodes=processed_nodes,
+                    enable_aza_skip=enable_aza_skip)
                 processed_nodes.append(node.id)
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
@@ -1023,7 +1029,8 @@ class AddressTree(object):
         return self.searchNode(query, **kwargs)
 
     def searchNode(self, query: str,
-                   best_only: bool = True) -> List[Result]:
+                   best_only: bool = True,
+                   enable_aza_skip: bool = False) -> List[Result]:
         """
         Searches for address nodes corresponding to an address notation
         and returns the matching substring and a list of nodes.
@@ -1034,6 +1041,8 @@ class AddressTree(object):
             An address notation to be searched.
         best_only: bool (default = True)
             If set to False, Returns all candidates whose prefix matches.
+        enable_aza_skip: bool (default = False)
+            If set to True, skip Aza-names to find more candidates.
 
         Return
         ------
@@ -1054,7 +1063,10 @@ class AddressTree(object):
         >>> tree.searchNode('多摩市落合1-15-2')
         [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
         """
-        results = self.search_by_trie(query, best_only)
+        results = self.search_by_trie(
+            query=query,
+            best_only=best_only,
+            enable_aza_skip=enable_aza_skip)
         values = sorted(results.values(), reverse=True,
                         key=lambda v: len(v[1]))
 
