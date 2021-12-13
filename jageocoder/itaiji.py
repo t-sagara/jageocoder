@@ -29,7 +29,7 @@ class Converter(object):
     optional_prefixes = ['字', '大字', '小字']
 
     # Letters that are sometimes insereted to words at will
-    optional_letters_in_middle = 'ケヶガツッノ区町'
+    optional_letters_in_middle = 'ケヶガツッノ区町字'
 
     # Strings that are sometimes inserted to words at will
     optional_strings_in_middle = ['大字', '小字']
@@ -290,13 +290,14 @@ class Converter(object):
                             continue
 
                         logger.debug('"{}" in query "{}" is optional.'.format(
-                                string[string_pos: aza_positions[0]],
-                                string))
+                            string[string_pos: aza_positions[0]],
+                            string))
                         string_pos = aza_positions.pop(0)
                         continue
 
-                    if string[string_pos] == '字':
-                        aza_positions = self.optional_aza_len(string, string_pos + 1)
+                    if True or string[string_pos] == '字':
+                        aza_positions = self.optional_aza_len(
+                            string, string_pos + 1)
                         logger.debug('"{}" in query "{}" is optional.'.format(
                             string[string_pos], string))
                         string_pos += 1

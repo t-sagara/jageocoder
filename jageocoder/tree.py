@@ -967,7 +967,7 @@ class AddressTree(object):
                         "Set min_key to '{}'").format(k))
                     min_key = k
 
-                if node.id in processed_nodes:
+                if node in processed_nodes:
                     logger.debug("Node {}({}) already processed.".format(
                         node.name, node.id))
                     continue
@@ -979,7 +979,7 @@ class AddressTree(object):
                     session=self.session,
                     processed_nodes=processed_nodes,
                     enable_aza_skip=enable_aza_skip)
-                processed_nodes.append(node.id)
+                processed_nodes.append(node)
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
 

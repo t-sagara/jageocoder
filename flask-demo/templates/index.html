@@ -2,18 +2,33 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <title>Jageocoder Flask Demonstration</title>
+    <meta name="viewport" content="width-device-width, initial-scale=1.0">
+    <title>Jageocoder Demonstration</title>
+    <style type="text/css">
+      body {
+          margin: 1em;
+      }
+      input#query {
+          width: 100%;
+      }
+      textarea#result_text {
+          width: 100%;
+      }
+    </style>
   </head>
   <body>
     <h1>Jageocoder のデモンストレーション</h1>
-    <form action="/search" method="GET">
+    <form action="{{ url_prefix }}/search" method="GET">
       検索したい住所を入力：<br />
-      <input size="80" value="{{ q }}" name="q" />
+      <input id="query" value="{{ q }}" name="q" /><br />
+      <input type="checkbox" name="skip_aza"
+        {% if skip_aza %}checked="checked"{% endif %}
+        />小字の省略を許す&nbsp;
       <input type="submit" value="検索" />
     </form>
 
     {% if results %}
-    <p>結果一覧 <a href="/">住所の例に戻る</a></p>
+    <p>結果一覧 <a href="{{ url_prefix }}/">住所の例に戻る</a></p>
     <ul id="results">
       {% for result in results %}
         <li class="node">
@@ -24,11 +39,15 @@
             <li>一致した文字列： {{ result.matched }}</li>
             <li>座標：
               経度 {{ result.node.x }}, 緯度 {{ result.node.y }}
-              <a href="{{ result.node.get_gsimap_link() }}" target="_gsimap">地理院地図</a></li>
+              <a href="{{ result.node.get_gsimap_link() }}" target="_gsimap">地理院地図</a>
+              <a href="{{ result.node.get_googlemap_link() }}" target="_googlemap">Googleマップ</a>
+            </li>
           </ul>
         </li>
       {% endfor %}
     </ul>
+    <p>JSON表現</p>
+    <textarea id="result_text" rows="5">{{ results }}</textarea>
     {% else %}
     <p>住所の例</p>
     <ul>
@@ -61,12 +80,16 @@
         <dd>京都市の通り名には部分的に対応していて、通り名部分をスキップして町名から処理します。</dd>
       </dl></li>
       <li><dl>
-        <dt>長野県千曲市礒部字下河原１１３７</dt>
-        <dd>辞書にない字名が含まれていても、対応する地番を検索します。</dd>
+        <dt>千葉県八街市八街字松ヶ久保い77番</dt>
+        <dd>辞書にない字名（字松ヶ久保）が含まれていても、対応する大字を検索します。</dd>
       </dl></li>
       <li><dl>
         <dt>福島県いわき市平上高久塚田97乙</dt>
         <dd>地番の脱落地に対応しています。</dd>
+      </dl></li>
+      <li><dl>
+        <dt>長野県千曲市礒部下河原1137番地</dt>
+        <dd>地番が大字内で重複しないように振られていることが分かっている地域の場合、「字の省略を許可」すると字名（下河原）を省略します。</dd>
       </dl></li>
     </ul>
     {% endif %}

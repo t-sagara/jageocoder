@@ -271,6 +271,15 @@ class TestSearchMethods(unittest.TestCase):
             query="宮城県仙台市太白区秋保湯元字寺田",
             fullname=["宮城県", "仙台市", "太白区", "秋保町湯元", "寺田"])
 
+    def test_delete_cho(self):
+        """
+        Delete extra "町" in oaza names.
+        """
+        self._check(
+            query="鹿児島県伊佐市菱刈町川北字古川２２６３",
+            match="鹿児島県伊佐市菱刈町川北",
+            fullname=["鹿児島県", "伊佐市", "菱刈川北"])
+
     def test_not_complement_cho(self):
         """
         Do not complete optional postfixes if the string does not end
@@ -444,6 +453,16 @@ class TestSearchMethods(unittest.TestCase):
             enable_aza_skip=True,
             fullname=["青森県", "八戸市", "大字鮫町", "骨沢", "1番地"])
 
+        self._check(
+            query="岩手県盛岡市東中野字立石８－１０",
+            enable_aza_skip=True,
+            fullname=["岩手県", "盛岡市", "東中野", "立石", "8番地"])
+
+        self._check(
+            query="宮城県石巻市渡波字転石山１－６",
+            enable_aza_skip=True,
+            fullname=["宮城県", "石巻市", "渡波", "転石山"])
+
         # If "字新得基線" will be skipped, "新得町１"
         # can be resolved to "字新得1番地"
         self._check(
@@ -455,19 +474,40 @@ class TestSearchMethods(unittest.TestCase):
                 ["北海道", "上川郡", "新得町", "字新得基線"]
             ])
 
-        # In this version, Aza name must start with '字',
-        # so '十輪谷' does not be omitted.
+        # Cases where the oaza-name directly under the city
+        # needs to be skipped.
+        self._check(
+            query="高知県高岡郡佐川町字若枝甲４８５",
+            enable_aza_skip=True,
+            match="高知県高岡郡佐川町字若枝甲４８５",
+            fullname=["高知県", "高岡郡", "佐川町", "甲", "485番地"])
+
+        # When enable_aza_skip option is set to True,
+        # '十輪谷' will be omitted even it doesn't start with '字'
         self._check(
             query="広島県府中市鵜飼町十輪谷甲１２４－１",
             enable_aza_skip=True,
-            match="広島県府中市鵜飼町十",
-            fullname=["広島県", "府中市", "鵜飼町", "10番地"])
+            match="広島県府中市鵜飼町十輪谷甲１２４－",
+            fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"])
+
+    def test_not_omit_oaza(self):
+        self._check(
+            query="愛媛県松山市平林乙２－３",
+            enable_aza_skip=True,
+            match="愛媛県松山市平林",
+            fullname=["愛媛県", "松山市", "平林"])
 
         self._check(
-            query="広島県府中市鵜飼町字十輪谷甲１２４－１",
+            query="長野県長野市小島田町５２４",
             enable_aza_skip=True,
-            match="広島県府中市鵜飼町字十輪谷甲１２４－",
-            fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"])
+            match="長野県長野市小島田町",
+            fullname=["長野県", "長野市", "小島田町"])
+
+        self._check(
+            query="山形県酒田市京田２－１－１１",
+            enable_aza_skip=True,
+            match="山形県酒田市京田２－１－",
+            fullname=["山形県", "酒田市", "京田", "二丁目", "1番地"])
 
     def test_mura_ooaza_koaza(self):
         """

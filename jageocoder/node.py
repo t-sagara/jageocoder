@@ -158,8 +158,9 @@ class AddressNode(Base):
             The standardized address notation.
         session : sqlalchemy.orm.Session
             The database session for executing SQL queries.
-        processed_nodes: List of int, optional
-            List of IDs of nodes that have already been processed.
+        processed_nodes: List of AddressNode, optional
+            List of nodes that have already been processed
+            by TRIE search results
 
         Return
         ------
@@ -222,7 +223,7 @@ class AddressNode(Base):
 
         candidates = []
         for child in filtered_children:
-            if processed_nodes is not None and child.id in processed_nodes:
+            if child in processed_nodes or []:
                 logger.debug("-> skipped; {}({})".format(
                     child.name, child.id))
                 continue
@@ -233,6 +234,7 @@ class AddressNode(Base):
                 index=index,
                 optional_prefix=optional_prefix,
                 session=session,
+                processed_nodes=processed_nodes,
                 enable_aza_skip=enable_aza_skip)
 
             if len(new_candidates) > 0:
@@ -262,10 +264,30 @@ class AddressNode(Base):
                                    ))
 
         # Search for subnodes with queries excludes Aza-name candidates
-        if enable_aza_skip and optional_prefix == '字' and \
+        if enable_aza_skip and \
                 self.level >= AddressLevel.CITY and \
                 self.level <= AddressLevel.AZA:
-            aza_positions = itaiji_converter.optional_aza_len(index, 0)
+            msg = "Checking Aza-name, current_node:{}, processed:{}"
+            logger.debug(msg.format(self, processed_nodes))
+            check_aza_skip = True
+            for node in processed_nodes or []:
+                if node.parent_id == self.parent_id:
+                    logger.debug("A sibling node {} had been selected".format(
+                        node.name))
+                    check_aza_skip = False
+                    break
+                elif node.parent_id == self.id:
+                    logger.debug("A child node {} had been selected".format(
+                        node.name))
+                    check_aza_skip = False
+                    break
+
+            if check_aza_skip:
+                aza_positions = itaiji_converter.optional_aza_len(
+                    index, 0)
+            else:
+                aza_positions = []
+
             if len(aza_positions) > 0:
                 for azalen in aza_positions:
                     msg = '"{}" in index "{}" can be optional.'
@@ -292,6 +314,7 @@ class AddressNode(Base):
             self, child: 'AddressNode',
             index: str, optional_prefix: str,
             session,
+            processed_nodes,
             enable_aza_skip) -> list:
         """
         Get candidates from the child.
@@ -353,6 +376,7 @@ class AddressNode(Base):
         for cand in child.search_recursive(
                 index=rest_index,
                 session=session,
+                processed_nodes=processed_nodes,
                 enable_aza_skip=enable_aza_skip):
             candidates.append(Result(
                 cand.node,
@@ -552,6 +576,16 @@ class AddressNode(Base):
         ex. https://maps.gsi.go.jp/#13/35.713556/139.750385/
         """
         url = 'https://maps.gsi.go.jp/#{level:d}/{lat:.6f}/{lon:.6f}/'
+        return url.format(
+            level=9 + self.level,
+            lat=self.y, lon=self.x)
+
+    def get_googlemap_link(self) -> str:
+        """
+        Returns the URL for GSI Map with parameters.
+        ex. https://maps.google.com/maps?q=24.197611,120.780512&z=18
+        """
+        url = 'https://maps.google.com/maps?q={lat:.6f},{lon:.6f}&z={level:d}'
         return url.format(
             level=9 + self.level,
             lat=self.y, lon=self.x)
