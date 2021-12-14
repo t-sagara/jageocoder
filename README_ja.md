@@ -60,7 +60,7 @@ python -m jageocoder get-db-dir
 
 ```sh
 export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
-python -m install-dictionary
+python -m jageocoder install-dictionary
 ```
 
 ## 辞書の更新
@@ -77,7 +77,7 @@ python -m install-dictionary
 この処理には長時間かかることがあります。
 
 ```sh
-python -m upgrade-dictionary
+python -m jageocoder upgrade-dictionary
 ```
 
 ## アンインストール手順
