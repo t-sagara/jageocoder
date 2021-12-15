@@ -58,7 +58,7 @@ to specify the directory.
 
 ```sh
 export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
-python -m install-dictionary
+python -m jageocoder install-dictionary
 ```
 
 ## Update dictinary
@@ -76,7 +76,7 @@ To update the dictionary, run the `upgrade-dictionary` command.
 This process may take a long time.
 
 ```sh
-python -m upgrade-dictionary
+python -m jageocoder upgrade-dictionary
 ```
 
 ## Uninstall instructions
