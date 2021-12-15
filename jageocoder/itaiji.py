@@ -38,7 +38,10 @@ class Converter(object):
     extra_characters = '-ノ区町'
 
     # Characters that may be the beginning of Chiban
-    chiban_heads = '甲乙丙丁イロハニホヘ'
+    chiban_heads = ('甲乙丙丁戊己庚辛壬癸'
+                    '子丑寅卯辰巳午未申酉戌亥'
+                    '続新'
+                    'イロハニホヘトチリヌルヲワカヨタレソツネ')
 
     # Max length of Aza-name which can be ommitted
     max_skip_azaname = 5
@@ -52,15 +55,9 @@ class Converter(object):
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
 
-    def __init__(self, lookahead: bool = False):
+    def __init__(self):
         """
         Initialize the converter.
-
-        Parameters
-        ----------
-        lookahead: bool, optional
-            If True, it will look beyond the query string to find
-            a matching string. This will reduce the processing speed.
 
         Attributes
         ----------
@@ -83,8 +80,6 @@ class Converter(object):
             {chr(0x0021 + i): chr(0xFF01 + i) for i in range(94)})
         self.trans_z2h = str.maketrans(
             {chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
-
-        self.lookahead = lookahead
 
     def check_optional_prefixes(self, notation: str) -> int:
         """
@@ -283,7 +278,13 @@ class Converter(object):
                         pattern_pos += plen
                         continue
 
-                    # Skip optional Aza-name
+                    # Search optional Aza-names
+                    if len(aza_positions) == 0:
+                        # Check if aza-name starts here
+                        aza_positions = self.optional_aza_len(
+                            string, string_pos)
+
+                    # Skip optional Aza-names
                     if len(aza_positions) > 0:
                         if aza_positions[0] <= string_pos:
                             aza_positions.pop(0)
@@ -293,14 +294,6 @@ class Converter(object):
                             string[string_pos: aza_positions[0]],
                             string))
                         string_pos = aza_positions.pop(0)
-                        continue
-
-                    if True or string[string_pos] == '字':
-                        aza_positions = self.optional_aza_len(
-                            string, string_pos + 1)
-                        logger.debug('"{}" in query "{}" is optional.'.format(
-                            string[string_pos], string))
-                        string_pos += 1
                         continue
 
                     return 0
@@ -366,9 +359,6 @@ class Converter(object):
         """
         candidates = []
 
-        if not self.lookahead:
-            return []
-
         if pos >= len(string):
             return []
 
@@ -428,4 +418,4 @@ class Converter(object):
 # Create the singleton object of a converter
 # that normalizes address strings
 if 'converter' not in vars():
-    converter = Converter(lookahead=True)
+    converter = Converter()

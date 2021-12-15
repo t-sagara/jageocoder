@@ -218,7 +218,7 @@ def upgrade_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     logger.info('The dictionary is successfully upgraded.')
 
 
-def search(query: str, enable_aza_skip: bool = False) -> dict:
+def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
     """
     Search node from the tree by the query.
 
@@ -226,8 +226,11 @@ def search(query: str, enable_aza_skip: bool = False) -> dict:
     ---------
     query: str
         An address notation to be searched.
-    enable_aza_skip: bool, optional
-        If set to True, skip Aza-names to find more candidates.
+    aza_skip: str, bool, optional (default=None)
+        Specifies how to skip aza-names.
+        - Set to 'auto' or None to make the decision automatically
+        - Set to 'off' or False to not skip
+        - Set to 'on'　or True to always skip
 
     Return
     ------
@@ -245,7 +248,7 @@ def search(query: str, enable_aza_skip: bool = False) -> dict:
     global _tree
     results = _tree.searchNode(
         query,
-        best_only=True, enable_aza_skip=enable_aza_skip)
+        best_only=True, aza_skip=aza_skip)
 
     if len(results) == 0:
         return {'matched': '', 'candidates': []}
@@ -258,7 +261,7 @@ def search(query: str, enable_aza_skip: bool = False) -> dict:
 
 def searchNode(query: str,
                best_only: bool = True,
-               enable_aza_skip: bool = False):
+               aza_skip: Union[str, bool, None] = None):
     """
     Searches for address nodes corresponding to an address notation
     and returns the matching substring and a list of nodes.
@@ -269,8 +272,11 @@ def searchNode(query: str,
         An address notation to be searched.
     best_only: bool, optional
         If set to False, Returns all candidates whose prefix matches.
-    enable_aza_skip: bool, optional
-        If set to True, skip Aza-names to find more candidates.
+    aza_skip: str, bool, optional (default=None)
+        Specifies how to skip aza-names.
+        - Set to 'auto' or None to make the decision automatically
+        - Set to 'off' or False to not skip
+        - Set to 'on'　or True to always skip
 
     Return
     ------
@@ -294,7 +300,7 @@ def searchNode(query: str,
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    return _tree.searchNode(query, best_only, enable_aza_skip)
+    return _tree.searchNode(query, best_only, aza_skip)
 
 
 def create_trie_index() -> NoReturn:

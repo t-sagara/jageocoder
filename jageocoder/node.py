@@ -1,9 +1,10 @@
 from functools import lru_cache
 import logging
 import re
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
+from sqlalchemy import or_
 from sqlalchemy.orm import deferred
 from sqlalchemy.orm import backref, relationship
 
@@ -56,6 +57,7 @@ class AddressNode(Base):
         "AddressNode",
         cascade="all",
         backref=backref("parent", remote_side="AddressNode.id"),
+        lazy="dynamic",
     )
 
     def __init__(self, *args, **kwargs):
@@ -124,14 +126,13 @@ class AddressNode(Base):
         Returns the relevand node if it is found,
         or None if it is not.
         """
-        for c in self.children:
-            if c.name == target_name or c.name_index == target_name:
-                return c
-
-        return None
+        return self.children.filter(or_(
+            AddressNode.name == target_name,
+            AddressNode.name_index == target_name
+        )).one_or_none()
 
     @lru_cache(maxsize=512)
-    def search_child_with_criteria(self, session, pattern: str,
+    def search_child_with_criteria(self, pattern: str,
                                    max_level: Optional[int] = None):
         conds = []
         conds.append(AddressNode.name_index.like(pattern))
@@ -141,14 +142,14 @@ class AddressNode(Base):
             conds.append(AddressNode.level <= max_level)
             logger.debug("    and level <= {}".format(max_level))
 
-        filtered_children = session.query(AddressNode).filter(
-            self.__class__.parent_id == self.id, *conds).order_by(
+        filtered_children = self.children.filter(*conds).order_by(
             AddressNode.id)
         return filtered_children
 
-    def search_recursive(self, index, session,
-                         processed_nodes=None,
-                         enable_aza_skip=False) -> List[Result]:
+    def search_recursive(
+            self, index: str,
+            processed_nodes: Optional[List['AddressNode']] = None,
+            aza_skip: Union[str, bool, None] = None) -> List[Result]:
         """
         Search nodes recursively that match the specified address notation.
 
@@ -156,11 +157,14 @@ class AddressNode(Base):
         ---------
         index : str
             The standardized address notation.
-        session : sqlalchemy.orm.Session
-            The database session for executing SQL queries.
         processed_nodes: List of AddressNode, optional
             List of nodes that have already been processed
             by TRIE search results
+        aza_skip: str, bool, optional
+            Specifies how to skip aza-names.
+            - Set to 'auto' or None to make the decision automatically
+            - Set to 'off' or False to not skip
+            - Set to 'on'　or True to always skip
 
         Return
         ------
@@ -169,6 +173,13 @@ class AddressNode(Base):
         l_optional_prefix = itaiji_converter.check_optional_prefixes(index)
         optional_prefix = index[0: l_optional_prefix]
         index = index[l_optional_prefix:]
+
+        if aza_skip in (None, ''):
+            aza_skip = 'auto'
+        elif aza_skip in (True, 'enable'):
+            aza_skip = 'on'
+        elif aza_skip in (False, 'disable'):
+            aza_skip = 'off'
 
         logger.debug("node:{}, index:{}, optional_prefix:{}".format(
             self, index, optional_prefix))
@@ -189,11 +200,8 @@ class AddressNode(Base):
         if '字' in optional_prefix:
             max_level = AddressLevel.AZA
 
-        # filtered_children = session.query(AddressNode).filter(
-        #     self.__class__.parent_id == self.id, *conds).order_by(
-        #     AddressNode.id)
         filtered_children = self.search_child_with_criteria(
-            session, pattern=substr, max_level=max_level)
+            pattern=substr, max_level=max_level)
 
         # Check if the index begins with an extra character of
         # the current node.
@@ -202,7 +210,7 @@ class AddressNode(Base):
             logger.debug("Beginning with an extra character: {}".format(
                 index[0]))
             candidates = self.search_recursive(
-                index[1:], session, processed_nodes, enable_aza_skip)
+                index[1:], processed_nodes, aza_skip)
             if len(candidates) > 0:
                 new_candidates = []
                 for candidate in candidates:
@@ -217,7 +225,7 @@ class AddressNode(Base):
             return []
 
         if logger.isEnabledFor(logging.DEBUG):
-            msg = 'Children are; {}'.format(
+            msg = 'No candidates. Children are; {}'.format(
                 ','.join([x.name for x in self.children]))
             logger.debug(msg)
 
@@ -233,9 +241,8 @@ class AddressNode(Base):
                 child=child,
                 index=index,
                 optional_prefix=optional_prefix,
-                session=session,
                 processed_nodes=processed_nodes,
-                enable_aza_skip=enable_aza_skip)
+                aza_skip=aza_skip)
 
             if len(new_candidates) > 0:
                 candidates += new_candidates
@@ -253,8 +260,8 @@ class AddressNode(Base):
                     logger.debug(
                         "child:{} match {} chars".format(child, offset))
                     for cand in child.search_recursive(
-                            rest_index, session,
-                            processed_nodes, enable_aza_skip):
+                            rest_index,
+                            processed_nodes, aza_skip):
                         candidates.append(
                             Result(cand[0],
                                    optional_prefix +
@@ -264,45 +271,39 @@ class AddressNode(Base):
                                    ))
 
         # Search for subnodes with queries excludes Aza-name candidates
-        if enable_aza_skip and \
-                self.level >= AddressLevel.CITY and \
-                self.level <= AddressLevel.AZA:
+        if aza_skip == 'on' or \
+                (aza_skip == 'auto' and
+                 self._is_aza_omission_target(processed_nodes)):
             msg = "Checking Aza-name, current_node:{}, processed:{}"
             logger.debug(msg.format(self, processed_nodes))
-            check_aza_skip = True
-            for node in processed_nodes or []:
-                if node.parent_id == self.parent_id:
-                    logger.debug("A sibling node {} had been selected".format(
-                        node.name))
-                    check_aza_skip = False
-                    break
-                elif node.parent_id == self.id:
-                    logger.debug("A child node {} had been selected".format(
-                        node.name))
-                    check_aza_skip = False
-                    break
-
-            if check_aza_skip:
-                aza_positions = itaiji_converter.optional_aza_len(
-                    index, 0)
-            else:
-                aza_positions = []
+            aza_positions = itaiji_converter.optional_aza_len(
+                index, 0)
 
             if len(aza_positions) > 0:
                 for azalen in aza_positions:
                     msg = '"{}" in index "{}" can be optional.'
-                    logger.debug(msg.format(
-                        index[:azalen], index))
+                    logger.debug(msg.format(index[:azalen], index))
+                    # Note: Disable 'aza_skip' here not to perform
+                    # repeated skip processing.
                     sub_candidates = self.search_recursive(
-                        index[azalen:], session,
-                        processed_nodes, enable_aza_skip=False)
-                    if sub_candidates[0].matched != '':
-                        for cand in sub_candidates:
-                            candidates.append(Result(
-                                cand.node,
-                                optional_prefix +
-                                index[0:azalen] + cand.matched,
-                                l_optional_prefix + cand.nchars))
+                        index[azalen:],
+                        processed_nodes, aza_skip='off')
+                    if sub_candidates[0].matched == '':
+                        continue
+
+                    for cand in sub_candidates:
+                        if cand.node.level < AddressLevel.BLOCK and \
+                                cand.node.name_index not in \
+                                itaiji_converter.chiban_heads:
+                            logger.debug("{} is ignored".format(
+                                cand.node.name))
+                            continue
+
+                        candidates.append(Result(
+                            cand.node,
+                            optional_prefix +
+                            index[0:azalen] + cand.matched,
+                            l_optional_prefix + cand.nchars))
 
         if len(candidates) == 0:
             candidates = [Result(self, '', 0)]
@@ -313,9 +314,8 @@ class AddressNode(Base):
     def _get_candidates_from_child(
             self, child: 'AddressNode',
             index: str, optional_prefix: str,
-            session,
-            processed_nodes,
-            enable_aza_skip) -> list:
+            processed_nodes: List['AddressNode'],
+            aza_skip: str) -> list:
         """
         Get candidates from the child.
 
@@ -328,8 +328,9 @@ class AddressNode(Base):
             original notation.
         optional_prefix: str
             The option string that preceded the string passed by index.
-        session: sqlalchemy.orm.Session
-            The session object used for DB access.
+        aza_skip: str
+            Specifies how to skip aza-names.
+            Options are 'auto', 'off', and 'on'
 
         Returns
         -------
@@ -375,15 +376,64 @@ class AddressNode(Base):
         logger.debug("child:{} match {} chars".format(child, offset))
         for cand in child.search_recursive(
                 index=rest_index,
-                session=session,
                 processed_nodes=processed_nodes,
-                enable_aza_skip=enable_aza_skip):
+                aza_skip=aza_skip):
             candidates.append(Result(
                 cand.node,
                 optional_prefix + index[0:match_len] + cand.matched,
                 l_optional_prefix + match_len + cand.nchars))
 
         return candidates
+
+    def _is_aza_omission_target(
+            self, processed_nodes: List['AddressNode']) -> bool:
+        """
+        Determine if this node is a target of aza-name omission.
+
+        Parameters
+        ----------
+        processed_nodes: List of AddressNode
+            List of nodes that have already been processed
+            by TRIE search results
+
+        Returns
+        -------
+        bool
+            True if this node is a target of aza-name ommission.
+            Otherwise False.
+
+        Notes
+        -----
+        Sibling and parent nodes of nodes whose names match in TRIE
+        should not look for nodes that omit the aza-names.
+        """
+        if self.level < AddressLevel.CITY or \
+                self.level > AddressLevel.AZA:
+            return False
+
+        for node in processed_nodes or []:
+            if node.parent_id == self.parent_id:
+                logger.debug("A sibling node {} had been selected".format(
+                    node.name))
+                return False
+
+            elif node.parent_id == self.id:
+                logger.debug("A child node {} had been selected".format(
+                    node.name))
+                return False
+
+        if self.level in (AddressLevel.CITY, AddressLevel.WARD):
+            return True
+
+        aza_children = self.children.filter(
+            AddressNode.level <= AddressLevel.AZA)
+        for child in aza_children:
+            if child.name_index not in itaiji_converter.chiban_heads:
+                logger.debug(("The child-node {} is higher than Aza "
+                              "(can't skip aza-names)").format(child.name))
+                return False
+
+        return True
 
     def save_recursive(self, session):
         """

@@ -21,7 +21,8 @@ class Result(object):
     matched: str
         The matched substring of the query.
     nchars: int
-        The number of characters which is matched.
+        The number of matched characters.
+        It is used only for recursive search.
     """
 
     def __init__(self,
@@ -92,7 +93,8 @@ class Result(object):
         return {
             "node": self.node.as_dict(),
             "matched": self.matched,
-            "nchars": self.nchars}
+            # "nchars": self.nchars
+        }
 
     def __repr__(self) -> str:
         return json.dumps(self.to_dict(), ensure_ascii=False)

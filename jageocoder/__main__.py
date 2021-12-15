@@ -11,7 +11,7 @@ HELP = """
 
 Usage:
   {p} -h
-  {p} search [-d] [--skip-aza] <address>
+  {p} search [-d] [--force-aza-skip|--disable-aza-skip] <address>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] [--gaiku] [<url>]
   {p} install-dictionary [-d] [--gaiku] [--db-dir=<dir>] [<url_or_path>]
@@ -19,11 +19,12 @@ Usage:
   {p} upgrade-dictionary [-d] [--db-dir=<dir>]
 
 Options:
-  -h --help       Show this help.
-  -d --debug      Show debug messages.
-  --skip-aza      Skip aza-names to find more candidates
-  --gaiku         Use block-level (default: building-level)
-  --db-dir=<dir>  Specify dictionary directory.
+  -h --help           Show this help.
+  -d --debug          Show debug messages.
+  --force-aza-skip    Skip aza-names whenever possible.
+  --disable-aza-skip  Do not skip aza-names.
+  --gaiku             Use block-level (default: building-level)
+  --db-dir=<dir>      Specify dictionary directory.
 
 Examples:
 
@@ -98,10 +99,16 @@ if __name__ == '__main__':
 
     if args['search']:
         jageocoder.init(db_dir=args['--db-dir'], mode='r')
+        skip_aza = 'auto'
+        if args['--disable-aza-skip']:
+            skip_aza = 'off'
+        elif args['--force-aza-skip']:
+            skip_aza = 'on'
+
         print(json.dumps(
             jageocoder.search(
                 query=args['<address>'],
-                enable_aza_skip=args['--skip-aza'] or False),
+                aza_skip=skip_aza),
             ensure_ascii=False))
 
     elif args['download-dictionary']:

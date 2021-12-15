@@ -9,7 +9,7 @@
           margin: 1em;
       }
       input#query {
-          width: 100%;
+          width: 50%;
       }
       textarea#result_text {
           width: 100%;
@@ -19,12 +19,20 @@
   <body>
     <h1>Jageocoder のデモンストレーション</h1>
     <form action="{{ url_prefix }}/search" method="GET">
-      検索したい住所を入力：<br />
-      <input id="query" value="{{ q }}" name="q" /><br />
-      <input type="checkbox" name="skip_aza"
-        {% if skip_aza %}checked="checked"{% endif %}
-        />小字の省略を許す&nbsp;
-      <input type="submit" value="検索" />
+      検索したい住所を入力：
+      <input id="query" value="{{ q }}" name="q" />
+      <input type="submit" value="検索" /><br />
+      小字の省略：
+      <input type="radio" name="skip_aza" value="auto"
+        {% if skip_aza == 'auto' %}checked="checked"{% endif %}
+        />自動判定&nbsp;
+      <input type="radio" name="skip_aza" value="on"
+        {% if skip_aza == 'on' %}checked="checked"{% endif %}
+        />省略する&nbsp;
+      <input type="radio" name="skip_aza" value="off"
+        {% if skip_aza == 'off' %}checked="checked"{% endif %}
+        />省略しない&nbsp;
+      
     </form>
 
     {% if results %}
@@ -52,44 +60,52 @@
     <p>住所の例</p>
     <ul>
       <li><dl>
-        <dt>多摩市落合1-15多摩センタートーセイビル</dt>
+        <dt><a href="{{ url_prefix }}/search?q=%E5%A4%9A%E6%91%A9%E5%B8%82%E8%90%BD%E5%90%881-15%E5%A4%9A%E6%91%A9%E3%82%BB%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%88%E3%83%BC%E3%82%BB%E3%82%A4%E3%83%93%E3%83%AB&skip_aza=auto">多摩市落合1-15多摩センタートーセイビル</a></dt>
         <dd>「番」「番地」をハイフンや「の」などで省略しても解析できます。ビル・マンション名には対応していません。</dd>
       </dl></li>
       <li><dl>
-        <dt>茨城県竜ヶ崎市字米町3903</dt>
+        <dt><a href="{{ url_prefix }}/search?q=%E8%8C%A8%E5%9F%8E%E7%9C%8C%E7%AB%9C%E3%83%B6%E5%B4%8E%E5%B8%82%E5%AD%97%E7%B1%B3%E7%94%BA3903&skip_aza=auto">茨城県竜ヶ崎市字米町3903</a></dt>
         <dd>「竜」と「龍」などの異体字に対応しています。</dd>
       </dl></li>
       <li><dl>
-        <dt>中央区中央1</dt>
+        <dt><a href="{{ url_prefix }}/search?q=%E4%B8%AD%E5%A4%AE%E5%8C%BA%E4%B8%AD%E5%A4%AE1&skip_aza=auto">中央区中央1</a></dt>
         <dd>都道府県名や市区町村名の省略に対応しています。候補が複数見つかった場合は複数の結果を返します。</dd>
       </dl></li>
       <li><dl>
-        <dt>東京都西多摩郡瑞穂町箱根ケ崎2335番地</dt>
-        <dd>大字名の「大字」の省略に対応しています。</dd>
+        <dt><a href="{{ url_prefix }}/search?q=%E6%9D%B1%E4%BA%AC%E9%83%BD%E8%A5%BF%E5%A4%9A%E6%91%A9%E9%83%A1%E7%91%9E%E7%A9%82%E7%94%BA%E7%AE%B1%E6%A0%B9%E3%82%B1%E5%B4%8E2335%E7%95%AA%E5%9C%B0&skip_aza=auto">東京都西多摩郡瑞穂町箱根ケ崎2335番地</a></dt>
+        <dd>大字名の先頭の「大字」や、字名の先頭の「字」の省略に対応しています。</dd>
       </dl></li>
       <li><dl>
-        <dt>埼玉県大里郡寄居町大字鷹巣</dt>
+        <dt><a href="{{ url_prefix }}/search?q=%E5%9F%BC%E7%8E%89%E7%9C%8C%E5%A4%A7%E9%87%8C%E9%83%A1%E5%AF%84%E5%B1%85%E7%94%BA%E5%A4%A7%E5%AD%97%E9%B7%B9%E5%B7%A3&skip_aza=auto">埼玉県大里郡寄居町大字鷹巣</a></dt>
         <dd>「鷹ノ巣」の「ノ」などの省略に対応しています。</dd>
       </dl></li>
       <li><dl>
-        <dt>札幌市中央区北3西1-7</dt>
+        <dt><a href="{{ url_prefix }}/search?q=%E6%9C%AD%E5%B9%8C%E5%B8%82%E4%B8%AD%E5%A4%AE%E5%8C%BA%E5%8C%973%E8%A5%BF1-7&skip_aza=auto">札幌市中央区北3西1-7</a></dt>
         <dd>札幌市の「北三条西一丁目」を「北3西1」のように省略する表記に対応しています。</dd>
       </dl></li>
       <li><dl>
-        <dt>京都市上京区下立売通新町西入薮ノ内町</dt>
-        <dd>京都市の通り名には部分的に対応していて、通り名部分をスキップして町名から処理します。</dd>
+        <dt><a href="{{ url_prefix }}/search?q=%E4%BA%AC%E9%83%BD%E5%BA%9C%E4%BA%AC%E9%83%BD%E5%B8%82%E4%B8%AD%E4%BA%AC%E5%8C%BA%E4%B8%8A%E6%9C%AC%E8%83%BD%E5%AF%BA%E5%89%8D%E7%94%BA488%E7%95%AA%E5%9C%B0&skip_aza=auto">京都府京都市中京区上本能寺前町488番地</a></dt>
+        <dd>京都市の通り名には部分的に対応しており、通り名部分をスキップして町名から処理します。
+        町名が省略されている表記には対応できません。</dd>
       </dl></li>
       <li><dl>
-        <dt>千葉県八街市八街字松ヶ久保い77番</dt>
+        <dt><a href="{{ url_prefix }}/search?q=%E5%8D%83%E8%91%89%E7%9C%8C%E5%85%AB%E8%A1%97%E5%B8%82%E5%85%AB%E8%A1%97%E5%AD%97%E6%9D%BE%E3%83%B6%E4%B9%85%E4%BF%9D%E3%81%8477%E7%95%AA&skip_aza=auto">千葉県八街市八街字松ヶ久保い77番</a></dt>
         <dd>辞書にない字名（字松ヶ久保）が含まれていても、対応する大字を検索します。</dd>
       </dl></li>
       <li><dl>
-        <dt>福島県いわき市平上高久塚田97乙</dt>
+        <dt><a href="{{ url_prefix }}/search?q=%E7%A6%8F%E5%B3%B6%E7%9C%8C%E3%81%84%E3%82%8F%E3%81%8D%E5%B8%82%E5%B9%B3%E4%B8%8A%E9%AB%98%E4%B9%85%E5%A1%9A%E7%94%B097%E4%B9%99&skip_aza=auto">福島県いわき市平上高久塚田97乙</a></dt>
         <dd>地番の脱落地に対応しています。</dd>
       </dl></li>
       <li><dl>
-        <dt>長野県千曲市礒部下河原1137番地</dt>
-        <dd>地番が大字内で重複しないように振られていることが分かっている地域の場合、「字の省略を許可」すると字名（下河原）を省略します。</dd>
+        <dt><a href="{{ url_prefix }}/search?q=%E9%95%B7%E9%87%8E%E7%9C%8C%E5%8D%83%E6%9B%B2%E5%B8%82%E7%A4%92%E9%83%A8%E4%B8%8B%E6%B2%B3%E5%8E%9F1137%E7%95%AA%E5%9C%B0&skip_aza=auto">長野県千曲市礒部下河原1137番地</a></dt>
+        <dd>住所データベースで大字（磯部）内に小字（下河原）が登録されていない場合、
+        自動的に省略します。</dd>
+      </dl></li>
+      <li><dl>
+        <dt><a href="{{ url_prefix }}/search?q=%E7%86%8A%E6%9C%AC%E7%9C%8C%E8%8F%8A%E6%B1%A0%E9%83%A1%E8%8F%8A%E9%99%BD%E7%94%BA%E5%A4%A7%E5%AD%97%E5%8E%9F%E6%B0%B4%E5%AD%97%E5%B0%8F%E5%B9%B3%E3%83%8E%E4%B8%8A%EF%BC%94%EF%BC%96%EF%BC%91%EF%BC%97&skip_aza=on">熊本県菊池郡菊陽町大字原水字小平ノ上４６１７</a></dt>
+        <dd>小字の省略判定が間違っている場合、「省略する・しない」を指定すると
+          正しい結果が得られることがあります。
+        </dd>
       </dl></li>
     </ul>
     {% endif %}
