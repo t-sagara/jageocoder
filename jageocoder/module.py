@@ -1,7 +1,7 @@
 import logging
 import os
 import tempfile
-from typing import Optional, NoReturn, Union
+from typing import Optional, NoReturn, Union, List
 import urllib.request
 from urllib.error import URLError
 import zipfile
@@ -9,6 +9,7 @@ import zipfile
 import jageocoder
 from jageocoder.exceptions import JageocoderError
 from jageocoder.tree import AddressTree, get_db_dir
+from jageocoder.result import Result
 
 _tree = None  # The default AddressTree
 logger = logging.getLogger(__name__)
@@ -230,7 +231,7 @@ def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
         Specifies how to skip aza-names.
         - Set to 'auto' or None to make the decision automatically
         - Set to 'off' or False to not skip
-        - Set to 'on'　or True to always skip
+        - Set to 'on' or True to always skip
 
     Return
     ------
@@ -259,9 +260,10 @@ def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
     }
 
 
-def searchNode(query: str,
-               best_only: bool = True,
-               aza_skip: Union[str, bool, None] = None):
+def searchNode(
+        query: str,
+        best_only: bool = True,
+        aza_skip: Union[str, bool, None] = None) -> List[Result]:
     """
     Searches for address nodes corresponding to an address notation
     and returns the matching substring and a list of nodes.

@@ -96,6 +96,116 @@ python -m jageocoder uninstall-dictionary
 pip uninstall jageocoder
 ```
 
+# 使い方
+
+まず jageocoder をインポートし、 `init()` で初期化します。
+
+```
+>>> import jageocoder
+>>> jageocoder.init()
+```
+
+## 住所から経緯度を調べる
+
+経緯度を調べたい住所を `search()` で検索します。
+
+`search()` は一致した文字列を `matched` に、検索結果のリストを
+`candidates` に持つ dict を返します。 `candidates` の各要素には
+住所ノード (AddressNode）の情報が入っています。
+
+```
+>>> jageocoder.search('新宿区西新宿２－８－１')
+{'matched': '新宿区西新宿２－８－', 'candidates': [{'id': 12299846, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
+```
+
+項目の意味は次の通りです。
+
+- id: データベース内での ID
+- name: 住所表記
+- x: 経度
+- y: 緯度
+- level: 住所レベル（1:都道府県, 2:郡／振興局, 3:市町村・23特別区,
+    4:政令市の区, 5:大字, 6:字・丁目, 7:街区・地番, 8:住居番号・枝番）
+- note: メモ（自治体コードなど）
+- fullname: 都道府県レベルからこのノードまでの住所表記のリスト
+
+## 住所の属性情報を調べる
+
+住所に関する情報を取得するには `searchNode()` を使います。
+この関数は `jageocoder.result.Result` 型のリストを返します。
+ここから住所ノードに直接アクセスできます。
+
+```
+>>> results = jageocoder.searchNode('新宿区西新宿２－８－１')
+>>> len(results)
+1
+>>> results[0].matched
+'新宿区西新宿２－８－'
+>>> type(results[0].node)
+<class 'jageocoder.node.AddressNode'>
+>>> node = results[0].node
+>>> node.get_fullname()
+['東京都', '新宿区', '西新宿', '二丁目', '8番']
+```
+
+### 自治体コードを取得する
+
+自治体コードには JISX0402（5桁）と地方公共団体コード（6桁）があります。
+都道府県コード JISX0401（2桁）も取得できます。
+
+```
+>>> node.get_city_jiscode()  # 5桁コード
+'13104'
+>>> node.get_city_local_authority_code() # 6桁コード
+'131041'
+>>> node.get_pref_jiscode()  # 都道府県コード
+'13'
+```
+
+### 地図へのリンクを取得する
+
+地理院地図と Google 地図へのリンク URL を生成します。
+
+```
+>>> node.get_gsimap_link()
+'https://maps.gsi.go.jp/#16/35.689627/139.691778/'
+>>> node.get_googlemap_link()
+'https://maps.google.com/maps?q=35.689627,139.691778&z=16'
+```
+
+### 親ノードを辿る
+
+「親ノード」とは、住所の一つ上の階層を表すノードのことです。
+ノードの属性 `parent` で取得します。
+
+今 `node` は '8番' を指しているので、親ノードは '二丁目' になります。
+
+```
+>>> parent = node.parent
+>>> parent.get_fullname()
+['東京都', '新宿区', '西新宿', '二丁目']
+>>> parent.x, parent.y
+(139.691774, 35.68945)
+```
+
+### 子ノードを辿る
+
+「子ノード」とは、住所の一つ下の階層を表すノードのことです。
+ノードの属性 `children` で取得します。
+
+親ノードは一つですが、子ノードは複数あります。
+実際に返すのは SQL クエリオブジェクトですが、
+イテレータでループしたり list にキャストできます。
+
+今 `parent` は '二丁目' を指しているので、子ノードは
+そこに含まれる街区符号（○番）になります。
+
+```
+>>> parent.children
+<sqlalchemy.orm.dynamic.AppenderQuery object at 0x7fbc08404b38>
+>>> [child.name for child in parent.children]
+['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
+```
 
 # 開発者向け情報
 
@@ -116,7 +226,12 @@ python -m unittest
 
 辞書コンバータ `jageocoder-converter` を利用してください。
 
-[jageocoder-converter](https://github.com/t-sagara/jageocoder-converter).
+[jageocoder-converter](https://github.com/t-sagara/jageocoder-converter)
+
+## 異体字を追加したい場合
+
+特定の文字を別の文字に読み替えたい場合、異体字辞書に登録します。
+詳細は `itaiji_dic/README.md` を参照してください。
 
 ## サンプルウェブアプリ
 

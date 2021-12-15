@@ -94,6 +94,120 @@ Then, uninstall the package with `pip` command.
 pip uninstall jageocoder
 ```
 
+# How to use
+
+First, import jageocoder and initialize it with `init()`.
+
+```
+>>> import jageocoder
+>>> jageocoder.init()
+```
+
+## Search for latitude and longitude by address
+
+Use `search()` to search for the address you want to check the longitude and latitude of.
+
+The `search()` function returns a dict with `matched` as the matched string
+and `candidates` as the list of search results.
+
+Each element of `candidates` contains the information of an address node (AddressNode).
+
+```
+>>> jageocoder.search('新宿区西新宿２－８－１')
+{'matched': '新宿区西新宿２－８－', 'candidates': [{'id': 12299846, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
+```
+
+The meaning of the items is as follows
+
+- id: ID in the database
+- name: Address notation
+- x: longitude
+- y: latitude
+- level: Address level (1:Prefecture, 2:County, 3:City and 23 district,
+    4:Ward, 5:Oaza, 6:Aza and Chome, 7:Block, 8:Building)
+- note: Notes such as city codes
+- fullname: List of address notations from the prefecture level to this node
+
+## Explore the attribute information of an address
+
+Use `searchNode()` to retrieve information about an address.
+
+This function returns a list of type `jageocoder.result` .
+You can access the address node directly from this result.
+
+```
+>>> results = jageocoder.searchNode('新宿区西新宿２－８－１')
+>>> len(results)
+1
+>>> results[0].matched
+'新宿区西新宿２－８－'
+>>> type(results[0].node)
+<class 'jageocoder.node.AddressNode'>
+>>> node = results[0].node
+>>> node.get_fullname()
+['東京都', '新宿区', '西新宿', '二丁目', '8番']
+```
+
+### Get the local government codes
+
+There are two types of local government codes: JISX0402 (5-digit) an
+Local Government Code (6-digit).
+
+You can also obtain the prefecture code JISX0401 (2 digits).
+
+```
+>>> node.get_city_jiscode()  # 5-digit code
+'13104'
+>>> node.get_city_local_authority_code() # 6-digit code
+'131041'
+>>> node.get_pref_jiscode()  # prefecture code
+'13'
+```
+
+### Get link URLs to maps
+
+Generate URLs to link to GSI and Google maps.
+
+```
+>>> node.get_gsimap_link()
+'https://maps.gsi.go.jp/#16/35.689627/139.691778/'
+>>> node.get_googlemap_link()
+'https://maps.google.com/maps?q=35.689627,139.691778&z=16'
+```
+
+### Traverse the parent node
+
+A "parent node" is a node that represents a level above the address.
+Get the node by attribute `parent`.
+
+Now the `node` points to '8番', so the parent node will be '二丁目'.
+
+```
+>>> parent = node.parent
+>>> parent.get_fullname()
+['東京都', '新宿区', '西新宿', '二丁目']
+>>> parent.x, parent.y
+(139.691774, 35.68945)
+```
+
+### Traverse the child nodes
+
+A "child node" is a node that represents a level below the address.
+Get the node by attribute `children`.
+
+There is one parent node, but there are multiple child nodes.
+The actual return is a SQL query object, but it can be looped through
+with an iterator or cast to a list.
+
+Now the `parent` points to '二丁目', so the child node will be
+the block number (○番) contained therein.
+
+```
+>>> parent.children
+<sqlalchemy.orm.dynamic.AppenderQuery object at 0x7fbc08404b38>
+>>> [child.name for child in parent.children]
+['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
+```
 
 # For developers
 
