@@ -2,7 +2,7 @@ import json
 from logging import getLogger
 import os
 import re
-from typing import Union, List
+from typing import Union, List, Optional
 
 import jaconv
 
@@ -210,7 +210,8 @@ class Converter(object):
 
         return new_notation
 
-    def match_len(self, string: str, pattern: str) -> int:
+    def match_len(self, string: str, pattern: str,
+                  removed_postfix: Optional[str] = None) -> int:
         """
         Returns the length of the substring that matches the patern
         from the beginning. The pattern must have been standardized.
@@ -221,6 +222,9 @@ class Converter(object):
             A long string starting with the pattern.
         pattern: str
             The search pattern.
+        remove_postfix: str, optional
+            The postfix that were included in the original pattern,
+            but were removed for matching.
 
         Returns
         -------
@@ -231,6 +235,8 @@ class Converter(object):
         logger.debug("Searching {} in {}".format(pattern, string))
         aza_positions = []
         pattern_pos = string_pos = 0
+        pending_slen = 0  # number of optional characters in string
+        pending_plen = 0  # number of optional characters in pattern
         c = s = 'x'
         while pattern_pos < len(pattern):
             if string_pos >= len(string):
@@ -251,6 +257,7 @@ class Converter(object):
                             string))
                         string_pos += 1
                         pattern_pos -= 1
+                        pending_slen = len(pre_s + s)
                         continue
 
                     if pre_c + c in self.optional_strings_in_middle:
@@ -260,22 +267,36 @@ class Converter(object):
                             pattern))
                         string_pos -= 1
                         pattern_pos += 1
+                        pending_plen = len(pre_c + c)
                         continue
 
-                    slen = self.optional_str_len(string, string_pos)
-                    if slen > 0:
-                        logger.debug('"{}" in query "{}" is optional.'.format(
-                            string[string_pos: string_pos + slen], string))
-                        string_pos += slen
-                        continue
+                    if pending_slen == 0 and pending_plen == 0:
+                        slen = self.optional_str_len(string, string_pos)
+                        if slen > 0:
+                            logger.debug('"{}" in query "{}" is optional.'.format(
+                                string[string_pos: string_pos + slen], string))
+                            string_pos += slen
+                            pending_slen = slen
+                            continue
 
-                    plen = self.optional_str_len(pattern, pattern_pos)
-                    if plen > 0:
-                        msg = '"{}" in pattern "{}" is optional.'
+                    if pending_plen == 0 and removed_postfix is None:
+                        plen = self.optional_str_len(pattern, pattern_pos)
+                        if plen > 0:
+                            msg = '"{}" in pattern "{}" is optional.'
+                            logger.debug(msg.format(
+                                pattern[pattern_pos: pattern_pos + plen],
+                                pattern))
+                            pattern_pos += plen
+                            pending_plen = plen
+                            continue
+
+                    if pending_slen > 0 and pending_plen > 0:
+                        string_pos -= pending_slen
+                        msg = 'Rewind optional string "{}" in query "{}".'
                         logger.debug(msg.format(
-                            pattern[pattern_pos: pattern_pos + plen],
-                            pattern))
-                        pattern_pos += plen
+                            string[string_pos: string_pos + pending_slen],
+                            string))
+                        pending_slen = 0
                         continue
 
                     # Search optional Aza-names
@@ -300,6 +321,7 @@ class Converter(object):
 
                 pattern_pos += 1
                 string_pos += 1
+                pending_slen = 0
                 continue
 
             # Compare numbers:
@@ -315,6 +337,7 @@ class Converter(object):
                 logger.debug('"{}" in query "{}" is optional.'.format(
                     string[string_pos: string_pos + slen], string))
                 string_pos += slen
+                pending_slen = slen
                 continue
 
             expected = int(pattern[pattern_pos:period_pos])
@@ -326,10 +349,23 @@ class Converter(object):
                     string[string_pos: string_pos + candidate['i']]))
                 pattern_pos = period_pos + 1
                 string_pos += candidate['i']
+                pending_slen = 0
             else:
                 # The number did not match the expected value
                 return 0
 
+        if removed_postfix is not None:
+            # If the next character of the query string is
+            # an optional character, Judge as mismatch
+            alen = self.is_abbreviated_postfix(string, string_pos)
+            if alen < 0:
+                logger.debug((
+                    "Removed postfix '{}' without corresponding abbreviation,"
+                    "(the query following '{}')").format(
+                        removed_postfix, string[string_pos:]))
+                return 0
+
+        string_pos -= pending_slen
         return string_pos
 
     def optional_str_len(self, string: str, pos: int) -> int:
@@ -378,10 +414,45 @@ class Converter(object):
 
         return candidates
 
+    def is_abbreviated_postfix(self, string: str, pos: int) -> int:
+        """
+        Checks whether an abbreviation exists at the specified position.
+
+        Parameters
+        ----------
+        string: str
+            The standardized query string.
+        pos: int
+            The specified position.
+
+        Return
+        ------
+        int
+            If an abbreviation exists, return 1.
+            If ths position exceeds the string length, return 0.
+            Otherwise -1.
+        """
+        if pos >= len(string):
+            return 0
+
+        c = string[pos]
+        if strlib.is_hyphen(c):
+            return 1
+
+        if c != 'ノ' or pos >= len(string) + 1:
+            return 0
+
+        nc = string[pos + 1]  # The character next to 'ノ'
+        if nc in self.chiban_heads or strlib.get_numeric_char(nc):
+            return 1
+
+        return -1
+
     def standardized_candidates(
             self, string: str, from_pos: int = 0) -> List[str]:
         """
-        Enumerate possible candidates for the notation after standardization.
+        Enumerate possible candidates for the notation
+        after standardization.
 
         This method is called recursively.
 

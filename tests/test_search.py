@@ -192,6 +192,7 @@ class TestSearchMethods(unittest.TestCase):
         """
         The "ノ" in address notations must not be treated as a hyphen.
         """
+        #
         self._check(
             query="徳島県阿南市富岡町トノ町６５－６",
             match="徳島県阿南市富岡町トノ町６５－",
@@ -207,12 +208,31 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_kana_no_between_numbers(self):
         """
-        The "ノ" between numbers will be treated as a hyphen.
+        If "ノ" exists after numbers, check the next character of 'ノ'.
+        The next character is a number, it will be treated as a hyphen.
         """
         self._check(
             query="新宿区西新宿二ノ８",
             level=7,
             fullname=["東京都", "新宿区", "西新宿", "二丁目", "8番"])
+
+    def test_kana_no_after_numbers(self):
+        """
+        In case that the next character is;
+        - a head character of chiban ('甲', 'イ', etc.),
+          treat as a hyphen too
+        - an other character, 'ノ' will be treated as is
+        """
+        self._check(
+            query="群馬県伊勢崎市国定町２の甲１９９４",
+            match="群馬県伊勢崎市国定町２の甲１９９４",
+            fullname=["群馬県", "伊勢崎市", "国定町", "二丁目",
+                      "甲", "1994番地"])
+
+        self._check(
+            query="千葉県袖ケ浦市久保田字一ノ山１５２３",
+            match="千葉県袖ケ浦市久保田",
+            fullname=["千葉県", "袖ケ浦市", "久保田"])
 
     def test_kana_no_terminate(self):
         """
@@ -289,6 +309,20 @@ class TestSearchMethods(unittest.TestCase):
         self._check(
             query="熊本県球磨郡湯前町字上長尾",
             match="熊本県球磨郡湯前町")
+
+    def test_no_optional_charcters_in_result(self):
+        """
+        Check that optional characters are not included in the match string.
+        """
+        self._check(
+            query="富山市水橋開発字文化",
+            match="富山市水橋開発",  # Not include '字'
+            fullname=["富山県", "富山市", "水橋開発"])
+
+        self._check(
+            query="富山市水橋開発町",
+            match="富山市水橋開発町",  # Not include '字'
+            fullname=["富山県", "富山市", "水橋開発町"])
 
     def test_alphabet_gaiku(self):
         """
@@ -520,6 +554,19 @@ class TestSearchMethods(unittest.TestCase):
             query="脇町猪尻西上野61-1",
             fullname=["徳島県", "美馬市", "脇町", "大字猪尻",
                       "西上野", "61番地"])
+
+    def test_not_repeat_omission(self):
+        """
+        Checks that omissions are not repeated.
+
+        If optional characters in '中ノ町', which exists in '佐倉河',
+        are omitted repeateadly, it would match '字中' in the query.
+        """
+        self._check(
+            query="奥州市水沢区佐倉河字中半入川原１",
+            match="奥州市水沢区佐倉河字中半入",
+            fullname=["岩手県", "奥州市", "水沢佐倉河", "中半入"]
+        )
 
     def test_select_best(self):
         """

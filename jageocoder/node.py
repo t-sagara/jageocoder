@@ -350,11 +350,13 @@ class AddressNode(Base):
                 # postfixes removed is completely included in the beginning
                 # of the search string.
                 # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
+                optional_postfix = child.name_index[-l_optional_postfix:]
                 alt_child_index = child.name_index[0: -l_optional_postfix]
                 logger.debug(
                     "child:{} has optional postfix {}".format(
-                        child, child.name_index[-l_optional_postfix:]))
-                match_len = itaiji_converter.match_len(index, alt_child_index)
+                        child, optional_postfix))
+                match_len = itaiji_converter.match_len(
+                    index, alt_child_index, removed_postfix=optional_postfix)
                 if match_len < len(index) and index[match_len] in '-ノ':
                     match_len += 1
 

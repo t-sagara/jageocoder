@@ -150,7 +150,7 @@ You can access the address node directly from this result.
 
 ### Get the local government codes
 
-There are two types of local government codes: JISX0402 (5-digit) an
+There are two types of local government codes: JISX0402 (5-digit) and
 Local Government Code (6-digit).
 
 You can also obtain the prefecture code JISX0401 (2 digits).
