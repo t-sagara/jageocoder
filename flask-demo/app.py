@@ -10,7 +10,7 @@ inner_url_prefix = os.environ.get('INNER_URL_PREFIX', '')
 if url_prefix != "" and url_prefix[-1] == "/":
     url_prefix = url_prefix[:-1]
 if inner_url_prefix != "" and inner_url_prefix[-1] == "/":
-    inner_url_prefix = inner_prefix[:-1]
+    inner_url_prefix = inner_url_prefix[:-1]
 
 
 @app.route(inner_url_prefix + "/")
@@ -38,3 +38,13 @@ def search():
         url_prefix=url_prefix,
         skip_aza=skip_aza,
         q=query, results=results)
+
+
+@app.route(inner_url_prefix + "/node/<id>")
+def show_node(id):
+    node = jageocoder.get_module_tree().get_node_by_id(id)
+
+    return render_template(
+        'node.html',
+        url_prefix=url_prefix,
+        node=node)

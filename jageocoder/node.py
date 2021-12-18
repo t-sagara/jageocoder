@@ -477,6 +477,18 @@ class AddressNode(Base):
 
         return names
 
+    def get_parent_list(self):
+        """
+        Returns a complete node list starting with the prefecture.
+        """
+        nodes = []
+        cur_node = self
+        while cur_node.parent:
+            nodes.insert(0, cur_node)
+            cur_node = cur_node.parent
+
+        return nodes
+
     def get_nodes_by_level(self):
         """
         The function returns an array of this node and its upper nodes.
