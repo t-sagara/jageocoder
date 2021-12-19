@@ -17,7 +17,9 @@
     </style>
   </head>
   <body>
-    <h1>Jageocoder のデモンストレーション</h1>
+    <h1>
+      <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
+      のデモンストレーション</h1>
     <form action="{{ url_prefix }}/search" method="GET">
       検索したい住所を入力：
       <input id="query" value="" name="q" />
@@ -44,6 +46,7 @@
 
     <h2>メソッド</h2>
     <ul id="methods">
+      <li>都道府県からの表記 (get_fullname)： {{ node.get_fullname() }}</li>
       <li>地理院地図リンク (get_gsimap_link)：
         <a href="{{ node.get_gsimap_link() }}" target="_gsimap">{{ node.get_gsimap_link() }}</a>
       </li>
@@ -56,6 +59,7 @@
       <li>市区町村名 (get_city_name)： {{ node.get_city_name() }}</li>
       <li>市区町村コード (get_city_jiscode)： {{ node.get_city_jiscode() }}</li>
       <li>市区町村団体コード (get_city_local_authority_code)： {{ node.get_city_local_authority_code() }}</li>
+      <li>郵便番号 (get_postcode)： {{ node.get_postcode() }}</li>
     </ul>
 
     <h2>関係</h2>

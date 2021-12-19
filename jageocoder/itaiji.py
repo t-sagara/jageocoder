@@ -479,7 +479,7 @@ class Converter(object):
                     pos - len(self.optional_strings_in_middle)]
 
             if string.find(substr) >= 0:
-                logger.debug('"{}" is in "{}"'.format(substr, string))
+                # logger.debug('"{}" is in "{}"'.format(substr, string))
                 candidates += self.standardized_candidates(
                     string.replace(substr, ''), pos + 1)
 

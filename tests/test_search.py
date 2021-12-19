@@ -2,6 +2,7 @@ import logging
 import unittest
 
 import jageocoder
+from jageocoder.node import AddressNode
 
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
@@ -587,6 +588,55 @@ class TestSearchMethods(unittest.TestCase):
             query="福島県いわき市平上高久塚田97乙",
             fullname=["福島県", "いわき市", "平上高久",
                       "塚田", "97番", "乙地"])
+
+
+class TestSearchNodeMethods(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        jageocoder.init(mode="r")
+
+    def _get_first_node(self, query: str) -> AddressNode:
+        results = jageocoder.searchNode(query)
+        return results[0].node
+
+    def test_node_normal(self):
+        node = self._get_first_node('多摩市落合１－１５－２')
+        self.assertEqual(node.get_city_name(), '多摩市')
+        self.assertEqual(node.get_city_jiscode(), '13224')
+        self.assertEqual(node.get_city_local_authority_code(), '132241')
+        self.assertEqual(node.get_pref_name(), '東京都')
+        self.assertEqual(node.get_pref_jiscode(), '13')
+        self.assertEqual(node.get_pref_local_authority_code(), '130001')
+        self.assertEqual(node.get_postcode(), '2060033')
+
+    def test_node_range(self):
+        """
+        Check the postcodes registered as a range.
+        `札幌市中央区大通西（２０～２８丁目）`
+        """
+        node = self._get_first_node('札幌市中央区大通西２１－３−１８')
+        self.assertEqual(node.get_city_name(), '中央区')
+        self.assertEqual(node.get_city_jiscode(), '01101')
+        self.assertEqual(node.get_city_local_authority_code(), '011011')
+        self.assertEqual(node.get_pref_name(), '北海道')
+        self.assertEqual(node.get_pref_jiscode(), '01')
+        self.assertEqual(node.get_pref_local_authority_code(), '010006')
+        self.assertEqual(node.get_postcode(), '0640820')
+
+    def test_node_other(self):
+        """
+        Check the postcodes registered as others.
+        `長野市 以下に掲載がない場合`
+        """
+        node = self._get_first_node('長野市大字長野箱清水1661−1')
+        self.assertEqual(node.get_city_name(), '長野市')
+        self.assertEqual(node.get_city_jiscode(), '20201')
+        self.assertEqual(node.get_city_local_authority_code(), '202011')
+        self.assertEqual(node.get_pref_name(), '長野県')
+        self.assertEqual(node.get_pref_jiscode(), '20')
+        self.assertEqual(node.get_pref_local_authority_code(), '200000')
+        self.assertEqual(node.get_postcode(), '3810000')
 
 
 if __name__ == "__main__":

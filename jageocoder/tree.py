@@ -660,6 +660,8 @@ class AddressTree(object):
                     break
 
                 if cur_node.parent_id not in tmp_id_name_table:
+                    import pdb
+                    pdb.set_trace()
                     raise RuntimeError(
                         ('The parent_id:{} of node:{} is not'.format(
                             cur_node.parent_id, cur_node),

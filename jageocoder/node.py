@@ -634,11 +634,35 @@ class AddressNode(Base):
 
         return orig_code + checkdigit
 
+    def get_postcode(self) -> str:
+        """
+        Returns the 7digit postcode of the oaza that
+        contains this node.
+        """
+        node = self
+        while True:
+            if node.level <= AddressLevel.COUNTY:
+                return ''
+
+            if node.note:
+                break
+
+            node = node.parent
+
+        m = re.search(r'postcode:(\d{7})', node.note)
+        if m:
+            return m.group(1)
+
+        return ''
+
     def get_gsimap_link(self) -> str:
         """
         Returns the URL for GSI Map with parameters.
         ex. https://maps.gsi.go.jp/#13/35.713556/139.750385/
         """
+        if self.level is None or self.x is None or self.y is None:
+            return ''
+
         url = 'https://maps.gsi.go.jp/#{level:d}/{lat:.6f}/{lon:.6f}/'
         return url.format(
             level=9 + self.level,
@@ -649,6 +673,9 @@ class AddressNode(Base):
         Returns the URL for GSI Map with parameters.
         ex. https://maps.google.com/maps?q=24.197611,120.780512&z=18
         """
+        if self.level is None or self.x is None or self.y is None:
+            return ''
+
         url = 'https://maps.google.com/maps?q={lat:.6f},{lon:.6f}&z={level:d}'
         return url.format(
             level=9 + self.level,
