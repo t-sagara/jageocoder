@@ -275,10 +275,8 @@ class Converter(object):
                         skipped = string[string_pos: string_pos + slen]
                         msg = '"{}" in query "{}" is optional.'
                         logger.debug(msg.format(skipped, string))
-                        if skipped in self.optional_strings_in_middle:
-                            string_pos += slen
-                            continue
-                        elif pending_slen == 0 and pending_plen == 0:
+                        if skipped in self.optional_strings_in_middle or \
+                            (pending_slen == 0 and pending_plen == 0):
                             string_pos += slen
                             pending_slen = slen
                             continue
@@ -291,10 +289,8 @@ class Converter(object):
                         skipped = pattern[pattern_pos: pattern_pos + plen]
                         msg = '"{}" in pattern "{}" is optional.'
                         logger.debug(msg.format(skipped, pattern))
-                        if skipped in self.optional_strings_in_middle:
-                            pattern_pos += plen
-                            continue
-                        if pending_plen == 0 and removed_postfix is None:
+                        if skipped in self.optional_strings_in_middle or \
+                            (pending_plen == 0 and removed_postfix is None):
                             pattern_pos += plen
                             pending_plen = plen
                             continue
@@ -326,6 +322,7 @@ class Converter(object):
                             string[string_pos: aza_positions[0]],
                             string))
                         string_pos = aza_positions.pop(0)
+                        pending_slen = 0
                         continue
 
                     return 0

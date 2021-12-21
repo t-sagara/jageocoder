@@ -569,6 +569,13 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["岩手県", "奥州市", "水沢佐倉河", "中半入"]
         )
 
+        # '大字', '字', '小字' can be omitted if other optional
+        # characters were omitted such as '町'
+        self._check(
+            query="鹿児島県霧島市霧島町大字永水４９６２",
+            match="鹿児島県霧島市霧島町大字永水",
+            fullname=["鹿児島県", "霧島市", "霧島永水"])
+
     def test_select_best(self):
         """
         Check that the best answer is returned for ambiguous queries.
