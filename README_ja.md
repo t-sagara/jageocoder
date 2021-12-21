@@ -261,7 +261,7 @@ bash run.sh
 
 ## 作成者
 
-* **相良 毅** - [株式会社情報誌作成津](https://www.info-proto.com/)
+* **相良 毅** - [株式会社情報試作室](https://www.info-proto.com/)
 
 ## 利用許諾条件
 

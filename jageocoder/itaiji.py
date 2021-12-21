@@ -29,10 +29,10 @@ class Converter(object):
     optional_prefixes = ['字', '大字', '小字']
 
     # Letters that are sometimes insereted to words at will
-    optional_letters_in_middle = 'ケヶガツッノ区町字'
+    optional_letters_in_middle = 'ケヶガツッノ区町'
 
     # Strings that are sometimes inserted to words at will
-    optional_strings_in_middle = ['大字', '小字']
+    optional_strings_in_middle = ['大字', '小字', '字']
 
     # Extra characters that may be added to the end of a word at will
     extra_characters = '-ノ区町'
@@ -270,32 +270,43 @@ class Converter(object):
                         pending_plen = len(pre_c + c)
                         continue
 
-                    if pending_slen == 0 and pending_plen == 0:
-                        slen = self.optional_str_len(string, string_pos)
-                        if slen > 0:
-                            logger.debug('"{}" in query "{}" is optional.'.format(
-                                string[string_pos: string_pos + slen], string))
+                    slen = self.optional_str_len(string, string_pos)
+                    if slen > 0:
+                        skipped = string[string_pos: string_pos + slen]
+                        msg = '"{}" in query "{}" is optional.'
+                        logger.debug(msg.format(skipped, string))
+                        if skipped in self.optional_strings_in_middle:
+                            string_pos += slen
+                            continue
+                        elif pending_slen == 0 and pending_plen == 0:
                             string_pos += slen
                             pending_slen = slen
                             continue
 
-                    if pending_plen == 0 and removed_postfix is None:
-                        plen = self.optional_str_len(pattern, pattern_pos)
-                        if plen > 0:
-                            msg = '"{}" in pattern "{}" is optional.'
-                            logger.debug(msg.format(
-                                pattern[pattern_pos: pattern_pos + plen],
-                                pattern))
+                        logger.debug(('... but ignore it since '
+                                      'other string was skipped.'))
+
+                    plen = self.optional_str_len(pattern, pattern_pos)
+                    if plen > 0:
+                        skipped = pattern[pattern_pos: pattern_pos + plen]
+                        msg = '"{}" in pattern "{}" is optional.'
+                        logger.debug(msg.format(skipped, pattern))
+                        if skipped in self.optional_strings_in_middle:
+                            pattern_pos += plen
+                            continue
+                        if pending_plen == 0 and removed_postfix is None:
                             pattern_pos += plen
                             pending_plen = plen
                             continue
 
+                        logger.debug(('... but ignore it since '
+                                      'other string was skipped.'))
+
                     if pending_slen > 0 and pending_plen > 0:
                         string_pos -= pending_slen
+                        skipped = string[string_pos: string_pos + pending_slen]
                         msg = 'Rewind optional string "{}" in query "{}".'
-                        logger.debug(msg.format(
-                            string[string_pos: string_pos + pending_slen],
-                            string))
+                        logger.debug(msg.format(skipped, string))
                         pending_slen = 0
                         continue
 

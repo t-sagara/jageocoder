@@ -20,21 +20,24 @@
     <h1>
       <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
       のデモンストレーション</h1>
-    <form action="{{ url_prefix }}/search" method="GET">
+    <form action="{{ url_prefix }}{{ url_for('search') }}" method="GET">
       検索したい住所を入力：
-      <input id="query" value="" name="q" />
+      <input id="query" value="{{ q }}" name="q" />
       <input type="submit" value="検索" /><br />
       小字の省略：
       <input type="radio" name="skip_aza" value="auto"
-        checked="checked"
+        {% if skip_aza == 'auto' %}checked="checked"{% endif %}
         />自動判定&nbsp;
       <input type="radio" name="skip_aza" value="on"
+        {% if skip_aza == 'on' %}checked="checked"{% endif %}
         />省略する&nbsp;
       <input type="radio" name="skip_aza" value="off"
+        {% if skip_aza == 'off' %}checked="checked"{% endif %}
         />省略しない&nbsp;
     </form>
 
-    <p><a href="{{ url_prefix }}/">住所の例に戻る</a></p>
+    <p><a href="{{ url_prefix }}{{ url_for('index', q=q, skip_aza=skip_aza) }}">
+    住所の例に戻る</a></p>
 
     <h2>ノード属性</h2>
     <ul id="attributes">
@@ -68,7 +71,8 @@
         {% if node.id == -1 %}
           無し
         {% else %}
-          <a href="{{ url_prefix }}/node/{{ node.parent.id }}">
+          <a href="{{ url_prefix }}{{ url_for('show_node',
+           id=node.parent.id, q=q, skip_aza=skip_aza) }}">
             {{ node.parent.name }}
           </a>
         {% endif %}
@@ -76,7 +80,8 @@
       <li>子ノード：
         {% if node.children.count() > 0 %}
           {% for child in node.children %}
-            <a href="{{ url_prefix }}/node/{{ child.id }}">
+            <a href="{{ url_prefix }}{{ url_for('show_node',
+            id=child.id, q=q, skip_aza=skip_aza) }}">
               {{ child.name }}
             </a>&nbsp;
           {% endfor %}
