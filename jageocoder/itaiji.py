@@ -233,12 +233,20 @@ class Converter(object):
             If it does not match exactly, it returns 0.
         """
         logger.debug("Searching {} in {}".format(pattern, string))
+        nloops = 0
+        checked_positions = None
         aza_positions = []
         pattern_pos = string_pos = 0
         pending_slen = 0  # number of optional characters in string
         pending_plen = 0  # number of optional characters in pattern
         c = s = 'x'
         while pattern_pos < len(pattern):
+            nloops += 1
+            if nloops > 256:
+                msg = ('There is a possibility of an infinite loop.'
+                       'pattern={}, string={}')
+                raise RuntimeError(msg.format(pattern, string))
+
             if string_pos >= len(string):
                 return 0
 
@@ -276,7 +284,7 @@ class Converter(object):
                         msg = '"{}" in query "{}" is optional.'
                         logger.debug(msg.format(skipped, string))
                         if skipped in self.optional_strings_in_middle or \
-                            (pending_slen == 0 and pending_plen == 0):
+                                (pending_slen == 0 and pending_plen == 0):
                             string_pos += slen
                             pending_slen = slen
                             continue
@@ -290,7 +298,8 @@ class Converter(object):
                         msg = '"{}" in pattern "{}" is optional.'
                         logger.debug(msg.format(skipped, pattern))
                         if skipped in self.optional_strings_in_middle or \
-                            (pending_plen == 0 and removed_postfix is None):
+                                (pending_plen == 0 and
+                                    removed_postfix is None):
                             pattern_pos += plen
                             pending_plen = plen
                             continue
@@ -298,7 +307,10 @@ class Converter(object):
                         logger.debug(('... but ignore it since '
                                       'other string was skipped.'))
 
-                    if pending_slen > 0 and pending_plen > 0:
+                    if pending_slen > 0 and pending_plen > 0 and \
+                            (checked_positions is None or
+                             checked_positions != [string_pos, pattern_pos]):
+                        checked_positions = [string_pos, pattern_pos]
                         string_pos -= pending_slen
                         skipped = string[string_pos: string_pos + pending_slen]
                         msg = 'Rewind optional string "{}" in query "{}".'
