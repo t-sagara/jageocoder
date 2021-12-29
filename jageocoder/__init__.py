@@ -19,8 +19,8 @@ running the following steps.
     >>> jageocoder.searchNode('<Japanese-address>')
 """
 
-__version__ = '1.1.0dev1'  # The package version
-__dictionary_version__ = '20211219'  # Compatible dictionary version
+__version__ = '1.1.0'  # The package version
+__dictionary_version__ = '20211229'  # Compatible dictionary version
 __author__ = 'Takeshi Sagara <sagara@info-proto.com>'
 
 __all__ = [
@@ -35,6 +35,7 @@ __all__ = [
     'create_trie_index',
     'search',
     'searchNode',
+    'reverse',
     'version',
     'dictionary_version'
 ]
@@ -42,4 +43,4 @@ __all__ = [
 from jageocoder.module import init, is_initialized, get_db_dir,\
     get_module_tree, download_dictionary, install_dictionary,\
     uninstall_dictionary, upgrade_dictionary, create_trie_index,\
-    search, searchNode, version, dictionary_version
+    search, searchNode, reverse, version, dictionary_version

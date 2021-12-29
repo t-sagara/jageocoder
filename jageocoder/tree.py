@@ -1159,3 +1159,25 @@ class AddressTree(object):
                 recovered = query[0:pos+1]
 
         return recovered
+
+    def create_reverse_index(self) -> NoReturn:
+        """
+        Create table and index for reverse geocoding.
+        """
+        self.__not_in_readonly_mode()
+        sql = ("DROP TABLE IF EXISTS node_aza")
+        self.session.execute(sql)
+
+        sql = ("CREATE TABLE node_aza AS"
+               " SELECT id, x, y, level FROM node"
+               " WHERE level IN (:oaza, :aza)")
+        self.session.execute(sql, {
+            "oaza": AddressLevel.OAZA,
+            "aza": AddressLevel.AZA,
+        })
+
+        sql = ("CREATE INDEX idx_node_aza_x ON node_aza (x)")
+        self.session.execute(sql)
+
+        sql = ("CREATE INDEX idx_node_aza_y ON node_aza (y)")
+        self.session.execute(sql)

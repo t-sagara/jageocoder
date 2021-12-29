@@ -12,6 +12,7 @@ HELP = """
 Usage:
   {p} -h
   {p} search [-d] [--force-aza-skip|--disable-aza-skip] <address>
+  {p} reverse [-d] [--level=<level>] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] [--gaiku] [<url>]
   {p} install-dictionary [-d] [--gaiku] [--db-dir=<dir>] [<url_or_path>]
@@ -23,6 +24,7 @@ Options:
   -d --debug          Show debug messages.
   --force-aza-skip    Skip aza-names whenever possible.
   --disable-aza-skip  Do not skip aza-names.
+  --level=<level>     Max address level to search.
   --gaiku             Use block-level (default: building-level)
   --db-dir=<dir>      Specify dictionary directory.
 
@@ -109,6 +111,16 @@ if __name__ == '__main__':
             jageocoder.search(
                 query=args['<address>'],
                 aza_skip=skip_aza),
+            ensure_ascii=False))
+
+    elif args['reverse']:
+        from jageocoder.address import AddressLevel
+        jageocoder.init(db_dir=args['--db-dir'], mode='r')
+        print(json.dumps(
+            jageocoder.reverse(
+                x=float(args['<longitude>']),
+                y=float(args['<latitude>']),
+                level=int(args['--level'] or AddressLevel.AZA)),
             ensure_ascii=False))
 
     elif args['download-dictionary']:

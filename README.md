@@ -128,6 +128,30 @@ The meaning of the items is as follows
 - note: Notes such as city codes
 - fullname: List of address notations from the prefecture level to this node
 
+## Search for addresses by longitude and latitude
+
+Use `reverse()` to find addresses by longitude and latitude (reverse geocoding).
+
+The `reverse()` function returns the three addresses surrounding the specified
+longitude and latitude.
+
+The `candidate` of each element contains information about the address node 
+(AddressNode), and the `dist` contains the distance (geodesic distance, in meters)
+from the specified point to the representative point of the address.
+
+```
+>>> jageocoder.reverse(139.6917, 35.6896)
+[{'candidate': {'id': 12299330, 'name': '二丁目', 'x': 139.691774, 'y': 35.68945, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目']}, 'dist': 17.940303970792183}, {'candidate': {'id': 12300198, 'name': '六丁目', 'x': 139.690969, 'y': 35.693426, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '六丁目']}, 'dist': 429.6327545403412}, {'candidate': {'id': 12300498, 'name': '四丁目', 'x': 139.68762, 'y': 35.68754, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '四丁目']}, 'dist': 434.31591285255234}]
+```
+
+If the `level` optional parameter is specified, it will return a more detailed address.
+However, it takes time to calculate.
+
+```
+>>> jageocoder.reverse(139.6917, 35.6896, level=7)
+[{'candidate': {'id': 12299340, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}, 'dist': 7.669497303543382}, {'candidate': {'id': 12299330, 'name': '二丁目', 'x': 139.691774, 'y': 35.68945, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目']}, 'dist': 17.940303970792183}, {'candidate': {'id': 12300588, 'name': '15番', 'x': 139.688172, 'y': 35.689264, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '四丁目', '15番']}, 'dist': 321.50874020809823}]
+```
+
 ## Explore the attribute information of an address
 
 Use `searchNode()` to retrieve information about an address.

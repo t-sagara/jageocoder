@@ -171,6 +171,10 @@ def install_dictionary(
 
     logger.info('Creating TRIE index at {}'.format(_tree.trie_path))
     _tree.create_trie_index()
+
+    logger.debug("Creating Aza-level table for reverse geocoding.")
+    _tree.create_reverse_index()
+
     logger.info('Installation completed.')
 
 
@@ -303,6 +307,22 @@ def searchNode(
 
     global _tree
     return _tree.searchNode(query, best_only, aza_skip)
+
+
+def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
+    """
+    Reverse geocoding.
+
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+    from jageocoder.rev import Reverse
+
+    global _tree
+    _reverse = Reverse(x=x, y=y, tree=_tree, max_level=level)
+    results = _reverse.search()
+
+    return results
 
 
 def create_trie_index() -> NoReturn:
