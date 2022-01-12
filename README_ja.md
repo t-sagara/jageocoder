@@ -263,7 +263,7 @@ Flask を利用したシンプルなウェブアプリのサンプルが
 
 ```
 cd flask-demo
-pip install flask
+pip install flask flask-cors
 bash run.sh
 ```
 
@@ -298,3 +298,7 @@ This project is licensed under [the MIT License](https://opensource.org/licenses
 20年以上にわたり、アドレスマッチングサービスを継続するために
 所内ウェブサーバを利用させて頂いている
 東京大学空間情報科学研究センターに感謝いたします。
+
+また、NIIの北本朝展教授には、比較的古い住所体系を利用している地域の
+大規模なサンプルのご提供と、解析結果の確認に多くのご協力を頂きましたことを
+感謝いたします。

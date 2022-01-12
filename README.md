@@ -260,7 +260,7 @@ Perform the following steps. Then, access port 5000.
 
 ```
 cd flask-demo
-pip install flask
+pip install flask flask-cors
 bash run.sh
 ```
 
@@ -289,4 +289,9 @@ This is not the scope of the dictionary data license. Please follow the license 
 
 ## Acknowledgements
 
-We would like to thank CSIS for allowing us to provide address matching services on their institutional website for over 20 years.
+We would like to thank CSIS for allowing us to provide address matching services
+on their institutional website for over 20 years.
+
+We would also like to thank Professor Asanobu Kitamoto of NII for providing us
+with a large sample of areas using the older address system and for his many help
+in confirming the results of our analysis.
