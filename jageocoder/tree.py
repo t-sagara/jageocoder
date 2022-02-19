@@ -18,7 +18,7 @@ import jageocoder
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
 from jageocoder.exceptions import AddressTreeException
-from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.itaiji import Converter
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
@@ -128,6 +128,8 @@ class AddressTree(object):
         The TRIE index of the tree.
     mode: str
         The mode in which this tree was opened.
+    config: dict
+        Settings the search method in this tree.
     """
 
     def __init__(self, dsn: Optional[str] = None,
@@ -214,6 +216,12 @@ class AddressTree(object):
             logger.warning((
                 "The database ({}) is not compatible with the module ({})."
             ).format(db_version, jageocoder.dictionary_version()))
+
+        # Set default settings
+        self.config = {'aza_skip': False}
+
+        # Itaiji converter
+        self.converter = Converter()
 
     def close(self) -> NoReturn:
         if self.session:
@@ -341,6 +349,81 @@ class AddressTree(object):
             node_id = node.parent_id
 
         return names
+
+    def set_config(self, key: str, value: Union[str, int, bool]):
+        """
+        aza_skip: str, bool, optional
+            Specifies how to skip aza-names.
+            - Set to 'none' or None to make the decision automatically
+            - Set to 'off' or False to not skip
+            - Set to 'on' or True to always skip
+        """
+        curval = self.get_config(key)
+        if isinstance(curval, str):
+            if value is None:
+                value = 'none'
+            elif isinstance(value, bool):
+                if value is False:
+                    value = 'off'
+                else:
+                    value = 'on'
+            elif isinstance(value, int):
+                if value == 0:
+                    value = 'off'
+                else:
+                    value = 'on'
+            elif isinstance(value, str):
+                if value.lower() in ('on', 'enable', 'true'):
+                    value = 'on'
+                elif value.lower() in ('off', 'disable', 'false'):
+                    value = 'off'
+            else:
+                msg = "The value for '{}' must be a string but {}."
+                raise RuntimeError(msg.format(key, type(value)))
+        elif curval is None or isinstance(curval, bool):
+            if value is None:
+                pass
+            elif isinstance(value, bool):
+                pass
+            elif isinstance(value, int):
+                if value == 0:
+                    value = False
+                else:
+                    value = True
+            elif isinstance(value, str):
+                if value.lower() in ('on', 'enable', 'true'):
+                    value = True
+                elif value.lower() in ('off', 'disable', 'false'):
+                    value = False
+            else:
+                msg = "The value for '{}' must be a bool but {}."
+                raise RuntimeError(msg.format(key, type(value)))
+        elif isinstance(curval, int):
+            if isinstance(value, bool):
+                if value is False:
+                    value = 0
+                else:
+                    value = 1
+            elif isinstance(value, int):
+                pass
+            elif isinstance(value, str):
+                if value.lower() in ('on', 'enable', 'true'):
+                    value = 1
+                elif value.lower() in ('off', 'disable', 'false'):
+                    value = 0
+            else:
+                msg = "The value for '{}' must be an integer but {}."
+                raise RuntimeError(msg.format(key, type(value)))
+
+        self.config[key] = value
+        return value
+
+    def get_config(self, key: str):
+        if key not in self.config:
+            raise RuntimeError(
+                "The config key '{}' does not exist.".format(key))
+
+        return self.config[key]
 
     def check_line_format(self, args: List[str]) -> int:
         """
@@ -539,7 +622,7 @@ class AddressTree(object):
                 if is_leaf:
                     level = kwargs.get('level', AddressLevel.UNDEFINED)
 
-            name_index = itaiji_converter.standardize(name)
+            name_index = self.converter.standardize(name)
             node = cur_node.get_child(name_index)
             if not node:
                 kwargs.update({
@@ -588,7 +671,7 @@ class AddressTree(object):
             nodes = self.session.query(
                 AddressNode).offset(offset).limit(pagesize)
             for node in nodes:
-                new_name_index = itaiji_converter.standardize(node.name)
+                new_name_index = self.converter.standardize(node.name)
                 if node.name_index != new_name_index:
                     logger.info((
                         'The index of "{}" was updated from "{}" to "{}"'
@@ -671,7 +754,7 @@ class AddressTree(object):
 
             for i in range(len(node_prefixes)):
                 label = ''.join(node_prefixes[i:])
-                label_standardized = itaiji_converter.standardize(
+                label_standardized = self.converter.standardize(
                     label)
                 if label_standardized in self.index_table:
                     self.index_table[label_standardized].append(v.id)
@@ -679,7 +762,7 @@ class AddressTree(object):
                     self.index_table[label_standardized] = [v.id]
 
             # Also register variant notations for node labels
-            for candidate in itaiji_converter.standardized_candidates(
+            for candidate in self.converter.standardized_candidates(
                     v.name_index):
                 if candidate == v.name_index:
                     # The original notation has been already registered
@@ -893,7 +976,7 @@ class AddressTree(object):
         """
         cur_node = self.get_root()
         for name in address_names:
-            name_index = itaiji_converter.standardize(name)
+            name_index = self.converter.standardize(name)
             node = cur_node.get_child(name_index)
             if not node:
                 break
@@ -904,7 +987,7 @@ class AddressTree(object):
 
     def search_by_trie(self, query: str,
                        best_only: bool = True,
-                       aza_skip: Union[str, bool, None] = None) -> dict:
+                       target_area: Optional[List[str]] = None) -> dict:
         """
         Get the list of corresponding nodes using the TRIE index.
         Returns a list of address element nodes that match
@@ -920,11 +1003,10 @@ class AddressTree(object):
             An address notation to be searched.
         best_only : bool (option, default=True)
             If true, get the best candidates will be returned.
-        aza_skip: str, bool, optional (default=None)
-            Specifies how to skip aza-names.
-            - Set to 'auto' or None to make the decision automatically
-            - Set to 'off' or False to not skip
-            - Set to 'on'　or True to always skip
+        target_area: List[str], optional (Default = None)
+            Specify the areas to be searched.
+            The area can be specified by the name of the node
+            (such as prefecture name or city name), or JIS code.
 
         Return
         ------
@@ -932,9 +1014,9 @@ class AddressTree(object):
         and whose value is a list of node and substrings
         that match the query.
         """
-        index = itaiji_converter.standardize(
+        index = self.converter.standardize(
             query, keep_numbers=True)
-        index_for_trie = itaiji_converter.standardize(query)
+        index_for_trie = self.converter.standardize(query)
         candidates = self.trie.common_prefixes(index_for_trie)
         results = {}
         max_len = 0
@@ -959,7 +1041,7 @@ class AddressTree(object):
                 k, trie_id))
             trienodes = self.session.query(
                 TrieNode).filter_by(trie_id=trie_id).all()
-            offset = itaiji_converter.match_len(index, k)
+            offset = self.converter.match_len(index, k)
             key = index[0:offset]
             rest_index = index[offset:]
             for trienode in trienodes:
@@ -979,26 +1061,39 @@ class AddressTree(object):
                         node.name, node.id))
                     continue
 
+                if target_area is not None:
+                    # Check if the node is inside the specified area
+                    for area in target_area:
+                        inside = node.is_inside(area)
+                        if inside in (1, -1):
+                            break
+
+                    if inside == 0:
+                        msg = "Node {}({}) is not in the target area."
+                        logger.debug(msg.format(node.name, node.id))
+                        continue
+
                 logger.debug("Search '{}' under {}({})".format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
                     index=rest_index,
-                    processed_nodes=processed_nodes,
-                    aza_skip=aza_skip)
+                    tree=self,
+                    processed_nodes=processed_nodes)
                 processed_nodes.append(node)
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
 
                 for cand in results_by_node:
-                    """
-                    if cand[1] != '':
-                        cur_node = cand[0]
-                        while cur_node.parent:
-                            logger.debug('{}({}) marked as processed'.format(
-                                cur_node.name, cur_node.id))
-                            processed_nodes.append(cur_node.id)
-                            cur_node = cur_node.parent
-                    """
+                    if target_area is not None:
+                        for area in target_area:
+                            inside = cand.node.is_inside(area)
+                            if inside == 1:
+                                break
+
+                        if inside != 1:
+                            msg = "Node {}({}) is not in the target area."
+                            logger.debug(msg.format(node.name, node.id))
+                            continue
 
                     _len = offset + cand.nchars
                     _part = offset + len(cand.matched)
@@ -1036,7 +1131,8 @@ class AddressTree(object):
 
     def searchNode(self, query: str,
                    best_only: bool = True,
-                   aza_skip: Union[str, bool, None] = None) -> List[Result]:
+                   aza_skip: Union[str, bool, None] = False,
+                   target_area: Optional[List[str]] = None) -> List[Result]:
         """
         Searches for address nodes corresponding to an address notation
         and returns the matching substring and a list of nodes.
@@ -1047,11 +1143,15 @@ class AddressTree(object):
             An address notation to be searched.
         best_only: bool (default = True)
             If set to False, Returns all candidates whose prefix matches.
-        aza_skip: str, bool, optional (default=None)
+        aza_skip: str, bool, optional (default = False)
             Specifies how to skip aza-names.
             - Set to 'auto' or None to make the decision automatically
             - Set to 'off' or False to not skip
             - Set to 'on'　or True to always skip
+        target_area: List[str], optional (Default = None)
+            Specify the areas to be searched.
+            The area can be specified by the name of the node
+            (such as prefecture name or city name), or JIS code.
 
         Return
         ------
@@ -1072,10 +1172,11 @@ class AddressTree(object):
         >>> tree.searchNode('多摩市落合1-15-2')
         [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
         """
+        self.set_config('aza_skip', aza_skip)
         results = self.search_by_trie(
             query=query,
             best_only=best_only,
-            aza_skip=aza_skip)
+            target_area=target_area)
         values = sorted(results.values(), reverse=True,
                         key=lambda v: len(v[1]))
 
@@ -1123,7 +1224,7 @@ class AddressTree(object):
 
         while True:
             substr = query[0:pos]
-            standardized = itaiji_converter.standardize(
+            standardized = self.converter.standardize(
                 substr, keep_numbers=True)
             l_standardized = len(standardized)
 
@@ -1146,7 +1247,7 @@ class AddressTree(object):
 
         if pos < len(query) and node.name != '':
             if query[pos] == node.name[-1] and \
-                    len(itaiji_converter.standardize(
+                    len(self.converter.standardize(
                         query[0:pos+1])) == l_result:
                 # When the last letter of a node name is omitted
                 # by normalization, and if the query string contains

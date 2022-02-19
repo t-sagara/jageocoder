@@ -11,7 +11,7 @@ HELP = """
 
 Usage:
   {p} -h
-  {p} search [-d] [--force-aza-skip|--disable-aza-skip] <address>
+  {p} search [-d] [--area=<area>] [--force-aza-skip|--disable-aza-skip] <address>
   {p} reverse [-d] [--level=<level>] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] [--gaiku] [<url>]
@@ -22,6 +22,7 @@ Usage:
 Options:
   -h --help           Show this help.
   -d --debug          Show debug messages.
+  --area=<area>       Specify the target area by jiscode or names.
   --force-aza-skip    Skip aza-names whenever possible.
   --disable-aza-skip  Do not skip aza-names.
   --level=<level>     Max address level to search.
@@ -33,6 +34,8 @@ Examples:
 - Search address
 
   python -m {p} search 多摩市落合1-15
+  python -m {p} search --area=14152 中央1-1
+  python -m {p} search --area=東京都 落合1-15
 
 - Show dictionary directory
 
@@ -102,6 +105,11 @@ if __name__ == '__main__':
     if args['search']:
         jageocoder.init(db_dir=args['--db-dir'], mode='r')
         skip_aza = 'auto'
+        if args.get('--area'):
+            target_area = args['--area'].split(',')
+        else:
+            target_area = None
+
         if args['--disable-aza-skip']:
             skip_aza = 'off'
         elif args['--force-aza-skip']:
@@ -110,7 +118,8 @@ if __name__ == '__main__':
         print(json.dumps(
             jageocoder.search(
                 query=args['<address>'],
-                aza_skip=skip_aza),
+                aza_skip=skip_aza,
+                target_area=target_area),
             ensure_ascii=False))
 
     elif args['reverse']:

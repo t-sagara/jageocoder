@@ -223,7 +223,10 @@ def upgrade_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     logger.info('The dictionary is successfully upgraded.')
 
 
-def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
+def search(
+        query: str,
+        aza_skip: Union[str, bool, None] = None,
+        target_area: Optional[List[str]] = None) -> dict:
     """
     Search node from the tree by the query.
 
@@ -236,6 +239,10 @@ def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
         - Set to 'auto' or None to make the decision automatically
         - Set to 'off' or False to not skip
         - Set to 'on' or True to always skip
+    target_area: List[str], optional (Default = None)
+        Specify the areas to be searched.
+        The area can be specified by the name of the node
+        (such as prefecture name or city name), or JIS code.
 
     Return
     ------
@@ -252,8 +259,8 @@ def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
 
     global _tree
     results = _tree.searchNode(
-        query,
-        best_only=True, aza_skip=aza_skip)
+        query, best_only=True, aza_skip=aza_skip,
+        target_area=target_area)
 
     if len(results) == 0:
         return {'matched': '', 'candidates': []}
@@ -267,7 +274,8 @@ def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
 def searchNode(
         query: str,
         best_only: bool = True,
-        aza_skip: Union[str, bool, None] = None) -> List[Result]:
+        aza_skip: Union[str, bool, None] = None,
+        target_area: Optional[List[str]] = None) -> List[Result]:
     """
     Searches for address nodes corresponding to an address notation
     and returns the matching substring and a list of nodes.
@@ -283,6 +291,10 @@ def searchNode(
         - Set to 'auto' or None to make the decision automatically
         - Set to 'off' or False to not skip
         - Set to 'on'　or True to always skip
+    target_area: List[str], optional (Default = None)
+        Specify the areas to be searched.
+        The area can be specified by the name of the node
+        (such as prefecture name or city name), or JIS code.
 
     Return
     ------
@@ -306,7 +318,7 @@ def searchNode(
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    return _tree.searchNode(query, best_only, aza_skip)
+    return _tree.searchNode(query, best_only, aza_skip, target_area)
 
 
 def reverse(x: float, y: float, level: Optional[int] = None) -> dict:

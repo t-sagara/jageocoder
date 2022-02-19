@@ -2,7 +2,7 @@ import json
 from logging import getLogger
 import os
 import re
-from typing import Union, List, Optional
+from typing import Union, List, NoReturn, Optional
 
 import jaconv
 
@@ -13,57 +13,25 @@ logger = getLogger(__name__)
 
 
 class Converter(object):
-
-    # Optional postfixes for each address level
-    # which can be ommitted or represented by hyphens.
-    re_optional_postfixes = {
-        AddressLevel.CITY: re.compile(r'(市|区|町|村)$'),
-        AddressLevel.WARD: re.compile(r'(区)$'),
-        AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|区|番|号|番丁|番町)$'),
-        AddressLevel.AZA: re.compile(r'(町|条|線|丁|丁目|区|番|号)$'),
-        AddressLevel.BLOCK: re.compile(r'(番|番地|号|地)$'),
-        AddressLevel.BLD: re.compile(r'(号|番地)$'),
-    }
-
-    # Prefixes that are sometimes added to words at will
-    optional_prefixes = ['字', '大字', '小字']
-
-    # Letters that are sometimes insereted to words at will
-    optional_letters_in_middle = 'ケヶガツッノ区町'
-
-    # Strings that are sometimes inserted to words at will
-    optional_strings_in_middle = ['大字', '小字', '字']
-
-    # Extra characters that may be added to the end of a word at will
-    extra_characters = '-ノ区町'
-
-    # Characters that may be the beginning of Chiban
-    chiban_heads = ('甲乙丙丁戊己庚辛壬癸'
-                    '子丑寅卯辰巳午未申酉戌亥'
-                    '続新'
-                    'イロハニホヘトチリヌルヲワカヨタレソツネ')
-
-    # Max length of Aza-name which can be ommitted
-    max_skip_azaname = 5
-
-    re_optional_prefixes = re.compile(r'^({})'.format(
-        '|'.join(optional_prefixes)))
-    re_optional_strings_in_middle = re.compile(r'^({})'.format(
-        '|'.join(list(optional_letters_in_middle) +
-                 optional_strings_in_middle)))
+    """
+    Attributes
+    ----------
+    trans_itaiji: table
+        The character mapping table from src to dst.
+    """
 
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
+    trans_itaiji = None
+    trans_h2z = None
+    trans_z2h = None
 
-    def __init__(self):
-        """
-        Initialize the converter.
+    @classmethod
+    def read_itaiji_table(cls) -> NoReturn:
+        if cls.trans_itaiji is not None:
+            # The table is already prepared.
+            return
 
-        Attributes
-        ----------
-        trans_itaiji: table
-            The character mapping table from src to dst.
-        """
         itaiji_dic_json = os.path.join(
             os.path.dirname(__file__), 'itaiji_dic.json')
 
@@ -75,11 +43,75 @@ class Converter(object):
             src_str += src
             dst_str += dst
 
-        self.trans_itaiji = str.maketrans(src_str, dst_str)
-        self.trans_h2z = str.maketrans(
+        cls.trans_itaiji = str.maketrans(src_str, dst_str)
+        cls.trans_h2z = str.maketrans(
             {chr(0x0021 + i): chr(0xFF01 + i) for i in range(94)})
-        self.trans_z2h = str.maketrans(
+        cls.trans_z2h = str.maketrans(
             {chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
+
+    def __init__(self, options: dict = None):
+        """
+        Initialize the converter.
+
+        Parameters
+        ----------
+        options: dict, optional
+            Options to set optional characters, etc.
+            See 'set_options()' for list of items.
+        """
+        self.__class__.read_itaiji_table()
+        if options is not None:
+            self.set_options(options)
+        else:
+            self.set_options({})
+
+    def set_options(self, options: dict):
+        # Optional postfixes for each address level
+        # which can be ommitted or represented by hyphens.
+        self.re_optional_postfixes = {
+            AddressLevel.CITY: re.compile(r'(市|区|町|村)$'),
+            AddressLevel.WARD: re.compile(r'(区)$'),
+            AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|区|番|号|番丁|番町)$'),
+            AddressLevel.AZA: re.compile(r'(町|条|線|丁|丁目|区|番|号)$'),
+            AddressLevel.BLOCK: re.compile(r'(番|番地|号|地)$'),
+            AddressLevel.BLD: re.compile(r'(号|番地)$'),
+        }
+
+        # Prefixes that are sometimes added to words at will
+        self.optional_prefixes = options.get(
+            'prefixes', ['字', '大字', '小字'])
+
+        # Letters that are sometimes insereted to words at will
+        self.optional_letters_in_middle = options.get(
+            'middle_letters', 'ケヶガツッノ区町')
+
+        # Strings that are sometimes inserted to words at will
+        self.optional_strings_in_middle = options.get(
+            'middle_strings', ['大字', '小字', '字'])
+
+        # Extra characters that may be added to the end of a word at will
+        self.extra_characters = options.get(
+            'suffixes', '-ノ区町')
+
+        # Characters that may be the beginning of Chiban
+        self.chiban_heads = options.get(
+            'chiban_heads',
+            ('甲乙丙丁戊己庚辛壬癸'
+             '子丑寅卯辰巳午未申酉戌亥'
+             '続新'
+             'イロハニホヘトチリヌルヲワカヨタレソツネ'))
+
+        # Max length of Aza-name which can be ommitted
+        self.max_skip_azaname = options.get(
+            'max_aza_length', 5)
+
+        # Generate regular expressions from option settings
+        self.re_optional_prefixes = re.compile(r'^({})'.format(
+            '|'.join(self.optional_prefixes)))
+        self.re_optional_strings_in_middle = re.compile(
+            r'^({})'.format(
+                '|'.join(list(self.optional_letters_in_middle) +
+                         self.optional_strings_in_middle)))
 
     def check_optional_prefixes(self, notation: str) -> int:
         """
@@ -135,7 +167,7 @@ class Converter(object):
         >>> converter.check_optional_postfixes('15号', 8)
         1
         """
-        if level not in self.__class__.re_optional_postfixes:
+        if level not in self.re_optional_postfixes:
             return 0
 
         m = self.re_optional_postfixes[level].search(notation)
@@ -506,7 +538,7 @@ class Converter(object):
         return candidates
 
 
-# Create the singleton object of a converter
-# that normalizes address strings
+# Create the singleton object of a converter that normalizes
+# address strings for backword compatibility.
 if 'converter' not in vars():
     converter = Converter()

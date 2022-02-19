@@ -96,6 +96,31 @@ pip uninstall jageocoder
 
 # How to use
 
+## Use from the command line
+
+We assume that jageocoder will be embedded in applications
+as a library and used by calling the API, but for testing purposes,
+you can check the geocoding results with the following command.
+
+```sh
+python -m jageocoder search 新宿区西新宿２－８－１
+```
+
+If you want to look up an address from longitude and latitude,
+specify `reverse` instead of `search`.
+
+```sh
+python -m jageocoder reverse 139.6917 35.6896
+```
+
+You can check the list of available commands with `--help`.
+
+```sh
+python -m jageocoder --help
+```
+
+## Using API
+
 First, import jageocoder and initialize it with `init()`.
 
 ```
@@ -103,18 +128,26 @@ First, import jageocoder and initialize it with `init()`.
 >>> jageocoder.init()
 ```
 
-## Search for latitude and longitude by address
+### Search for latitude and longitude by address
 
 Use `search()` to search for the address you want to check the longitude and latitude of.
 
-The `search()` function returns a dict with `matched` as the matched string
-and `candidates` as the list of search results.
+The `search()` function returns a dict with `matched` as
+the matched string and `candidates` as the list of search results.
+(The results are formatted for better viewing)
 
 Each element of `candidates` contains the information of an address node (AddressNode).
 
 ```
 >>> jageocoder.search('新宿区西新宿２－８－１')
-{'matched': '新宿区西新宿２－８－', 'candidates': [{'id': 12299846, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
+{
+  'matched': '新宿区西新宿２－８－',
+  'candidates': [{
+    'id': 12299846, 'name': '8番',
+    'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None,
+    'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']
+  }]
+}
 ```
 
 The meaning of the items is as follows
@@ -128,31 +161,87 @@ The meaning of the items is as follows
 - note: Notes such as city codes
 - fullname: List of address notations from the prefecture level to this node
 
-## Search for addresses by longitude and latitude
+### Search for addresses by longitude and latitude
 
-Use `reverse()` to find addresses by longitude and latitude (reverse geocoding).
+Use `reverse()` to find addresses by longitude and latitude
+(so called 'reverse geocoding').
 
-The `reverse()` function returns the three addresses surrounding the specified
-longitude and latitude.
+The `reverse()` function returns the three addresses surrounding
+the specified longitude and latitude.
+(The results are formatted for better viewing)
 
-The `candidate` of each element contains information about the address node 
-(AddressNode), and the `dist` contains the distance (geodesic distance, in meters)
+The `candidate` of each element contains information about
+the address node (AddressNode), and the `dist` contains
+the distance (geodesic distance, in meters)
 from the specified point to the representative point of the address.
 
 ```
 >>> jageocoder.reverse(139.6917, 35.6896)
-[{'candidate': {'id': 12299330, 'name': '二丁目', 'x': 139.691774, 'y': 35.68945, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目']}, 'dist': 17.940303970792183}, {'candidate': {'id': 12300198, 'name': '六丁目', 'x': 139.690969, 'y': 35.693426, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '六丁目']}, 'dist': 429.6327545403412}, {'candidate': {'id': 12300498, 'name': '四丁目', 'x': 139.68762, 'y': 35.68754, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '四丁目']}, 'dist': 434.31591285255234}]
+[
+  {
+    'candidate': {
+      'id': 12299330, 'name': '二丁目',
+      'x': 139.691774, 'y': 35.68945, 'level': 6,
+      'note': 'postcode:1600023',
+      'fullname': ['東京都', '新宿区', '西新宿', '二丁目']
+    },
+    'dist': 17.940303970792183
+  }, {
+    'candidate': {
+      'id': 12300198, 'name': '六丁目',
+      'x': 139.690969, 'y': 35.693426, 'level': 6,
+      'note': 'postcode:1600023',
+      'fullname': ['東京都', '新宿区', '西新宿', '六丁目']
+    },
+    'dist': 429.6327545403412
+  }, {
+    'candidate': {
+      'id': 12300498, 'name': '四丁目',
+      'x': 139.68762, 'y': 35.68754, 'level': 6,
+      'note': 'postcode:1600023',
+      'fullname': ['東京都', '新宿区', '西新宿', '四丁目']
+    },
+    'dist': 434.31591285255234
+  }
+]
 ```
 
-If the `level` optional parameter is specified, it will return a more detailed address.
+If the `level` optional parameter is specified,
+it will return a more detailed address.
 However, it takes time to calculate.
 
 ```
 >>> jageocoder.reverse(139.6917, 35.6896, level=7)
-[{'candidate': {'id': 12299340, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}, 'dist': 7.669497303543382}, {'candidate': {'id': 12299330, 'name': '二丁目', 'x': 139.691774, 'y': 35.68945, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目']}, 'dist': 17.940303970792183}, {'candidate': {'id': 12300588, 'name': '15番', 'x': 139.688172, 'y': 35.689264, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '四丁目', '15番']}, 'dist': 321.50874020809823}]
+[
+  {
+    'candidate': {
+      'id': 12299340, 'name': '8番',
+      'x': 139.691778, 'y': 35.689627, 'level': 7,
+      'note': None,
+      'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']
+    },
+    'dist': 7.669497303543382
+  }, {
+    'candidate': {
+      'id': 12299330, 'name': '二丁目',
+      'x': 139.691774, 'y': 35.68945, 'level': 6,
+      'note': 'postcode:1600023',
+      'fullname': ['東京都', '新宿区', '西新宿', '二丁目']
+    },
+    'dist': 17.940303970792183
+  }, {
+    'candidate': {
+      'id': 12300588, 'name': '15番',
+      'x': 139.688172, 'y': 35.689264, 'level': 7,
+      'note': None,
+      'fullname': ['東京都', '新宿区', '西新宿', '四丁目', '15番']
+    },
+    'dist': 321.50874020809823
+  }
+]
 ```
 
-## Explore the attribute information of an address
+### Explore the attribute information of an address
 
 Use `searchNode()` to retrieve information about an address.
 
@@ -172,7 +261,7 @@ You can access the address node directly from this result.
 ['東京都', '新宿区', '西新宿', '二丁目', '8番']
 ```
 
-### Get the local government codes
+#### Get the local government codes
 
 There are two types of local government codes: JISX0402 (5-digit) and
 Local Government Code (6-digit).
@@ -188,7 +277,7 @@ You can also obtain the prefecture code JISX0401 (2 digits).
 '13'
 ```
 
-### Get link URLs to maps
+#### Get link URLs to maps
 
 Generate URLs to link to GSI and Google maps.
 
@@ -199,7 +288,7 @@ Generate URLs to link to GSI and Google maps.
 'https://maps.google.com/maps?q=35.689627,139.691778&z=16'
 ```
 
-### Traverse the parent node
+#### Traverse the parent node
 
 A "parent node" is a node that represents a level above the address.
 Get the node by attribute `parent`.
@@ -214,7 +303,7 @@ Now the `node` points to '8番', so the parent node will be '二丁目'.
 (139.691774, 35.68945)
 ```
 
-### Traverse the child nodes
+#### Traverse the child nodes
 
 A "child node" is a node that represents a level below the address.
 Get the node by attribute `children`.
