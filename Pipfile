@@ -9,6 +9,7 @@ jaconv = "*"
 jageocoder = {editable = true, path = "."}
 deprecated = "*"
 docopt = "*"
+flask-cors = "*"
 
 [dev-packages]
 autopep8 = "*"

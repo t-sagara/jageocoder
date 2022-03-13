@@ -20,7 +20,7 @@
     <h1>
       <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
       のデモンストレーション</h1>
-    <form action="{{ url_prefix }}{{ url_for('search') }}" method="GET">
+    <form action="{{ url_for('search') }}" method="GET">
       検索したい住所を入力：
       <input id="query" value="{{ q }}" name="q" />
       <input type="submit" value="検索" /><br />
@@ -36,7 +36,7 @@
         />省略しない&nbsp;
     </form>
 
-    <p><a href="{{ url_prefix }}{{ url_for('index', q=q, skip_aza=skip_aza) }}">
+    <p><a href="{{ url_for('index', q=q, skip_aza=skip_aza) }}">
     住所の例に戻る</a></p>
 
     <h2>ノード属性</h2>
@@ -71,7 +71,7 @@
         {% if node.id == -1 %}
           無し
         {% else %}
-          <a href="{{ url_prefix }}{{ url_for('show_node',
+          <a href="{{ url_for('show_node',
            id=node.parent.id, q=q, skip_aza=skip_aza) }}">
             {{ node.parent.name }}
           </a>
@@ -80,7 +80,7 @@
       <li>子ノード：
         {% if node.children.count() > 0 %}
           {% for child in node.children %}
-            <a href="{{ url_prefix }}{{ url_for('show_node',
+            <a href="{{ url_for('show_node',
             id=child.id, q=q, skip_aza=skip_aza) }}">
               {{ child.name }}
             </a>&nbsp;
