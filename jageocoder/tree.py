@@ -132,8 +132,7 @@ class AddressTree(object):
         Settings the search method in this tree.
     """
 
-    def __init__(self, dsn: Optional[str] = None,
-                 trie_path: Optional[os.PathLike] = None,
+    def __init__(self,
                  db_dir: Optional[os.PathLike] = None,
                  mode: str = 'a',
                  debug: bool = False):
@@ -142,14 +141,9 @@ class AddressTree(object):
 
         Parameters
         ----------
-        dsn: str, optional
-            Data Source Name of the database.
-        trie_path: os.PathLike, optional
-            File path to save the TRIE index.
         db_dir: os.PathLike, optional
             The database directory.
-            If dsn and trie_path are omitted and db_dir is set,
-            'address.db' and 'address.trie' under this directory will be used.
+            'address.db' and 'address.trie' are stored under this directory.
         mode: str (default='a')
             Specifies the mode for opening the database.
             - In the case of 'a', if the database already exists,
@@ -168,12 +162,9 @@ class AddressTree(object):
         else:
             db_dir = os.path.abspath(db_dir)
 
-        default_dsn = 'sqlite:///' + os.path.join(db_dir, 'address.db')
-        default_trie_path = os.path.join(db_dir, 'address.trie')
-
-        self.dsn = dsn or default_dsn
-        self.db_path = self.dsn[len('sqlite:///'):]
-        self.trie_path = trie_path or default_trie_path
+        self.db_path = os.path.join(db_dir, 'address.db')
+        self.dsn = 'sqlite:///' + self.db_path
+        self.trie_path = os.path.join(db_dir, 'address.trie')
 
         # Options
         self.debug = debug

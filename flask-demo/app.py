@@ -1,4 +1,3 @@
-import os
 from flask import Flask, request, render_template, jsonify
 from flask_cors import cross_origin
 
@@ -8,6 +7,7 @@ jageocoder.init()
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
+
 
 @app.route("/")
 def index():

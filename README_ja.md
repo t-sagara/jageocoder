@@ -255,6 +255,18 @@ python -m jageocoder --help
 ['東京都', '新宿区', '西新宿', '二丁目', '8番']
 ```
 
+#### GeoJSON 表現を取得する
+
+`jageocoder.result` と `jageocoder.node.AddressNode` クラスオブジェクトの
+`as_geojson()` メソッドを利用すると GeoJSON 表現を取得できます。
+
+```
+>>> results[0].as_geojson()
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番'], 'matched': '新宿区西新宿２－８－'}}
+>>> results[0].node.as_geojson()
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}}
+```
+
 #### 自治体コードを取得する
 
 自治体コードには JISX0402（5桁）と地方公共団体コード（6桁）があります。

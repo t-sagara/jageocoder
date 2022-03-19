@@ -261,6 +261,19 @@ You can access the address node directly from this result.
 ['東京都', '新宿区', '西新宿', '二丁目', '8番']
 ```
 
+#### Get GeoJSON representation
+
+You can use the `as_geojson()` method of the `jageocoder.result`
+and `jageocoder.node.AddressNode` class objects
+to obtain the GeoJSON representation.
+
+```
+>>> results[0].as_geojson()
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番'], 'matched': '新宿区西新宿２－８－'}}
+>>> results[0].node.as_geojson()
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}}
+```
+
 #### Get the local government codes
 
 There are two types of local government codes: JISX0402 (5-digit) and

@@ -1,7 +1,7 @@
 from functools import lru_cache
 import logging
 import re
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
 from sqlalchemy import or_
@@ -113,7 +113,7 @@ class AddressNode(Base):
         """
         self.parent = parent
 
-    def get_child(self, target_name):
+    def get_child(self, target_name: str):
         """
         Get a child node with the specified name.
 
@@ -148,7 +148,7 @@ class AddressNode(Base):
         return filtered_children
 
     def search_recursive(
-        self, index: str, tree: 'AddressTree',
+        self, index: str, tree: 'AddressTree',  # noqa
         processed_nodes: Optional[List['AddressNode']] = None
     ) -> List[Result]:
         """
@@ -309,7 +309,7 @@ class AddressNode(Base):
     def _get_candidates_from_child(
             self, child: 'AddressNode',
             index: str, optional_prefix: str,
-            tree: 'AddressTree',
+            tree: 'AddressTree',  # noqa
             processed_nodes: List['AddressNode']) -> list:
         """
         Get candidates from the child.
@@ -382,7 +382,7 @@ class AddressNode(Base):
         return candidates
 
     def _is_aza_omission_target(
-            self, tree: 'AddressTree',
+            self, tree: 'AddressTree',  # noqa
             processed_nodes: List['AddressNode']) -> bool:
         """
         Determine if this node is a target of aza-name omission.
@@ -457,6 +457,25 @@ class AddressNode(Base):
             "level": self.level,
             "note": self.note,
             "fullname": self.get_fullname(),
+        }
+
+    def as_geojson(self):
+        """
+        Return the geojson notation of the node.
+        """
+        return {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [self.x, self.y]
+            },
+            "properties": {
+                "id": self.id,
+                "name": self.name,
+                "level": self.level,
+                "note": self.note,
+                "fullname": self.get_fullname(),
+            }
         }
 
     def get_fullname(self):

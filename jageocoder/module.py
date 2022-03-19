@@ -15,9 +15,7 @@ _tree = None  # The default AddressTree
 logger = logging.getLogger(__name__)
 
 
-def init(dsn: Optional[str] = None,
-         trie_path: Optional[os.PathLike] = None,
-         db_dir: Optional[os.PathLike] = None,
+def init(db_dir: Optional[os.PathLike] = None,
          mode: Optional[str] = 'r',
          debug: Optional[bool] = False) -> NoReturn:
     """
@@ -26,14 +24,9 @@ def init(dsn: Optional[str] = None,
 
     Parameters
     ----------
-    dsn: str, optional
-        Data Source Name of the database.
-    trie_path: os.PathLike, optional
-        File path to save the TRIE index.
     db_dir: os.PathLike, optional
         The database directory.
-        If dsn and trie_path are omitted and db_dir is set,
-        'address.db' and 'address.trie' under this directory will be used.
+        'address.db' and 'address.trie' are stored in this directory.
     mode: str, optional(default='r')
         Specifies the mode for opening the database.
         - In the case of 'a', if the database already exists, it will be used.
@@ -50,8 +43,7 @@ def init(dsn: Optional[str] = None,
     if _tree:
         _tree.close()
 
-    _tree = AddressTree(dsn=dsn, trie_path=trie_path, db_dir=db_dir,
-                        mode=mode, debug=debug)
+    _tree = AddressTree(db_dir=db_dir, mode=mode, debug=debug)
 
 
 def is_initialized() -> bool:

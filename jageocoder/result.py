@@ -89,12 +89,17 @@ class Result(object):
 
         raise RuntimeError()
 
-    def to_dict(self) -> dict:
+    def as_dict(self) -> dict:
         return {
             "node": self.node.as_dict(),
             "matched": self.matched,
             # "nchars": self.nchars
         }
 
+    def as_geojson(self) -> dict:
+        geojson = self.node.as_geojson()
+        geojson['properties']['matched'] = self.matched
+        return geojson
+
     def __repr__(self) -> str:
-        return json.dumps(self.to_dict(), ensure_ascii=False)
+        return json.dumps(self.as_dict(), ensure_ascii=False)
