@@ -26,6 +26,8 @@ __author__ = 'Takeshi Sagara <sagara@info-proto.com>'
 __all__ = [
     'init',
     'is_initialized',
+    'set_search_config',
+    'get_search_config',
     'get_db_dir',
     'get_module_tree',
     'download_dictionary',
@@ -41,6 +43,7 @@ __all__ = [
 ]
 
 from jageocoder.module import init, is_initialized, get_db_dir,\
+    set_search_config, get_search_config,\
     get_module_tree, download_dictionary, install_dictionary,\
     uninstall_dictionary, upgrade_dictionary, create_trie_index,\
     search, searchNode, reverse, version, dictionary_version

@@ -5,7 +5,7 @@ import os
 import re
 import site
 import sys
-from typing import Union, NoReturn, List, Optional, TextIO
+from typing import Any, Union, NoReturn, List, Optional, TextIO
 
 from deprecated import deprecated
 from sqlalchemy import Index
@@ -135,7 +135,7 @@ class AddressTree(object):
     def __init__(self,
                  db_dir: Optional[os.PathLike] = None,
                  mode: str = 'a',
-                 debug: bool = False):
+                 debug: Optional[bool] = None):
         """
         The initializer
 
@@ -143,8 +143,9 @@ class AddressTree(object):
         ----------
         db_dir: os.PathLike, optional
             The database directory.
+            If omitted, the directory returned by get_db_dir() is used.
             'address.db' and 'address.trie' are stored under this directory.
-        mode: str (default='a')
+        mode: str, optional (default='a')
             Specifies the mode for opening the database.
             - In the case of 'a', if the database already exists,
               use it. Otherwize create a new one.
@@ -152,8 +153,10 @@ class AddressTree(object):
               delete it first. Then create a new one.
             - In the case of 'r', if the database already exists,
               use it. Otherwise raise a JageocoderError exception.
-        debug: bool default=False)
-            Debugging flag.
+        debug: bool, optional (default=False)
+            Debugging flag. If set to True, write debugging messages.
+            If omitted, refer 'JAGEOCODER_DEBUG' environment variable,
+            or False if the environment variable is also undefined.
         """
         # Set default values
         self.mode = mode
@@ -167,7 +170,7 @@ class AddressTree(object):
         self.trie_path = os.path.join(db_dir, 'address.trie')
 
         # Options
-        self.debug = debug
+        self.debug = debug or bool(os.environ.get('JAGEOCODER_DEBUG', False))
 
         # Clear database?
         if self.mode == 'w':
@@ -209,7 +212,18 @@ class AddressTree(object):
             ).format(db_version, jageocoder.dictionary_version()))
 
         # Set default settings
-        self.config = {'aza_skip': False}
+        self.config = {
+            'debug': False,
+            'aza_skip': None,
+            'best_only': True,
+            'target_area': [],
+        }
+        self.set_config(**{
+            'debug': self.debug,
+            'aza_skip': os.environ.get('JAGEOCODER_AZA_SKIP', False),
+            'best_only': os.environ.get('JAGEOCODER_BEST_ONLY', True),
+            'target_area': os.environ.get('JAGEOCODER_TARGET_AREA', None)
+        })
 
         # Itaiji converter
         self.converter = Converter()
@@ -341,18 +355,49 @@ class AddressTree(object):
 
         return names
 
-    def set_config(self, key: str, value: Union[str, int, bool]):
+    def set_config(self, **kwargs):
         """
-        aza_skip: str, bool, optional
-            Specifies how to skip aza-names.
-            - Set to 'none' or None to make the decision automatically
-            - Set to 'off' or False to not skip
-            - Set to 'on' or True to always skip
+        Set configuration parameters.
+
+        Note
+        ----
+        The possible keywords and their meanings are as follows.
+
+        - best_only: bool (default = True)
+            If set to False, returns all search result candidates
+            whose prefix matches.
+
+        - aza_skip: str (default = 'off')
+            Specifies how to skip aza-names while searching nodes.
+            - 'auto' or None to make the decision automatically
+            - 'off' or False to not skip
+            - 'on' or True to always skip
+
+        - target_areas: List[str] (Default = [])
+            Specify the areas to be searched.
+            The area can be specified by the list of name of the node
+            (such as prefecture name or city name), or JIS code.
         """
-        curval = self.get_config(key)
+        for k, v in kwargs.items():
+            self._set_config(k, v)
+
+    def _set_config(
+            self, key: str,
+            value: Any):
+        """
+        Set configuration parameters.
+
+        Parameters
+        ----------
+        key: str
+            The name of the parameter.
+        value: str, int, bool, None
+            The value to be set to the parameter.
+        """
+        curval = self._get_config(key)
         if isinstance(curval, str):
             if value is None:
-                value = 'none'
+                value = 'None'
             elif isinstance(value, bool):
                 if value is False:
                     value = 'off'
@@ -386,6 +431,11 @@ class AddressTree(object):
                     value = True
                 elif value.lower() in ('off', 'disable', 'false'):
                     value = False
+                elif value.lower() in ('auto',):
+                    value = None
+                else:
+                    msg = "The value '{}' for '{}' cannot be recognized as bool or None."
+                    raise RuntimeError(msg.format(value, key))
             else:
                 msg = "The value for '{}' must be a bool but {}."
                 raise RuntimeError(msg.format(key, type(value)))
@@ -405,11 +455,62 @@ class AddressTree(object):
             else:
                 msg = "The value for '{}' must be an integer but {}."
                 raise RuntimeError(msg.format(key, type(value)))
+        elif isinstance(curval, list):
+            if value is None:
+                value = []
+            elif isinstance(value, (bool, int,)):
+                value = [str(value)]
+            elif isinstance(value, str):
+                value = [x for x in value.split(',') if x != '']
+            elif isinstance(value, list):
+                pass
+            else:
+                msg = "The value for '{}' must be a list but {}."
+                raise RuntimeError(msg.format(key, type(value)))
 
         self.config[key] = value
         return value
 
-    def get_config(self, key: str):
+    def get_config(self, keys: Union[str, List[str], None] = None):
+        """
+        Get configurable parameter(s).
+
+        Parameters
+        ----------
+        keys: str, List[str], optional
+            If a name of parameter is specified, return its value.
+            Otherwise, a dict of specified key and its value pairs
+            will be returned.
+
+        Returns
+        -------
+        Any, or dict.
+
+        Examples
+        --------
+
+        >>> import jageocoder
+        >>> jageocoder.init()
+        >>> jageocoder.get_module_tree().get_config('aza_skip')
+        'off'
+        >>> jageocoder.get_module_tree().get_config(['best_only', 'target_area'])
+        {'best_only': True, 'target_area': []}
+        >>> jageocoder.get_module_tree().get_config()
+        {'debug': False, 'aza_skip': 'off', 'best_only': True, 'target_area': []}
+        """
+        if keys is None:
+            return self.config
+
+        if isinstance(keys, str):
+            return self._get_config(keys)
+
+        config = {}
+        for k in keys:
+            config[k] = self._get_config(k)
+
+        return config
+
+    def _get_config(self, key: str):
         if key not in self.config:
             raise RuntimeError(
                 "The config key '{}' does not exist.".format(key))
@@ -976,9 +1077,7 @@ class AddressTree(object):
 
         return cur_node
 
-    def search_by_trie(self, query: str,
-                       best_only: bool = True,
-                       target_area: Optional[List[str]] = None) -> dict:
+    def search_by_trie(self, query: str) -> dict:
         """
         Get the list of corresponding nodes using the TRIE index.
         Returns a list of address element nodes that match
@@ -992,12 +1091,6 @@ class AddressTree(object):
         ----------
         query : str
             An address notation to be searched.
-        best_only : bool (option, default=True)
-            If true, get the best candidates will be returned.
-        target_area: List[str], optional (Default = None)
-            Specify the areas to be searched.
-            The area can be specified by the name of the node
-            (such as prefecture name or city name), or JIS code.
 
         Return
         ------
@@ -1012,6 +1105,8 @@ class AddressTree(object):
         results = {}
         max_len = 0
         min_part = None
+        best_only = self.get_config('best_only')
+        target_area = self.get_config('target_area')
 
         keys = sorted(candidates.keys(),
                       key=len, reverse=True)
@@ -1052,7 +1147,7 @@ class AddressTree(object):
                         node.name, node.id))
                     continue
 
-                if target_area is not None:
+                if len(target_area) > 0:
                     # Check if the node is inside the specified area
                     for area in target_area:
                         inside = node.is_inside(area)
@@ -1075,7 +1170,7 @@ class AddressTree(object):
                     node.name, node.id))
 
                 for cand in results_by_node:
-                    if target_area is not None:
+                    if len(target_area) > 0:
                         for area in target_area:
                             inside = cand.node.is_inside(area)
                             if inside == 1:
@@ -1120,10 +1215,7 @@ class AddressTree(object):
     def search(self, query: str, **kwargs) -> list:
         return self.searchNode(query, **kwargs)
 
-    def searchNode(self, query: str,
-                   best_only: bool = True,
-                   aza_skip: Union[str, bool, None] = False,
-                   target_area: Optional[List[str]] = None) -> List[Result]:
+    def searchNode(self, query: str) -> List[Result]:
         """
         Searches for address nodes corresponding to an address notation
         and returns the matching substring and a list of nodes.
@@ -1132,17 +1224,6 @@ class AddressTree(object):
         ----------
         query : str
             An address notation to be searched.
-        best_only: bool (default = True)
-            If set to False, Returns all candidates whose prefix matches.
-        aza_skip: str, bool, optional (default = False)
-            Specifies how to skip aza-names.
-            - Set to 'auto' or None to make the decision automatically
-            - Set to 'off' or False to not skip
-            - Set to 'on'　or True to always skip
-        target_area: List[str], optional (Default = None)
-            Specify the areas to be searched.
-            The area can be specified by the name of the node
-            (such as prefecture name or city name), or JIS code.
 
         Return
         ------
@@ -1163,11 +1244,7 @@ class AddressTree(object):
         >>> tree.searchNode('多摩市落合1-15-2')
         [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
         """
-        self.set_config('aza_skip', aza_skip)
-        results = self.search_by_trie(
-            query=query,
-            best_only=best_only,
-            target_area=target_area)
+        results = self.search_by_trie(query=query)
         values = sorted(results.values(), reverse=True,
                         key=lambda v: len(v[1]))
 

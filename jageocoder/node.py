@@ -277,12 +277,12 @@ class AddressNode(Base):
                 logger.debug(msg.format(index[:azalen], index))
                 # Note: Disable 'aza_skip' here not to perform
                 # repeated skip processing.
-                tree.set_config('aza_skip', False)
+                tree.set_config(aza_skip=False)
                 sub_candidates = self.search_recursive(
                     index=index[azalen:],
                     tree=tree,
                     processed_nodes=processed_nodes)
-                tree.set_config('aza_skip', aza_skip)
+                tree.set_config(aza_skip=aza_skip)
                 if sub_candidates[0].matched == '':
                     continue
 

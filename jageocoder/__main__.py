@@ -115,11 +115,10 @@ if __name__ == '__main__':
         elif args['--force-aza-skip']:
             skip_aza = 'on'
 
+        jageocoder.set_search_config(
+            aza_skip=skip_aza, target_area=target_area)
         print(json.dumps(
-            jageocoder.search(
-                query=args['<address>'],
-                aza_skip=skip_aza,
-                target_area=target_area),
+            jageocoder.search(query=args['<address>']),
             ensure_ascii=False))
 
     elif args['reverse']:

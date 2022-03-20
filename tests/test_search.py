@@ -15,13 +15,13 @@ class TestSearchMethods(unittest.TestCase):
     def setUpClass(cls):
         jageocoder.init(mode="r")
 
-    def _check(self, query: str, aza_skip=None,
+    def _check(self, query: str, aza_skip='auto',
                target_area: Optional[List[str]] = None,
                match: str = None, ncandidates: int = None,
                level: int = None, fullname: list = None):
-        result = jageocoder.search(
-            query=query, aza_skip=aza_skip,
-            target_area=target_area)
+        jageocoder.set_search_config(
+            aza_skip=aza_skip, target_area=target_area)
+        result = jageocoder.search(query=query)
         if match:
             self.assertEqual(result["matched"], match)
 

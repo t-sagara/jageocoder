@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 def init(db_dir: Optional[os.PathLike] = None,
          mode: Optional[str] = 'r',
-         debug: Optional[bool] = False) -> NoReturn:
+         debug: Optional[bool] = False,
+         **kwargs) -> NoReturn:
     """
     Initialize the module-level AddressTree object `jageocoder.tree`
     ready for use.
@@ -44,6 +45,46 @@ def init(db_dir: Optional[os.PathLike] = None,
         _tree.close()
 
     _tree = AddressTree(db_dir=db_dir, mode=mode, debug=debug)
+    set_search_config(**kwargs)
+
+
+def set_search_config(**kwargs):
+    """
+    Set configurable search parameters.
+
+    Note
+    ----
+    The possible keywords and their meanings are as follows.
+
+    - best_only: bool (default = True)
+        If set to False, returns all search result candidates
+        whose prefix matches.
+
+    - aza_skip: str (default = 'off')
+        Specifies how to skip aza-names while searching nodes.
+        - 'auto' or None to make the decision automatically
+        - 'off' or False to not skip
+        - 'on' or True to always skip
+
+    - target_areas: List[str] (Default = [])
+        Specify the areas to be searched.
+        The area can be specified by the list of name of the node
+        (such as prefecture name or city name), or JIS code.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    _tree.set_config(**kwargs)
+
+
+def get_search_config() -> dict:
+    """
+    Get current configurable search parameters.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    return _tree.get_config()
 
 
 def is_initialized() -> bool:
@@ -215,10 +256,7 @@ def upgrade_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     logger.info('The dictionary is successfully upgraded.')
 
 
-def search(
-        query: str,
-        aza_skip: Union[str, bool, None] = None,
-        target_area: Optional[List[str]] = None) -> dict:
+def search(query: str) -> dict:
     """
     Search node from the tree by the query.
 
@@ -226,15 +264,6 @@ def search(
     ---------
     query: str
         An address notation to be searched.
-    aza_skip: str, bool, optional (default=None)
-        Specifies how to skip aza-names.
-        - Set to 'auto' or None to make the decision automatically
-        - Set to 'off' or False to not skip
-        - Set to 'on' or True to always skip
-    target_area: List[str], optional (Default = None)
-        Specify the areas to be searched.
-        The area can be specified by the name of the node
-        (such as prefecture name or city name), or JIS code.
 
     Return
     ------
@@ -250,9 +279,8 @@ def search(
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    results = _tree.searchNode(
-        query, best_only=True, aza_skip=aza_skip,
-        target_area=target_area)
+    set_search_config(best_only=True)
+    results = _tree.searchNode(query)
 
     if len(results) == 0:
         return {'matched': '', 'candidates': []}
@@ -263,11 +291,7 @@ def search(
     }
 
 
-def searchNode(
-        query: str,
-        best_only: bool = True,
-        aza_skip: Union[str, bool, None] = None,
-        target_area: Optional[List[str]] = None) -> List[Result]:
+def searchNode(query: str) -> List[Result]:
     """
     Searches for address nodes corresponding to an address notation
     and returns the matching substring and a list of nodes.
@@ -276,17 +300,6 @@ def searchNode(
     ----------
     query : str
         An address notation to be searched.
-    best_only: bool, optional
-        If set to False, Returns all candidates whose prefix matches.
-    aza_skip: str, bool, optional (default=None)
-        Specifies how to skip aza-names.
-        - Set to 'auto' or None to make the decision automatically
-        - Set to 'off' or False to not skip
-        - Set to 'on'　or True to always skip
-    target_area: List[str], optional (Default = None)
-        Specify the areas to be searched.
-        The area can be specified by the name of the node
-        (such as prefecture name or city name), or JIS code.
 
     Return
     ------
@@ -310,7 +323,7 @@ def searchNode(
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    return _tree.searchNode(query, best_only, aza_skip, target_area)
+    return _tree.searchNode(query)
 
 
 def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
