@@ -11,6 +11,7 @@ from deprecated import deprecated
 from sqlalchemy import Index
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.pool import NullPool
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 
@@ -184,7 +185,8 @@ class AddressTree(object):
         try:
             self.engine = create_engine(
                 self.dsn, echo=self.debug,
-                connect_args={'check_same_thread': False})
+                connect_args={'check_same_thread': False},
+                poolclass=NullPool)
             self.conn = self.engine.connect()
             _session = sessionmaker()
             _session.configure(bind=self.engine)
@@ -396,30 +398,15 @@ class AddressTree(object):
         """
         curval = self._get_config(key)
         if isinstance(curval, str):
-            if value is None:
-                value = 'None'
-            elif isinstance(value, bool):
-                if value is False:
-                    value = 'off'
-                else:
-                    value = 'on'
-            elif isinstance(value, int):
-                if value == 0:
-                    value = 'off'
-                else:
-                    value = 'on'
+            if value is None or isinstance(value, (bool, int)):
+                value = str(value)
             elif isinstance(value, str):
-                if value.lower() in ('on', 'enable', 'true'):
-                    value = 'on'
-                elif value.lower() in ('off', 'disable', 'false'):
-                    value = 'off'
+                pass
             else:
                 msg = "The value for '{}' must be a string but {}."
                 raise RuntimeError(msg.format(key, type(value)))
         elif curval is None or isinstance(curval, bool):
-            if value is None:
-                pass
-            elif isinstance(value, bool):
+            if value is None or isinstance(value, bool):
                 pass
             elif isinstance(value, int):
                 if value == 0:
@@ -431,7 +418,7 @@ class AddressTree(object):
                     value = True
                 elif value.lower() in ('off', 'disable', 'false'):
                     value = False
-                elif value.lower() in ('auto',):
+                elif value.lower() in ('auto', 'none', ''):
                     value = None
                 else:
                     msg = "The value '{}' for '{}' cannot be recognized as bool or None."
@@ -452,6 +439,12 @@ class AddressTree(object):
                     value = 1
                 elif value.lower() in ('off', 'disable', 'false'):
                     value = 0
+                else:
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        msg = "The value '{}' for '{}' cannot be recognized as int."
+                        raise RuntimeError(msg.format(value, key))
             else:
                 msg = "The value for '{}' must be an integer but {}."
                 raise RuntimeError(msg.format(key, type(value)))

@@ -240,7 +240,7 @@ python -m jageocoder --help
 
 住所に関する情報を取得するには `searchNode()` を使います。
 この関数は `jageocoder.result.Result` 型のリストを返します。
-ここから住所ノードに直接アクセスできます。
+Result オブジェクトの node 要素から住所ノードにアクセスできます。
 
 ```
 >>> results = jageocoder.searchNode('新宿区西新宿２－８－１')
@@ -257,7 +257,7 @@ python -m jageocoder --help
 
 #### GeoJSON 表現を取得する
 
-`jageocoder.result` と `jageocoder.node.AddressNode` クラスオブジェクトの
+`jageocoder.result` と `jageocoder.node.AddressNode` オブジェクトの
 `as_geojson()` メソッドを利用すると GeoJSON 表現を取得できます。
 
 ```

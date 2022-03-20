@@ -246,7 +246,7 @@ However, it takes time to calculate.
 Use `searchNode()` to retrieve information about an address.
 
 This function returns a list of type `jageocoder.result` .
-You can access the address node directly from this result.
+You can access the address node from node element of the Result object.
 
 ```
 >>> results = jageocoder.searchNode('新宿区西新宿２－８－１')
@@ -264,7 +264,7 @@ You can access the address node directly from this result.
 #### Get GeoJSON representation
 
 You can use the `as_geojson()` method of the `jageocoder.result`
-and `jageocoder.node.AddressNode` class objects
+and `jageocoder.node.AddressNode` objects
 to obtain the GeoJSON representation.
 
 ```

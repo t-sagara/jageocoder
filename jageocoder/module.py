@@ -48,6 +48,17 @@ def init(db_dir: Optional[os.PathLike] = None,
     set_search_config(**kwargs)
 
 
+def free():
+    """
+    Frees all objects created by 'init()'.
+    """
+    global _tree
+    if _tree:
+        _tree.close()
+
+    _tree = None
+
+
 def set_search_config(**kwargs):
     """
     Set configurable search parameters.
