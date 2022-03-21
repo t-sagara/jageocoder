@@ -71,11 +71,11 @@ def set_search_config(**kwargs):
         If set to False, returns all search result candidates
         whose prefix matches.
 
-    - aza_skip: str (default = 'off')
+    - aza_skip: bool, None (default = False)
         Specifies how to skip aza-names while searching nodes.
-        - 'auto' or None to make the decision automatically
-        - 'off' or False to not skip
-        - 'on' or True to always skip
+        - If None, make the decision automatically
+        - If False, do not skip
+        - If True, always skip
 
     - target_areas: List[str] (Default = [])
         Specify the areas to be searched.
@@ -88,14 +88,25 @@ def set_search_config(**kwargs):
     _tree.set_config(**kwargs)
 
 
-def get_search_config() -> dict:
+def get_search_config(keys: Union[str, List[str], None] = None) -> dict:
     """
     Get current configurable search parameters.
+
+    Parameters
+    ----------
+    keys: str, List[str], optional
+        If a name of parameter is specified, return its value.
+        Otherwise, a dict of specified key and its value pairs
+        will be returned.
+
+    Returns
+    -------
+    Any, or dict.
     """
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
-    return _tree.get_config()
+    return _tree.get_config(keys)
 
 
 def is_initialized() -> bool:
@@ -209,7 +220,7 @@ def install_dictionary(
     init(db_dir=db_dir, mode='a')
     global _tree
     if not _tree.is_version_compatible():
-        logger.warning(('Updating the database file since'
+        logger.warning(('Migrating the database file since'
                         ' it is not compatible with the package.'))
         _tree.update_name_index()
 
@@ -243,9 +254,9 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     logger.info('Dictionary has been uninstalled.')
 
 
-def upgrade_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
+def migrate_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     """
-    Upgrade address-dictionary.
+    Migrate address-dictionary.
 
     Parameters
     ----------
@@ -257,14 +268,14 @@ def upgrade_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     if db_dir is None:
         db_dir = get_db_dir(mode='a')
 
-    # Upgrade the name and trie index
+    # Update the name and trie index
     init(db_dir=db_dir, mode='a')
     global _tree
     logger.info('Updating name index')
     _tree.update_name_index()
     logger.info('Updating TRIE index {}'.format(_tree.trie_path))
     _tree.create_trie_index()
-    logger.info('The dictionary is successfully upgraded.')
+    logger.info('The dictionary is successfully migrated.')
 
 
 def search(query: str) -> dict:

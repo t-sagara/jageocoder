@@ -61,7 +61,7 @@ export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
 python -m jageocoder install-dictionary
 ```
 
-## Update dictinary
+## Migrate dictinary
 
 The `install-dictionary` command will download and install
 a version of the address dictionary file that is compatible with
@@ -70,13 +70,13 @@ the currently installed jageocoder package.
 If you upgrade the jageocoder package after installing
 the address dictionary file, it may no longer be compatible with
 the installed address dictionary file.
-In which case you will need to reinstall or update the dictionary.
+In which case you will need to reinstall or migrate the dictionary.
 
-To update the dictionary, run the `upgrade-dictionary` command.
+To migrate the dictionary, run the `migrate-dictionary` command.
 This process may take a long time.
 
 ```sh
-python -m jageocoder upgrade-dictionary
+python -m jageocoder migrate-dictionary
 ```
 
 ## Uninstall instructions
@@ -245,7 +245,7 @@ However, it takes time to calculate.
 
 Use `searchNode()` to retrieve information about an address.
 
-This function returns a list of type `jageocoder.result` .
+This function returns a list of type `jageocoder.result.Result` .
 You can access the address node from node element of the Result object.
 
 ```
@@ -263,9 +263,8 @@ You can access the address node from node element of the Result object.
 
 #### Get GeoJSON representation
 
-You can use the `as_geojson()` method of the `jageocoder.result`
-and `jageocoder.node.AddressNode` objects
-to obtain the GeoJSON representation.
+You can use the `as_geojson()` method of the Result and AddressNode
+objects to obtain the GeoJSON representation.
 
 ```
 >>> results[0].as_geojson()
@@ -339,7 +338,7 @@ the block number (○番) contained therein.
 
 ## Running the unittests
 
-```python
+```sh
 python -m unittest
 ``` 
 

@@ -17,7 +17,7 @@ Usage:
   {p} download-dictionary [-d] [--gaiku] [<url>]
   {p} install-dictionary [-d] [--gaiku] [--db-dir=<dir>] [<url_or_path>]
   {p} uninstall-dictionary [-d] [--db-dir=<dir>]
-  {p} upgrade-dictionary [-d] [--db-dir=<dir>]
+  {p} migrate-dictionary [-d] [--db-dir=<dir>]
 
 Options:
   -h --help           Show this help.
@@ -53,9 +53,9 @@ Examples:
 
   python -m {p} uninstall-dictionary --db-dir=/home/foo/jagteocoder_db
 
-- Upgrade dictionary (after upgrading the package)
+- Migrate dictionary (after upgrading the package)
 
-  python -m {p} upgrade-dictionary
+  python -m {p} migrate-dictionary
 """.format(p='jageocoder')
 
 
@@ -159,6 +159,6 @@ if __name__ == '__main__':
     elif args['uninstall-dictionary']:
         jageocoder.uninstall_dictionary(
             db_dir=args['--db-dir'])
-    elif args['upgrade-dictionary']:
-        jageocoder.upgrade_dictionary(
+    elif args['migrate-dictionary']:
+        jageocoder.migrate_dictionary(
             db_dir=args['--db-dir'])

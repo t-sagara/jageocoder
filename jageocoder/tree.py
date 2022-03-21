@@ -369,11 +369,11 @@ class AddressTree(object):
             If set to False, returns all search result candidates
             whose prefix matches.
 
-        - aza_skip: str (default = 'off')
+        - aza_skip: bool, None (default = False)
             Specifies how to skip aza-names while searching nodes.
-            - 'auto' or None to make the decision automatically
-            - 'off' or False to not skip
-            - 'on' or True to always skip
+            - If None, make the decision automatically
+            - If False, do not skip
+            - If True, always skip
 
         - target_areas: List[str] (Default = [])
             Specify the areas to be searched.
