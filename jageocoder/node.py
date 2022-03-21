@@ -1,7 +1,7 @@
 from functools import lru_cache
 import logging
 import re
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
 from sqlalchemy import or_
@@ -10,11 +10,12 @@ from sqlalchemy.orm import backref, relationship
 
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
-from jageocoder.itaiji import converter as itaiji_converter
+from jageocoder.itaiji import Converter
 from jageocoder.result import Result
 from jageocoder.strlib import strlib
 
 logger = logging.getLogger(__name__)
+default_itaiji_converter = Converter()  # With default settings
 
 
 class AddressNode(Base):
@@ -75,7 +76,7 @@ class AddressNode(Base):
         self.set_attributes(**kwargs)
 
         # For indexing
-        self.name_index = itaiji_converter.standardize(self.name)
+        self.name_index = default_itaiji_converter.standardize(self.name)
 
         # Relations
         self.parent_id = kwargs.get('parent_id', None)
@@ -112,7 +113,7 @@ class AddressNode(Base):
         """
         self.parent = parent
 
-    def get_child(self, target_name):
+    def get_child(self, target_name: str):
         """
         Get a child node with the specified name.
 
@@ -147,9 +148,9 @@ class AddressNode(Base):
         return filtered_children
 
     def search_recursive(
-            self, index: str,
-            processed_nodes: Optional[List['AddressNode']] = None,
-            aza_skip: Union[str, bool, None] = None) -> List[Result]:
+        self, index: str, tree: 'AddressTree',  # noqa
+        processed_nodes: Optional[List['AddressNode']] = None
+    ) -> List[Result]:
         """
         Search nodes recursively that match the specified address notation.
 
@@ -160,26 +161,14 @@ class AddressNode(Base):
         processed_nodes: List of AddressNode, optional
             List of nodes that have already been processed
             by TRIE search results
-        aza_skip: str, bool, optional
-            Specifies how to skip aza-names.
-            - Set to 'auto' or None to make the decision automatically
-            - Set to 'off' or False to not skip
-            - Set to 'on'　or True to always skip
 
         Return
         ------
         A list of relevant AddressNode.
         """
-        l_optional_prefix = itaiji_converter.check_optional_prefixes(index)
+        l_optional_prefix = tree.converter.check_optional_prefixes(index)
         optional_prefix = index[0: l_optional_prefix]
         index = index[l_optional_prefix:]
-
-        if aza_skip in (None, ''):
-            aza_skip = 'auto'
-        elif aza_skip in (True, 'enable'):
-            aza_skip = 'on'
-        elif aza_skip in (False, 'disable'):
-            aza_skip = 'off'
 
         logger.debug("node:{}, index:{}, optional_prefix:{}".format(
             self, index, optional_prefix))
@@ -206,11 +195,12 @@ class AddressNode(Base):
         # Check if the index begins with an extra character of
         # the current node.
         if filtered_children.count() == 0 and \
-                index[0] in itaiji_converter.extra_characters:
+                index[0] in tree.converter.extra_characters:
             logger.debug("Beginning with an extra character: {}".format(
                 index[0]))
             candidates = self.search_recursive(
-                index[1:], processed_nodes, aza_skip)
+                index=index[1:], tree=tree,
+                processed_nodes=processed_nodes)
             if len(candidates) > 0:
                 new_candidates = []
                 for candidate in candidates:
@@ -241,8 +231,8 @@ class AddressNode(Base):
                 child=child,
                 index=index,
                 optional_prefix=optional_prefix,
-                processed_nodes=processed_nodes,
-                aza_skip=aza_skip)
+                tree=tree,
+                processed_nodes=processed_nodes)
 
             if len(new_candidates) > 0:
                 candidates += new_candidates
@@ -254,56 +244,61 @@ class AddressNode(Base):
             # as a street name.
             for child in self.children:
                 pos = index.find(child.name_index)
-                if pos > 0:
-                    offset = pos + len(child.name_index)
-                    rest_index = index[offset:]
-                    logger.debug(
-                        "child:{} match {} chars".format(child, offset))
-                    for cand in child.search_recursive(
-                            rest_index,
-                            processed_nodes, aza_skip):
-                        candidates.append(
-                            Result(cand[0],
-                                   optional_prefix +
-                                   index[0: offset] + cand[1],
-                                   l_optional_prefix +
-                                   len(child.name_index) + len(cand[1])
-                                   ))
+                if pos <= 0:
+                    continue
+
+                offset = pos + len(child.name_index)
+                rest_index = index[offset:]
+                logger.debug(
+                    "child:{} match {} chars".format(child, offset))
+                for cand in child.search_recursive(
+                        index=rest_index,
+                        tree=tree,
+                        processed_nodes=processed_nodes):
+                    candidates.append(Result(
+                        cand[0],
+                        optional_prefix +
+                        index[0: offset] + cand[1],
+                        l_optional_prefix +
+                        len(child.name_index) + len(cand[1])))
 
         # Search for subnodes with queries excludes Aza-name candidates
-        if aza_skip == 'on' or \
-                (aza_skip == 'auto' and
-                 self._is_aza_omission_target(processed_nodes)):
+        aza_skip = tree.get_config('aza_skip')
+        if aza_skip is True or \
+                (aza_skip is None and
+                 self._is_aza_omission_target(tree, processed_nodes)):
             msg = "Checking Aza-name, current_node:{}, processed:{}"
             logger.debug(msg.format(self, processed_nodes))
-            aza_positions = itaiji_converter.optional_aza_len(
+            aza_positions = tree.converter.optional_aza_len(
                 index, 0)
 
-            if len(aza_positions) > 0:
-                for azalen in aza_positions:
-                    msg = '"{}" in index "{}" can be optional.'
-                    logger.debug(msg.format(index[:azalen], index))
-                    # Note: Disable 'aza_skip' here not to perform
-                    # repeated skip processing.
-                    sub_candidates = self.search_recursive(
-                        index[azalen:],
-                        processed_nodes, aza_skip='off')
-                    if sub_candidates[0].matched == '':
+            for azalen in aza_positions:
+                msg = '"{}" in index "{}" can be optional.'
+                logger.debug(msg.format(index[:azalen], index))
+                # Note: Disable 'aza_skip' here not to perform
+                # repeated skip processing.
+                tree.set_config(aza_skip=False)
+                sub_candidates = self.search_recursive(
+                    index=index[azalen:],
+                    tree=tree,
+                    processed_nodes=processed_nodes)
+                tree.set_config(aza_skip=aza_skip)
+                if sub_candidates[0].matched == '':
+                    continue
+
+                for cand in sub_candidates:
+                    if cand.node.level < AddressLevel.BLOCK and \
+                            cand.node.name_index not in \
+                            tree.converter.chiban_heads:
+                        logger.debug("{} is ignored".format(
+                            cand.node.name))
                         continue
 
-                    for cand in sub_candidates:
-                        if cand.node.level < AddressLevel.BLOCK and \
-                                cand.node.name_index not in \
-                                itaiji_converter.chiban_heads:
-                            logger.debug("{} is ignored".format(
-                                cand.node.name))
-                            continue
-
-                        candidates.append(Result(
-                            cand.node,
-                            optional_prefix +
-                            index[0:azalen] + cand.matched,
-                            l_optional_prefix + cand.nchars))
+                    candidates.append(Result(
+                        cand.node,
+                        optional_prefix +
+                        index[0:azalen] + cand.matched,
+                        l_optional_prefix + cand.nchars))
 
         if len(candidates) == 0:
             candidates = [Result(self, '', 0)]
@@ -314,8 +309,8 @@ class AddressNode(Base):
     def _get_candidates_from_child(
             self, child: 'AddressNode',
             index: str, optional_prefix: str,
-            processed_nodes: List['AddressNode'],
-            aza_skip: str) -> list:
+            tree: 'AddressTree',  # noqa
+            processed_nodes: List['AddressNode']) -> list:
         """
         Get candidates from the child.
 
@@ -326,11 +321,10 @@ class AddressNode(Base):
         index: str
             Standardized query string. Numeric characters are kept as
             original notation.
+        tree: AddressTree
+            The address tree.
         optional_prefix: str
             The option string that preceded the string passed by index.
-        aza_skip: str
-            Specifies how to skip aza-names.
-            Options are 'auto', 'off', and 'on'
 
         Returns
         -------
@@ -341,9 +335,9 @@ class AddressNode(Base):
             as the second element.
         """
 
-        match_len = itaiji_converter.match_len(index, child.name_index)
+        match_len = tree.converter.match_len(index, child.name_index)
         if match_len == 0:
-            l_optional_postfix = itaiji_converter.check_optional_postfixes(
+            l_optional_postfix = tree.converter.check_optional_postfixes(
                 child.name_index, child.level)
             if l_optional_postfix > 0:
                 # In case the index string of the child node with optional
@@ -355,7 +349,7 @@ class AddressNode(Base):
                 logger.debug(
                     "child:{} has optional postfix {}".format(
                         child, optional_postfix))
-                match_len = itaiji_converter.match_len(
+                match_len = tree.converter.match_len(
                     index, alt_child_index, removed_postfix=optional_postfix)
                 if match_len < len(index) and index[match_len] in '-ノ':
                     match_len += 1
@@ -365,7 +359,7 @@ class AddressNode(Base):
             # "北3西1" instead of "北3条西１丁目".
             alt_child_index = child.name_index.replace('条', '', 1)
             logger.debug("child:{} ends with '.条'".format(child))
-            match_len = itaiji_converter.match_len(index, alt_child_index)
+            match_len = tree.converter.match_len(index, alt_child_index)
 
         if match_len == 0:
             logger.debug("{} doesn't match".format(child.name))
@@ -378,8 +372,8 @@ class AddressNode(Base):
         logger.debug("child:{} match {} chars".format(child, offset))
         for cand in child.search_recursive(
                 index=rest_index,
-                processed_nodes=processed_nodes,
-                aza_skip=aza_skip):
+                tree=tree,
+                processed_nodes=processed_nodes):
             candidates.append(Result(
                 cand.node,
                 optional_prefix + index[0:match_len] + cand.matched,
@@ -388,7 +382,8 @@ class AddressNode(Base):
         return candidates
 
     def _is_aza_omission_target(
-            self, processed_nodes: List['AddressNode']) -> bool:
+            self, tree: 'AddressTree',  # noqa
+            processed_nodes: List['AddressNode']) -> bool:
         """
         Determine if this node is a target of aza-name omission.
 
@@ -430,7 +425,7 @@ class AddressNode(Base):
         aza_children = self.children.filter(
             AddressNode.level <= AddressLevel.AZA)
         for child in aza_children:
-            if child.name_index not in itaiji_converter.chiban_heads:
+            if child.name_index not in tree.converter.chiban_heads:
                 logger.debug(("The child-node {} is higher than Aza "
                               "(can't skip aza-names)").format(child.name))
                 return False
@@ -462,6 +457,25 @@ class AddressNode(Base):
             "level": self.level,
             "note": self.note,
             "fullname": self.get_fullname(),
+        }
+
+    def as_geojson(self):
+        """
+        Return the geojson notation of the node.
+        """
+        return {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [self.x, self.y]
+            },
+            "properties": {
+                "id": self.id,
+                "name": self.name,
+                "level": self.level,
+                "note": self.note,
+                "fullname": self.get_fullname(),
+            }
         }
 
     def get_fullname(self):
@@ -680,3 +694,54 @@ class AddressNode(Base):
         return url.format(
             level=9 + self.level,
             lat=self.y, lon=self.x)
+
+    def is_inside(self, area: str) -> int:
+        """
+        Check if the node is inside the area specified by
+        parent's names or jiscodes.
+
+        Parameters
+        ----------
+        area: str
+            Specify the area by name or jiscode.
+
+        Notes
+        -----
+        If a city code is specified and the node is at
+        the prefecture level, it will return 0 if the first two digits
+        of the code do not match, otherwise it will return -1.
+
+        Returns
+        -------
+        int
+            It returns 1 if the node is inside the region,
+            0 if it is not inside, and -1 if it cannot be
+            determined by this node.
+        """
+        if re.match(r'\d{2}', area):
+            # 2 digits prefecture code
+            if self.get_pref_jiscode() == area:
+                return 1
+
+        if re.match(r'\d{5}', area):
+            # 5 digits city code
+            citycode = self.get_city_jiscode()
+            if citycode == area:
+                return 1
+
+            if citycode != '':
+                return 0
+
+            if self.get_pref_jiscode() != area[0:2]:
+                return 0
+            else:
+                return -1
+
+        # Check if the standardized notation is included
+        # in the parent nodes.
+        parents = self.get_parent_list()
+        area_index = default_itaiji_converter.standardize(area)
+        if area_index in [n.name_index for n in parents]:
+            return 1
+
+        return 0

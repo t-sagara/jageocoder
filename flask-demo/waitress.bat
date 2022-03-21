@@ -1,0 +1,1 @@
+waitress-serve --listen=*:8000 --url-prefix=/jageocoder app:app

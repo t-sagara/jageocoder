@@ -1,6 +1,7 @@
 import unittest
 
-from jageocoder.itaiji import converter
+from jageocoder.itaiji import Converter
+converter = Converter()  # With default settings
 
 
 class TestItaijiMethods(unittest.TestCase):

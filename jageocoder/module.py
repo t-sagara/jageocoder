@@ -15,25 +15,19 @@ _tree = None  # The default AddressTree
 logger = logging.getLogger(__name__)
 
 
-def init(dsn: Optional[str] = None,
-         trie_path: Optional[os.PathLike] = None,
-         db_dir: Optional[os.PathLike] = None,
+def init(db_dir: Optional[os.PathLike] = None,
          mode: Optional[str] = 'r',
-         debug: Optional[bool] = False) -> NoReturn:
+         debug: Optional[bool] = False,
+         **kwargs) -> NoReturn:
     """
     Initialize the module-level AddressTree object `jageocoder.tree`
     ready for use.
 
     Parameters
     ----------
-    dsn: str, optional
-        Data Source Name of the database.
-    trie_path: os.PathLike, optional
-        File path to save the TRIE index.
     db_dir: os.PathLike, optional
         The database directory.
-        If dsn and trie_path are omitted and db_dir is set,
-        'address.db' and 'address.trie' under this directory will be used.
+        'address.db' and 'address.trie' are stored in this directory.
     mode: str, optional(default='r')
         Specifies the mode for opening the database.
         - In the case of 'a', if the database already exists, it will be used.
@@ -50,8 +44,69 @@ def init(dsn: Optional[str] = None,
     if _tree:
         _tree.close()
 
-    _tree = AddressTree(dsn=dsn, trie_path=trie_path, db_dir=db_dir,
-                        mode=mode, debug=debug)
+    _tree = AddressTree(db_dir=db_dir, mode=mode, debug=debug)
+    set_search_config(**kwargs)
+
+
+def free():
+    """
+    Frees all objects created by 'init()'.
+    """
+    global _tree
+    if _tree:
+        _tree.close()
+
+    _tree = None
+
+
+def set_search_config(**kwargs):
+    """
+    Set configurable search parameters.
+
+    Note
+    ----
+    The possible keywords and their meanings are as follows.
+
+    - best_only: bool (default = True)
+        If set to False, returns all search result candidates
+        whose prefix matches.
+
+    - aza_skip: bool, None (default = False)
+        Specifies how to skip aza-names while searching nodes.
+        - If None, make the decision automatically
+        - If False, do not skip
+        - If True, always skip
+
+    - target_areas: List[str] (Default = [])
+        Specify the areas to be searched.
+        The area can be specified by the list of name of the node
+        (such as prefecture name or city name), or JIS code.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    _tree.set_config(**kwargs)
+
+
+def get_search_config(keys: Union[str, List[str], None] = None) -> dict:
+    """
+    Get current configurable search parameters.
+
+    Parameters
+    ----------
+    keys: str, List[str], optional
+        If a name of parameter is specified, return its value.
+        Otherwise, a dict of specified key and its value pairs
+        will be returned.
+
+    Returns
+    -------
+    Any, or dict.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    return _tree.get_config(keys)
 
 
 def is_initialized() -> bool:
@@ -165,7 +220,7 @@ def install_dictionary(
     init(db_dir=db_dir, mode='a')
     global _tree
     if not _tree.is_version_compatible():
-        logger.warning(('Updating the database file since'
+        logger.warning(('Migrating the database file since'
                         ' it is not compatible with the package.'))
         _tree.update_name_index()
 
@@ -199,9 +254,9 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     logger.info('Dictionary has been uninstalled.')
 
 
-def upgrade_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
+def migrate_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     """
-    Upgrade address-dictionary.
+    Migrate address-dictionary.
 
     Parameters
     ----------
@@ -213,17 +268,17 @@ def upgrade_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     if db_dir is None:
         db_dir = get_db_dir(mode='a')
 
-    # Upgrade the name and trie index
+    # Update the name and trie index
     init(db_dir=db_dir, mode='a')
     global _tree
     logger.info('Updating name index')
     _tree.update_name_index()
     logger.info('Updating TRIE index {}'.format(_tree.trie_path))
     _tree.create_trie_index()
-    logger.info('The dictionary is successfully upgraded.')
+    logger.info('The dictionary is successfully migrated.')
 
 
-def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
+def search(query: str) -> dict:
     """
     Search node from the tree by the query.
 
@@ -231,11 +286,6 @@ def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
     ---------
     query: str
         An address notation to be searched.
-    aza_skip: str, bool, optional (default=None)
-        Specifies how to skip aza-names.
-        - Set to 'auto' or None to make the decision automatically
-        - Set to 'off' or False to not skip
-        - Set to 'on' or True to always skip
 
     Return
     ------
@@ -251,9 +301,8 @@ def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    results = _tree.searchNode(
-        query,
-        best_only=True, aza_skip=aza_skip)
+    set_search_config(best_only=True)
+    results = _tree.searchNode(query)
 
     if len(results) == 0:
         return {'matched': '', 'candidates': []}
@@ -264,10 +313,7 @@ def search(query: str, aza_skip: Union[str, bool, None] = None) -> dict:
     }
 
 
-def searchNode(
-        query: str,
-        best_only: bool = True,
-        aza_skip: Union[str, bool, None] = None) -> List[Result]:
+def searchNode(query: str) -> List[Result]:
     """
     Searches for address nodes corresponding to an address notation
     and returns the matching substring and a list of nodes.
@@ -276,13 +322,6 @@ def searchNode(
     ----------
     query : str
         An address notation to be searched.
-    best_only: bool, optional
-        If set to False, Returns all candidates whose prefix matches.
-    aza_skip: str, bool, optional (default=None)
-        Specifies how to skip aza-names.
-        - Set to 'auto' or None to make the decision automatically
-        - Set to 'off' or False to not skip
-        - Set to 'on'　or True to always skip
 
     Return
     ------
@@ -306,7 +345,7 @@ def searchNode(
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    return _tree.searchNode(query, best_only, aza_skip)
+    return _tree.searchNode(query)
 
 
 def reverse(x: float, y: float, level: Optional[int] = None) -> dict:

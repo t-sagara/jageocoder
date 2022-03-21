@@ -11,17 +11,18 @@ HELP = """
 
 Usage:
   {p} -h
-  {p} search [-d] [--force-aza-skip|--disable-aza-skip] <address>
+  {p} search [-d] [--area=<area>] [--force-aza-skip|--disable-aza-skip] <address>
   {p} reverse [-d] [--level=<level>] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] [--gaiku] [<url>]
   {p} install-dictionary [-d] [--gaiku] [--db-dir=<dir>] [<url_or_path>]
   {p} uninstall-dictionary [-d] [--db-dir=<dir>]
-  {p} upgrade-dictionary [-d] [--db-dir=<dir>]
+  {p} migrate-dictionary [-d] [--db-dir=<dir>]
 
 Options:
   -h --help           Show this help.
   -d --debug          Show debug messages.
+  --area=<area>       Specify the target area by jiscode or names.
   --force-aza-skip    Skip aza-names whenever possible.
   --disable-aza-skip  Do not skip aza-names.
   --level=<level>     Max address level to search.
@@ -33,6 +34,8 @@ Examples:
 - Search address
 
   python -m {p} search 多摩市落合1-15
+  python -m {p} search --area=14152 中央1-1
+  python -m {p} search --area=東京都 落合1-15
 
 - Show dictionary directory
 
@@ -50,9 +53,9 @@ Examples:
 
   python -m {p} uninstall-dictionary --db-dir=/home/foo/jagteocoder_db
 
-- Upgrade dictionary (after upgrading the package)
+- Migrate dictionary (after upgrading the package)
 
-  python -m {p} upgrade-dictionary
+  python -m {p} migrate-dictionary
 """.format(p='jageocoder')
 
 
@@ -102,15 +105,20 @@ if __name__ == '__main__':
     if args['search']:
         jageocoder.init(db_dir=args['--db-dir'], mode='r')
         skip_aza = 'auto'
+        if args.get('--area'):
+            target_area = args['--area'].split(',')
+        else:
+            target_area = None
+
         if args['--disable-aza-skip']:
             skip_aza = 'off'
         elif args['--force-aza-skip']:
             skip_aza = 'on'
 
+        jageocoder.set_search_config(
+            aza_skip=skip_aza, target_area=target_area)
         print(json.dumps(
-            jageocoder.search(
-                query=args['<address>'],
-                aza_skip=skip_aza),
+            jageocoder.search(query=args['<address>']),
             ensure_ascii=False))
 
     elif args['reverse']:
@@ -151,6 +159,6 @@ if __name__ == '__main__':
     elif args['uninstall-dictionary']:
         jageocoder.uninstall_dictionary(
             db_dir=args['--db-dir'])
-    elif args['upgrade-dictionary']:
-        jageocoder.upgrade_dictionary(
+    elif args['migrate-dictionary']:
+        jageocoder.migrate_dictionary(
             db_dir=args['--db-dir'])

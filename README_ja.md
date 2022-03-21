@@ -63,7 +63,7 @@ export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
 python -m jageocoder install-dictionary
 ```
 
-## 辞書の更新
+## 辞書のマイグレート
 
 `install-dictionary` コマンドを実行すると、その時点でインストール
 されている jageocoder パッケージと互換性のあるバージョンの
@@ -71,13 +71,13 @@ python -m jageocoder install-dictionary
 
 住所辞書ファイルをインストールした後で jageocoder パッケージを
 バージョンアップした場合、住所辞書ファイルと互換性が無くなる場合があり、
-その場合は辞書を再インストールするか更新する必要があります。
+その場合は辞書を再インストールするかマイグレートする必要があります。
 
-辞書を更新するには `upgrade-dictionary` コマンドを実行します。
+辞書をマイグレートするには `migrate-dictionary` コマンドを実行します。
 この処理には長時間かかることがあります。
 
 ```sh
-python -m jageocoder upgrade-dictionary
+python -m jageocoder migrate-dictionary
 ```
 
 ## アンインストール手順
@@ -98,6 +98,30 @@ pip uninstall jageocoder
 
 # 使い方
 
+## コマンドラインから利用する
+
+jageocoder はライブラリとしてアプリケーションに組み込み、
+API を呼びだして利用することを想定していますが、テスト目的であれば
+以下のコマンドでジオコーディング結果を確認できます。
+
+```sh
+python -m jageocoder search 新宿区西新宿２－８－１
+```
+
+経緯度から住所を調べる場合は `reverse` を指定します。
+
+```sh
+python -m jageocoder reverse 139.6917 35.6896
+```
+
+利用可能なコマンド一覧は `--help` で確認してください。
+
+```sh
+python -m jageocoder --help
+```
+
+## APIを利用する
+
 まず jageocoder をインポートし、 `init()` で初期化します。
 
 ```
@@ -105,17 +129,25 @@ pip uninstall jageocoder
 >>> jageocoder.init()
 ```
 
-## 住所から経緯度を調べる
+### 住所から経緯度を調べる
 
 経緯度を調べたい住所を `search()` で検索します。
 
 `search()` は一致した文字列を `matched` に、検索結果のリストを
 `candidates` に持つ dict を返します。 `candidates` の各要素には
-住所ノード (AddressNode) の情報が入っています。
+住所ノード (AddressNode) の情報が入っています
+（見やすくするために表示結果を整形しています）。
 
 ```
 >>> jageocoder.search('新宿区西新宿２－８－１')
-{'matched': '新宿区西新宿２－８－', 'candidates': [{'id': 12299846, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
+{
+  'matched': '新宿区西新宿２－８－',
+  'candidates': [{
+    'id': 12299846, 'name': '8番',
+    'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None,
+    'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']
+  }]
+}
 ```
 
 項目の意味は次の通りです。
@@ -129,17 +161,45 @@ pip uninstall jageocoder
 - note: メモ（自治体コードなど）
 - fullname: 都道府県レベルからこのノードまでの住所表記のリスト
 
-## 経緯度から住所を調べる
+### 経緯度から住所を調べる
 
 住所を調べたい経度緯度を `reverse()` で検索します（リバースジオコーディング）。
-指定した経緯度を持つ点を囲む3つの住所を返します。
+指定した経緯度を持つ点を囲む3つの住所を返します
+（見やすくするために表示結果を整形しています）。
 
-`candidate` に住所ノード (AddressNode) の情報、 `dist` に指定した地点から
-住所の代表点までの距離（測地線距離、単位はメートル）が入っています。
+`candidate` に住所ノード (AddressNode) の情報、
+`dist` に指定した地点から住所の代表点までの距離
+（測地線距離、単位はメートル）が入っています。
 
 ```
 >>> jageocoder.reverse(139.6917, 35.6896)
-[{'candidate': {'id': 12299330, 'name': '二丁目', 'x': 139.691774, 'y': 35.68945, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目']}, 'dist': 17.940303970792183}, {'candidate': {'id': 12300198, 'name': '六丁目', 'x': 139.690969, 'y': 35.693426, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '六丁目']}, 'dist': 429.6327545403412}, {'candidate': {'id': 12300498, 'name': '四丁目', 'x': 139.68762, 'y': 35.68754, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '四丁目']}, 'dist': 434.31591285255234}]
+[
+  {
+    'candidate': {
+      'id': 12299330, 'name': '二丁目',
+      'x': 139.691774, 'y': 35.68945, 'level': 6,
+      'note': 'postcode:1600023',
+      'fullname': ['東京都', '新宿区', '西新宿', '二丁目']
+    },
+    'dist': 17.940303970792183
+  }, {
+    'candidate': {
+      'id': 12300198, 'name': '六丁目',
+      'x': 139.690969, 'y': 35.693426, 'level': 6,
+      'note': 'postcode:1600023',
+      'fullname': ['東京都', '新宿区', '西新宿', '六丁目']
+    },
+    'dist': 429.6327545403412
+  }, {
+    'candidate': {
+      'id': 12300498, 'name': '四丁目',
+      'x': 139.68762, 'y': 35.68754, 'level': 6,
+      'note': 'postcode:1600023',
+      'fullname': ['東京都', '新宿区', '西新宿', '四丁目']
+    },
+    'dist': 434.31591285255234
+  }
+]
 ```
 
 `level` オプションパラメータを指定すると、より詳細な住所を返します。
@@ -147,14 +207,40 @@ pip uninstall jageocoder
 
 ```
 >>> jageocoder.reverse(139.6917, 35.6896, level=7)
-[{'candidate': {'id': 12299340, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}, 'dist': 7.669497303543382}, {'candidate': {'id': 12299330, 'name': '二丁目', 'x': 139.691774, 'y': 35.68945, 'level': 6, 'note': 'postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目']}, 'dist': 17.940303970792183}, {'candidate': {'id': 12300588, 'name': '15番', 'x': 139.688172, 'y': 35.689264, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '四丁目', '15番']}, 'dist': 321.50874020809823}]
+[
+  {
+    'candidate': {
+      'id': 12299340, 'name': '8番',
+      'x': 139.691778, 'y': 35.689627, 'level': 7,
+      'note': None,
+      'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']
+    },
+    'dist': 7.669497303543382
+  }, {
+    'candidate': {
+      'id': 12299330, 'name': '二丁目',
+      'x': 139.691774, 'y': 35.68945, 'level': 6,
+      'note': 'postcode:1600023',
+      'fullname': ['東京都', '新宿区', '西新宿', '二丁目']
+    },
+    'dist': 17.940303970792183
+  }, {
+    'candidate': {
+      'id': 12300588, 'name': '15番',
+      'x': 139.688172, 'y': 35.689264, 'level': 7,
+      'note': None,
+      'fullname': ['東京都', '新宿区', '西新宿', '四丁目', '15番']
+    },
+    'dist': 321.50874020809823
+  }
+]
 ```
 
-## 住所の属性情報を調べる
+### 住所の属性情報を調べる
 
 住所に関する情報を取得するには `searchNode()` を使います。
 この関数は `jageocoder.result.Result` 型のリストを返します。
-ここから住所ノードに直接アクセスできます。
+Result オブジェクトの node 要素から住所ノードにアクセスできます。
 
 ```
 >>> results = jageocoder.searchNode('新宿区西新宿２－８－１')
@@ -169,7 +255,19 @@ pip uninstall jageocoder
 ['東京都', '新宿区', '西新宿', '二丁目', '8番']
 ```
 
-### 自治体コードを取得する
+#### GeoJSON 表現を取得する
+
+Result および AddressNode オブジェクトの `as_geojson()` メソッドを
+利用すると GeoJSON 表現を取得できます。
+
+```
+>>> results[0].as_geojson()
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番'], 'matched': '新宿区西新宿２－８－'}}
+>>> results[0].node.as_geojson()
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}}
+```
+
+#### 自治体コードを取得する
 
 自治体コードには JISX0402（5桁）と地方公共団体コード（6桁）があります。
 都道府県コード JISX0401（2桁）も取得できます。
@@ -183,7 +281,7 @@ pip uninstall jageocoder
 '13'
 ```
 
-### 地図へのリンクを取得する
+#### 地図へのリンクを取得する
 
 地理院地図と Google 地図へのリンク URL を生成します。
 
@@ -194,7 +292,7 @@ pip uninstall jageocoder
 'https://maps.google.com/maps?q=35.689627,139.691778&z=16'
 ```
 
-### 親ノードを辿る
+#### 親ノードを辿る
 
 「親ノード」とは、住所の一つ上の階層を表すノードのことです。
 ノードの属性 `parent` で取得します。
@@ -209,7 +307,7 @@ pip uninstall jageocoder
 (139.691774, 35.68945)
 ```
 
-### 子ノードを辿る
+#### 子ノードを辿る
 
 「子ノード」とは、住所の一つ下の階層を表すノードのことです。
 ノードの属性 `children` で取得します。
@@ -234,7 +332,7 @@ pip uninstall jageocoder
 
 ユニットテストは unittest で行ないます。
 
-```python
+```sh
 python -m unittest
 ```
 
@@ -300,5 +398,5 @@ This project is licensed under [the MIT License](https://opensource.org/licenses
 東京大学空間情報科学研究センターに感謝いたします。
 
 また、NIIの北本朝展教授には、比較的古い住所体系を利用している地域の
-大規模なサンプルのご提供と、解析結果の確認に多くのご協力を頂きましたことを
-感謝いたします。
+大規模なサンプルのご提供と、解析結果の確認に多くのご協力を
+頂きましたことを感謝いたします。

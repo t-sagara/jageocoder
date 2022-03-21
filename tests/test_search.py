@@ -1,4 +1,5 @@
 import logging
+from typing import List, Optional
 import unittest
 
 import jageocoder
@@ -14,10 +15,13 @@ class TestSearchMethods(unittest.TestCase):
     def setUpClass(cls):
         jageocoder.init(mode="r")
 
-    def _check(self, query: str, aza_skip=None,
+    def _check(self, query: str, aza_skip='auto',
+               target_area: Optional[List[str]] = None,
                match: str = None, ncandidates: int = None,
                level: int = None, fullname: list = None):
-        result = jageocoder.search(query, aza_skip)
+        jageocoder.set_search_config(
+            aza_skip=aza_skip, target_area=target_area)
+        result = jageocoder.search(query=query)
         if match:
             self.assertEqual(result["matched"], match)
 
@@ -46,6 +50,19 @@ class TestSearchMethods(unittest.TestCase):
         self._check(
             query="多摩市落合1-15多摩センタートーセイビル",
             match="多摩市落合1-15",
+            ncandidates=1,
+            level=7,
+            fullname=["東京都", "多摩市", "落合", "一丁目", "15番地"]
+        )
+
+    def test_with_area(self):
+        """
+        Test to search by specifying the target region.
+        """
+        self._check(
+            query="落合1-15-2",
+            match="落合1-15-",
+            target_area=["多摩市"],
             ncandidates=1,
             level=7,
             fullname=["東京都", "多摩市", "落合", "一丁目", "15番地"]
@@ -439,6 +456,7 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="静岡県駿東郡小山町竹之下字上ノ原５５４",
+            aza_skip='on',
             match="静岡県駿東郡小山町竹之下字上ノ原５５４",
             fullname=["静岡県", "駿東郡", "小山町", "竹之下", "554番地"]
         )
