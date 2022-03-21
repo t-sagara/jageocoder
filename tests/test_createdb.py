@@ -43,6 +43,7 @@ class TestCreateDBMethods(unittest.TestCase):
             self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
 
             self.tree.close()
+            del self.tree
 
     def test_install(self):
         with tempfile.TemporaryDirectory('test_create_') as base_dir:
