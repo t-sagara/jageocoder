@@ -21,8 +21,9 @@
       <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
       のデモンストレーション</h1>
     <form action="{{ url_prefix }}/search" method="GET">
-      検索したい住所を入力：
-      <input id="query" value="{{ q }}" name="q" />
+      <input id="query" value="{{ q }}" name="q" placeholder="検索したい住所を入力" />
+      <input id="area" value="{{ area }}" name="area"
+      placeholder="検索対象（都道府県・市区町村）" />
       <input type="submit" value="検索" /><br />
       小字の省略：
       <input type="radio" name="skip_aza" value="auto"
@@ -45,7 +46,7 @@
       {% for result in results %}
         <li class="node">
           {% for node in result.node.get_parent_list() %}
-            <a href="{{ url_prefix }}{{ url_for('show_node', id=node.id, q=q, skip_aza=skip_aza) }}">
+            <a href="{{ url_prefix }}{{ url_for('show_node', id=node.id, q=q, skip_aza=skip_aza, area=area) }}">
             {{ node.name }}</a><nbsp;>
           {% endfor %}
           <ul>
