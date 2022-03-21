@@ -19,7 +19,9 @@ class TestCreateDBMethods(unittest.TestCase):
     tree = None
 
     def test_create(self):
-        with tempfile.TemporaryDirectory('test_create_') as db_dir:
+        with tempfile.TemporaryDirectory('test_create_') as base_dir:
+            db_dir = os.path.join(base_dir, 'jageocoder')
+            os.mkdir(db_dir, mode=0o755)
             self.tree = AddressTree(db_dir=db_dir, mode='w')
 
             with open(self.textpath, mode='r', encoding='utf-8') as f:
@@ -41,16 +43,18 @@ class TestCreateDBMethods(unittest.TestCase):
             self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
 
             self.tree.close()
-            del self.tree
 
     def test_install(self):
-        with tempfile.TemporaryDirectory('test_create_') as db_dir:
+        with tempfile.TemporaryDirectory('test_create_') as base_dir:
+            db_dir = os.path.join(base_dir, 'jageocoder')
             jageocoder.install_dictionary(self.zippath, db_dir=db_dir)
             result = jageocoder.get_module_tree().searchNode('階上町大字道仏二の窪１番地')
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0][1], '階上町大字道仏二の窪１番地')
             jageocoder.free()
+
             jageocoder.uninstall_dictionary(db_dir=db_dir)
+            self.assertFalse(os.path.exists(db_dir))
 
 
 if __name__ == '__main__':

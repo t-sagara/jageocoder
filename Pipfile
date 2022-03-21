@@ -18,3 +18,4 @@ flake8 = "*"
 [scripts]
 format = "autopep8 -ivr --ignore E226,E24,W50,W690,E501 ."
 lint = "flake8 --show-source --extend-ignore E501 ."
+test = "python -m unittest discover -s tests -p 'test_*.py' -v"

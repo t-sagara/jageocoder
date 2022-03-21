@@ -166,6 +166,10 @@ class AddressTree(object):
         else:
             db_dir = os.path.abspath(db_dir)
 
+        if not os.path.isdir(db_dir):
+            msg = "Directory '{}' does not exist.".format(db_dir)
+            raise AddressTreeException(msg)
+
         self.db_path = os.path.join(db_dir, 'address.db')
         self.dsn = 'sqlite:///' + self.db_path
         self.trie_path = os.path.join(db_dir, 'address.trie')
@@ -182,18 +186,14 @@ class AddressTree(object):
                 os.remove(self.trie_path)
 
         # Database connection
-        try:
-            self.engine = create_engine(
-                self.dsn, echo=self.debug,
-                connect_args={'check_same_thread': False},
-                poolclass=NullPool)
-            self.conn = self.engine.connect()
-            _session = sessionmaker()
-            _session.configure(bind=self.engine)
-            self.session = _session()
-        except Exception as e:
-            logger.error(e)
-            exit(1)
+        self.engine = create_engine(
+            self.dsn, echo=self.debug,
+            connect_args={'check_same_thread': False},
+            poolclass=NullPool)
+        self.conn = self.engine.connect()
+        _session = sessionmaker()
+        _session.configure(bind=self.engine)
+        self.session = _session()
 
         self.root = None
         self.trie = AddressTrie(self.trie_path)
@@ -421,7 +421,8 @@ class AddressTree(object):
                 elif value.lower() in ('auto', 'none', ''):
                     value = None
                 else:
-                    msg = "The value '{}' for '{}' cannot be recognized as bool or None."
+                    msg = ("The value '{}' for '{}' cannot be recognized "
+                           "as bool or None.")
                     raise RuntimeError(msg.format(value, key))
             else:
                 msg = "The value for '{}' must be a bool but {}."
@@ -443,7 +444,8 @@ class AddressTree(object):
                     try:
                         value = int(value)
                     except ValueError:
-                        msg = "The value '{}' for '{}' cannot be recognized as int."
+                        msg = ("The value '{}' for '{}' cannot be recognized "
+                               "as int.")
                         raise RuntimeError(msg.format(value, key))
             else:
                 msg = "The value for '{}' must be an integer but {}."

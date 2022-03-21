@@ -4,7 +4,6 @@ from flask_cors import cross_origin
 from flask import Flask, request, render_template, jsonify
 from typing import List
 import re
-import os
 
 jageocoder.init()
 
