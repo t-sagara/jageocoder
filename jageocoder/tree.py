@@ -21,6 +21,7 @@ from jageocoder.base import Base
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import Converter
 from jageocoder.node import AddressNode
+from jageocoder.note import NoteNode
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
 
@@ -344,8 +345,7 @@ class AddressTree(object):
     def search_nodes_by_codes(
             self,
             category: str,
-            value: str,
-            levels: Optional[List[int]] = None) -> List[AddressNode]:
+            value: str) -> List[AddressNode]:
         """
         Search nodes by category and value.
 
@@ -362,13 +362,12 @@ class AddressTree(object):
         -------
         List[AddressNode]
         """
-        pattern = '%{}:{}%'.format(category, value)
-        query = self.session.query(AddressNode)
-        if levels is not None:
-            query = query.filter(AddressNode.level.in_(levels))
+        pattern = '{}:{}'.format(category, value)
+        node_id_list = self.session.query(NoteNode.node_id).filter(
+            NoteNode.note == pattern).all()
+        nodes = self.session.query(AddressNode).filter(
+            AddressNode.id.in_(x[0] for x in node_id_list)).all()
 
-        nodes = query.filter(
-            AddressNode.note.like(pattern)).all()
         return nodes
 
     def get_node_fullname(self, node: Union[AddressNode, int]) -> List[str]:
@@ -1375,3 +1374,37 @@ class AddressTree(object):
 
         sql = ("CREATE INDEX idx_node_aza_y ON node_aza (y)")
         self.session.execute(sql)
+
+    def create_note_index_table(self) -> NoReturn:
+        """
+        Collect notes from all address elements and create
+        search table with index.
+        """
+        self.__not_in_readonly_mode()
+        logger.info("Creating note-node table...")
+        sql = ("DROP TABLE IF EXISTS {}".format(NoteNode.__table__))
+        self.session.execute(sql)
+        Base.metadata.create_all(
+            bind=self.engine,
+            tables=[NoteNode.__table__])
+
+        # Create correspondence records between a note and a node id.
+        for node in self.session.query(
+            AddressNode.id, AddressNode.note).filter(
+                AddressNode.note.isnot(None)):
+            for note in node.note.split('/'):
+                if note == '':
+                    continue
+
+                notenode = NoteNode(node_id=node.id, note=note)
+                self.session.add(notenode)
+
+        logger.debug("  Creating index on notenode.note ...")
+        notenode_note_index = Index(
+            'ix_notenode_note', NoteNode.note)
+        try:
+            notenode_note_index.create(self.engine)
+        except OperationalError:
+            logger.debug("  the index already exists. (ignored)")
+
+        self.session.commit()

@@ -230,6 +230,9 @@ def install_dictionary(
     logger.debug("Creating Aza-level table for reverse geocoding.")
     _tree.create_reverse_index()
 
+    logger.debug("Creating Note table.")
+    _tree.create_note_index_table()
+
     logger.info('Installation completed.')
 
 

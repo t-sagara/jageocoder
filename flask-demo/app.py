@@ -39,22 +39,19 @@ def search_aza_id(aza_id):
         # jisx0402(5digits) + aza_id(7digits)
         candidates = jageocoder.get_module_tree().search_nodes_by_codes(
             category="aza_id",
-            value=aza_id[-7:],
-            levels=[AddressLevel.OAZA, AddressLevel.AZA])
+            value=aza_id[-7:])
         nodes = [x for x in candidates if x.get_city_jiscode() == aza_id[0:5]]
     elif len(aza_id) == 13:
         # lasdec(6digits) + aza_id(7digits)
         candidates = jageocoder.get_module_tree().search_nodes_by_codes(
             category="aza_id",
-            value=aza_id[-7:],
-            levels=[AddressLevel.OAZA, AddressLevel.AZA])
-        nodes = [x for x in candidates if x.get_city_local_authority_code()
-                 == aza_id[0:6]]
+            value=aza_id[-7:])
+        nodes = [x for x in candidates
+                 if x.get_city_local_authority_code() == aza_id[0:6]]
     else:
         nodes = jageocoder.get_module_tree().search_nodes_by_codes(
             category="aza_id",
-            value=aza_id,
-            levels=[AddressLevel.OAZA, AddressLevel.AZA])
+            value=aza_id)
 
     if len(nodes) == 1:
         return render_template(
@@ -70,8 +67,7 @@ def search_aza_id(aza_id):
 def search_jisx0401(code):
     nodes = jageocoder.get_module_tree().search_nodes_by_codes(
         category="jisx0401",
-        value=code[0:2],
-        levels=[AddressLevel.PREF])
+        value=code[0:2])
 
     if len(nodes) == 1:
         return render_template(
@@ -87,8 +83,7 @@ def search_jisx0401(code):
 def search_jisx0402(code):
     nodes = jageocoder.get_module_tree().search_nodes_by_codes(
         category="jisx0402",
-        value=code[0:5],
-        levels=[AddressLevel.CITY, AddressLevel.WARD])
+        value=code[0:5])
 
     if len(nodes) == 1:
         return render_template(
@@ -104,12 +99,7 @@ def search_jisx0402(code):
 def search_postcode(code):
     nodes = jageocoder.get_module_tree().search_nodes_by_codes(
         category="postcode",
-        value=code[0:7],
-        levels=[
-            AddressLevel.CITY,
-            AddressLevel.WARD,
-            AddressLevel.OAZA,
-            AddressLevel.AZA])
+        value=code[0:7])
 
     if len(nodes) == 1:
         return render_template(

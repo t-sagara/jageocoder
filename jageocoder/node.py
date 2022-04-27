@@ -655,7 +655,7 @@ class AddressNode(Base):
         """
         node = self
         while True:
-            if 'aza_id' in node.note:
+            if node.note and 'aza_id' in node.note:
                 m = re.search(r'aza_id:(\d{7})', node.note)
                 if m:
                     return m.group(1)
@@ -684,7 +684,7 @@ class AddressNode(Base):
         """
         node = self
         while True:
-            if 'postcode' in node.note:
+            if node.note and 'postcode' in node.note:
                 m = re.search(r'postcode:(\d{7})', node.note)
                 if m:
                     return m.group(1)
