@@ -648,6 +648,35 @@ class AddressNode(Base):
 
         return orig_code + checkdigit
 
+    def get_aza_id(self) -> str:
+        """
+        Returns the AZA-id defined by JDA address-base-registry
+        containing this node.
+        """
+        node = self
+        while True:
+            if 'aza_id' in node.note:
+                m = re.search(r'aza_id:(\d{7})', node.note)
+                if m:
+                    return m.group(1)
+
+            node = node.parent
+            if node is None:
+                break
+
+        return ''
+
+    def get_aza_code(self) -> str:
+        """
+        Returns the 'AZA-code' concatinated with the city-code
+        and the aza-id containing this node.
+        """
+        aza_id = self.get_aza_id()
+        if aza_id != '':
+            return self.get_city_jiscode() + aza_id
+
+        return ''
+
     def get_postcode(self) -> str:
         """
         Returns the 7digit postcode of the oaza that
@@ -655,17 +684,14 @@ class AddressNode(Base):
         """
         node = self
         while True:
-            if node.level <= AddressLevel.COUNTY:
-                return ''
-
-            if node.note:
-                break
+            if 'postcode' in node.note:
+                m = re.search(r'postcode:(\d{7})', node.note)
+                if m:
+                    return m.group(1)
 
             node = node.parent
-
-        m = re.search(r'postcode:(\d{7})', node.note)
-        if m:
-            return m.group(1)
+            if node.level <= AddressLevel.COUNTY:
+                break
 
         return ''
 

@@ -33,6 +33,99 @@ def index():
         result=None)
 
 
+@app.route("/aza/<aza_id>", methods=['POST', 'GET'])
+def search_aza_id(aza_id):
+    if len(aza_id) == 12:
+        # jisx0402(5digits) + aza_id(7digits)
+        candidates = jageocoder.get_module_tree().search_nodes_by_codes(
+            category="aza_id",
+            value=aza_id[-7:],
+            levels=[AddressLevel.OAZA, AddressLevel.AZA])
+        nodes = [x for x in candidates if x.get_city_jiscode() == aza_id[0:5]]
+    elif len(aza_id) == 13:
+        # lasdec(6digits) + aza_id(7digits)
+        candidates = jageocoder.get_module_tree().search_nodes_by_codes(
+            category="aza_id",
+            value=aza_id[-7:],
+            levels=[AddressLevel.OAZA, AddressLevel.AZA])
+        nodes = [x for x in candidates if x.get_city_local_authority_code()
+                 == aza_id[0:6]]
+    else:
+        nodes = jageocoder.get_module_tree().search_nodes_by_codes(
+            category="aza_id",
+            value=aza_id,
+            levels=[AddressLevel.OAZA, AddressLevel.AZA])
+
+    if len(nodes) == 1:
+        return render_template(
+            'node.html',
+            node=nodes[0])
+
+    return render_template(
+        'node_list.html',
+        nodes=nodes)
+
+
+@app.route("/jisx0401/<code>", methods=['POST', 'GET'])
+def search_jisx0401(code):
+    nodes = jageocoder.get_module_tree().search_nodes_by_codes(
+        category="jisx0401",
+        value=code[0:2],
+        levels=[AddressLevel.PREF])
+
+    if len(nodes) == 1:
+        return render_template(
+            'node.html',
+            node=nodes[0])
+
+    return render_template(
+        'node_list.html',
+        nodes=nodes)
+
+
+@app.route("/jisx0402/<code>", methods=['POST', 'GET'])
+def search_jisx0402(code):
+    nodes = jageocoder.get_module_tree().search_nodes_by_codes(
+        category="jisx0402",
+        value=code[0:5],
+        levels=[AddressLevel.CITY, AddressLevel.WARD])
+
+    if len(nodes) == 1:
+        return render_template(
+            'node.html',
+            node=nodes[0])
+
+    return render_template(
+        'node_list.html',
+        nodes=nodes)
+
+
+@app.route("/postcode/<code>", methods=['POST', 'GET'])
+def search_postcode(code):
+    nodes = jageocoder.get_module_tree().search_nodes_by_codes(
+        category="postcode",
+        value=code[0:7],
+        levels=[
+            AddressLevel.CITY,
+            AddressLevel.WARD,
+            AddressLevel.OAZA,
+            AddressLevel.AZA])
+
+    if len(nodes) == 1:
+        return render_template(
+            'node.html',
+            node=nodes[0])
+
+    return render_template(
+        'node_list.html',
+        nodes=nodes)
+
+
+@app.route("/license")
+def license():
+    return render_template('license.html')
+
+
 @app.route("/webapi")
 def webapi():
     return render_template('webapi.html')
@@ -96,7 +189,7 @@ def geocode():
     else:
         return "'addr' is required.", 400
 
-    return jsonify([x.to_dict() for x in results]), 200
+    return jsonify([x.as_dict() for x in results]), 200
 
 
 @app.route("/rgeocode", methods=['POST', 'GET'])

@@ -341,6 +341,36 @@ class AddressTree(object):
         """
         return self.session.query(AddressNode).get(node_id)
 
+    def search_nodes_by_codes(
+            self,
+            category: str,
+            value: str,
+            levels: Optional[List[int]] = None) -> List[AddressNode]:
+        """
+        Search nodes by category and value.
+
+        Parameters
+        ----------
+        category: str
+            Category name such as 'jisx0402' or 'postcode'.
+        value: str
+            Target value.
+        levels: List[int], optional
+            The address levels of target nodes.
+
+        Returns
+        -------
+        List[AddressNode]
+        """
+        pattern = '%{}:{}%'.format(category, value)
+        query = self.session.query(AddressNode)
+        if levels is not None:
+            query = query.filter(AddressNode.level.in_(levels))
+
+        nodes = query.filter(
+            AddressNode.note.like(pattern)).all()
+        return nodes
+
     def get_node_fullname(self, node: Union[AddressNode, int]) -> List[str]:
         if isinstance(node, AddressNode):
             node_id = node.id

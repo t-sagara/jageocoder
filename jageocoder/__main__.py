@@ -11,8 +11,8 @@ HELP = """
 
 Usage:
   {p} -h
-  {p} search [-d] [--area=<area>] [--force-aza-skip|--disable-aza-skip] <address>
-  {p} reverse [-d] [--level=<level>] <longitude> <latitude>
+  {p} search [-d] [--area=<area>] [--db-dir=<dir>] [--force-aza-skip|--disable-aza-skip] <address>
+  {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] [--gaiku] [<url>]
   {p} install-dictionary [-d] [--gaiku] [--db-dir=<dir>] [<url_or_path>]

@@ -58,12 +58,24 @@
         <a href="{{ node.get_googlemap_link() }}" target="_googlemap">{{ node.get_googlemap_link() }}</a>
       </li>
       <li>都道府県名 (get_pref_name)： {{ node.get_pref_name() }}</li>
-      <li>都道府県コード (get_pref_jiscode)： {{ node.get_pref_jiscode() }}</li>
+      <li>都道府県コード (get_pref_jiscode)：
+        <a href="{{ url_for('search_jisx0401', code=node.get_pref_jiscode()) }}">
+        {{ node.get_pref_jiscode() }}</a></li>
       <li>都道府県団体コード (get_pref_local_authority_code)： {{ node.get_pref_local_authority_code() }}</li>
       <li>市区町村名 (get_city_name)： {{ node.get_city_name() }}</li>
-      <li>市区町村コード (get_city_jiscode)： {{ node.get_city_jiscode() }}</li>
+      <li>市区町村コード (get_city_jiscode)：
+        <a href="{{ url_for('search_jisx0402', code=node.get_city_jiscode()) }}">
+        {{ node.get_city_jiscode() }}</a></li>
       <li>市区町村団体コード (get_city_local_authority_code)： {{ node.get_city_local_authority_code() }}</li>
-      <li>郵便番号 (get_postcode)： {{ node.get_postcode() }}</li>
+      <li>アドレス・ベース・レジストリ 字ID (get_aza_id)：
+      <a href="{{ url_for('search_aza_id', aza_id=node.get_aza_id()) }}">
+      {{ node.get_aza_id() }}</a></li>
+      <li>字コード（市区町村コード+字ID） (get_aza_code)：
+      <a href="{{ url_for('search_aza_id', aza_id=node.get_aza_code()) }}">
+      {{ node.get_aza_code() }}</a></li>
+      <li>郵便番号 (get_postcode)：
+      <a href="{{ url_for('search_postcode', code=node.get_postcode()) }}">
+      {{ node.get_postcode() }}</a></li>
     </ul>
 
     <h2>関係</h2>
