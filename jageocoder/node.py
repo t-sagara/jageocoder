@@ -684,14 +684,15 @@ class AddressNode(Base):
         """
         node = self
         while True:
+            if node.level <= AddressLevel.COUNTY:
+                break
+
             if node.note and 'postcode' in node.note:
                 m = re.search(r'postcode:(\d{7})', node.note)
                 if m:
                     return m.group(1)
 
             node = node.parent
-            if node.level <= AddressLevel.COUNTY:
-                break
 
         return ''
 
