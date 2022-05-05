@@ -17,6 +17,7 @@ from sqlalchemy.exc import OperationalError
 
 import jageocoder
 from jageocoder.address import AddressLevel
+from jageocoder.aza_master import AzaMaster
 from jageocoder.base import Base
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import Converter
@@ -1358,6 +1359,7 @@ class AddressTree(object):
         Create table and index for reverse geocoding.
         """
         self.__not_in_readonly_mode()
+        logger.info("Creating aza table for reverse geocoding...")
         sql = ("DROP TABLE IF EXISTS node_aza")
         self.session.execute(sql)
 
