@@ -17,7 +17,6 @@ from sqlalchemy.exc import OperationalError
 
 import jageocoder
 from jageocoder.address import AddressLevel
-from jageocoder.aza_master import AzaMaster
 from jageocoder.base import Base
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import Converter

@@ -222,7 +222,11 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="埼玉県大里郡寄居町大字鷹巣",
-            fullname=["埼玉県", "大里郡", "寄居町", "大字鷹ノ巣"])
+            match="埼玉県大里郡寄居町大字鷹巣",
+            fullname=[
+                ["埼玉県", "大里郡", "寄居町", "大字鷹ノ巣"],
+                ["埼玉県", "大里郡", "寄居町", "大字鷹巣"]]
+        )
 
     def test_kana_no_between_numbers(self):
         """
@@ -249,8 +253,8 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="千葉県袖ケ浦市久保田字一ノ山１５２３",
-            match="千葉県袖ケ浦市久保田",
-            fullname=["千葉県", "袖ケ浦市", "久保田"])
+            match="千葉県袖ケ浦市久保田字一ノ山１５２３",
+            fullname=["千葉県", "袖ケ浦市", "久保田", "1523番地"])
 
     def test_kana_no_terminate(self):
         """
@@ -438,7 +442,9 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="青森県八戸市南郷区大字島守字赤羽６",
-            fullname=["青森県", "八戸市", "南郷", "大字島守"])
+            fullname=[
+                ["青森県", "八戸市", "南郷", "大字島守"],
+                ["青森県", "八戸市", "南郷大字島守"]])
 
     def test_unnecessary_aza_name(self):
         """
@@ -473,7 +479,9 @@ class TestSearchMethods(unittest.TestCase):
             query="長野県千曲市礒部字下河原１１３７",
             aza_skip='off',
             match="長野県千曲市礒部",
-            fullname=["長野県", "千曲市", "大字磯部"])
+            fullname=[
+                ["長野県", "千曲市", "大字磯部"],
+                ["長野県", "千曲市", "磯部"]])
 
         self._check(
             query="長野県千曲市礒部字下河原１１３７",

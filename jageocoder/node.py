@@ -1,4 +1,5 @@
 from functools import lru_cache
+import json
 import logging
 import re
 from typing import List, Optional
@@ -9,6 +10,7 @@ from sqlalchemy.orm import deferred
 from sqlalchemy.orm import backref, relationship
 
 from jageocoder.address import AddressLevel
+from jageocoder.aza_master import AzaMaster
 from jageocoder.base import Base
 from jageocoder.itaiji import Converter
 from jageocoder.result import Result
@@ -145,6 +147,7 @@ class AddressNode(Base):
 
         filtered_children = self.children.filter(*conds).order_by(
             AddressNode.id)
+        logger.debug("  -> {} found.".format(filtered_children.count()))
         return filtered_children
 
     def search_recursive(
@@ -215,15 +218,20 @@ class AddressNode(Base):
             return []
 
         if logger.isEnabledFor(logging.DEBUG):
-            msg = 'No candidates. Children are; {}'.format(
-                ','.join([x.name for x in self.children]))
+            if filtered_children.count() == 0:
+                msg = 'No candidates. Children are; {}'.format(
+                    ','.join([x.name for x in self.children]))
+            else:
+                msg = 'Filtered children are; {}'.format(
+                    ','.join([x.name for x in filtered_children]))
+
             logger.debug(msg)
 
         candidates = []
         for child in filtered_children:
             if child in processed_nodes or []:
-                logger.debug("-> skipped; {}({})".format(
-                    child.name, child.id))
+                msg = "-> Skip {}({}) (already processed)."
+                logger.debug(msg.format(child.name, child.id))
                 continue
 
             logger.debug("-> comparing; {}".format(child.name_index))
@@ -264,15 +272,25 @@ class AddressNode(Base):
 
         # Search for subnodes with queries excludes Aza-name candidates
         aza_skip = tree.get_config('aza_skip')
-        if aza_skip is True or \
-                (aza_skip is None and
-                 self._is_aza_omission_target(tree, processed_nodes)):
+        omissible_index = ""   # Skip = off
+        if aza_skip is True:   # Skip = on
+            omissible_index = index
+        elif aza_skip is None:  # Skip = auto
+            omissible_index = self.get_omissible_index(
+                index, tree, processed_nodes)
+
+        if omissible_index != "":
             msg = "Checking Aza-name, current_node:{}, processed:{}"
             logger.debug(msg.format(self, processed_nodes))
             aza_positions = tree.converter.optional_aza_len(
                 index, 0)
+            aza_positions.append(len(omissible_index))
+            aza_positions.sort()
 
             for azalen in aza_positions:
+                if azalen > len(omissible_index):
+                    break
+
                 msg = '"{}" in index "{}" can be optional.'
                 logger.debug(msg.format(index[:azalen], index))
                 # Note: Disable 'aza_skip' here not to perform
@@ -381,56 +399,98 @@ class AddressNode(Base):
 
         return candidates
 
-    def _is_aza_omission_target(
-            self, tree: 'AddressTree',  # noqa
-            processed_nodes: List['AddressNode']) -> bool:
+    def get_omissible_index(
+            self,
+            index: str,
+            tree: 'AddressTree',  # noqa
+            processed_nodes: List['AddressNode']) -> str:
         """
-        Determine if this node is a target of aza-name omission.
+        Obtains an optional leading substring from the search string index.
 
         Parameters
         ----------
+        index: str
+            Target string.
+        tree: AddressTree
+            Current working tree object.
         processed_nodes: List of AddressNode
             List of nodes that have already been processed
-            by TRIE search results
+            by TRIE search results.
 
         Returns
         -------
-        bool
-            True if this node is a target of aza-name ommission.
-            Otherwise False.
+        str
+            The optional leading substring.
+            If not omissible, an empty string is returned.
 
         Notes
         -----
-        Sibling and parent nodes of nodes whose names match in TRIE
-        should not look for nodes that omit the aza-names.
+        Retrieve the lower address elements of this node
+        that have start_count_type is 1 from the aza_master.
+
+        If the name of the element is contained in the index,
+        the substring before the name is returned.
         """
         if self.level < AddressLevel.CITY or \
                 self.level > AddressLevel.AZA:
-            return False
+            return ""
 
         for node in processed_nodes or []:
             if node.parent_id == self.parent_id:
-                logger.debug("A sibling node {} had been selected".format(
-                    node.name))
-                return False
+                logger.debug((
+                    "Can't skip substring after '{}', "
+                    "a sibling node {} had been selected").format(
+                        self.name, node.name))
+                return ""
 
             elif node.parent_id == self.id:
-                logger.debug("A child node {} had been selected".format(
-                    node.name))
-                return False
+                logger.debug((
+                    "Can't skip substring after '{}', "
+                    "a child node {} had been selected").format(
+                        self.name, node.name))
+                return ""
 
-        if self.level in (AddressLevel.CITY, AddressLevel.WARD):
-            return True
+        if self.level < AddressLevel.OAZA:
+            target_prefix = self.get_city_jiscode()
+        else:
+            target_prefix = self.get_aza_code().rstrip('0')
 
-        aza_children = self.children.filter(
-            AddressNode.level <= AddressLevel.AZA)
-        for child in aza_children:
-            if child.name_index not in tree.converter.chiban_heads:
-                logger.debug(("The child-node {} is higher than Aza "
-                              "(can't skip aza-names)").format(child.name))
-                return False
+        if target_prefix == "":
+            logger.debug((
+                "Can't skip substring after '{}', "
+                "the node {} doesn't have city/aza code.").format(
+                    self.name, self.name))
+            return ""
 
-        return True
+        # self_names = self.get_fullname()
+        omissible_index = index
+        for aza_row in tree.session.query(AzaMaster).filter(
+                AzaMaster.code.like('{}%'.format(target_prefix))):
+
+            # logger.debug("Checking {}.".format(aza_row.names))
+
+            omissible = True
+            if aza_row.start_count_type == 1:
+                reason = "the node's start_count_type=1."
+                omissible = False
+
+            if omissible:
+                logger.debug("  -> {} is omissible.".format(
+                    aza_row.names))
+                continue
+
+            names = json.loads(aza_row.names)
+            name = tree.converter.standardize(names[-1][1])
+            pos = omissible_index.find(name)
+            if pos >= 0:
+                logger.debug(
+                    "Can't ommit substring '{}', {}".format(
+                        name, reason))
+                omissible_index = omissible_index[0:pos]
+                if pos == 0:
+                    break
+
+        return omissible_index
 
     def save_recursive(self, session):
         """

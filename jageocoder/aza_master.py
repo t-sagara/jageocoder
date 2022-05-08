@@ -4,7 +4,7 @@ from logging import getLogger
 import re
 from typing import Union
 
-from sqlalchemy import Column, Boolean, Date, Integer, String
+from sqlalchemy import Column, Boolean, Integer, String
 
 from jageocoder.address import AddressLevel
 from jageocoder.base import Base
@@ -198,7 +198,7 @@ class AzaMaster(Base):
 
         for key in ("valid_from", "valid_to",):
             if aza_master_row.get(key) is not None:
-                if aza_master[key] != "":
+                if aza_master_row[key] != "":
                     aza_master_row[key] = datetime.date.fromisoformat(
                         aza_master_row[key])
                 else:
@@ -288,6 +288,7 @@ class AzaMaster(Base):
             aza_master record or None.
         """
         st_name = cls.standardize_aza_name(elements)
+        aza_row = None
         for aza_row in session.query(AzaMaster).filter(
                 AzaMaster.names_index == st_name):
             break
@@ -318,6 +319,7 @@ class AzaMaster(Base):
         AzaMaster, None
             aza_master record or None.
         """
+        aza_row = None
         for aza_row in session.query(AzaMaster).filter(
                 AzaMaster.code == code):
             break
