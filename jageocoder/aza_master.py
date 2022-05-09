@@ -108,7 +108,7 @@ class AzaMaster(Base):
     code = Column(String, primary_key=True)
     names = Column(String, nullable=False)
     names_index = Column(String, nullable=False)
-    aza_class = Column(Integer, nullable=False)
+    aza_class = Column(Integer, nullable=True)
     # pref = Column(String, nullable=False)
     # pref_kana = Column(String)
     # pref_eng = Column(String)
@@ -216,34 +216,76 @@ class AzaMaster(Base):
 
     @classmethod
     def get_names_from_csvrow(cls, row: dict) -> list:
+        code = row["全国地方公共団体コード"][0:5] + row["町字id"]
         names = []
         pref = row['都道府県名']
         if pref:
-            names.append([AddressLevel.PREF, pref])
+            names.append([
+                AddressLevel.PREF,
+                pref,
+                row['都道府県名_カナ'],
+                row['都道府県名_英字'],
+                code[0:2]])
 
         county = row['郡名']
         if county:
-            names.append([AddressLevel.COUNTY, county])
+            names.append([
+                AddressLevel.COUNTY,
+                county,
+                row['郡名_カナ'],
+                row['郡名_英字'],
+                code[0:3]])
 
         city = row['市区町村名']
-        if city:
-            names.append([AddressLevel.CITY, city])
-
         ward = row['政令市区名']
         if ward:
-            names.append([AddressLevel.WARD, ward])
+            names.append([
+                AddressLevel.CITY,
+                city,
+                row['市区町村名_カナ'],
+                row['市区町村名_英字'],
+                code[0:3]])
+
+            names.append([
+                AddressLevel.WARD,
+                ward,
+                row['政令市区名_カナ'],
+                row['政令市区名_英字'],
+                code[0:5]])
+        else:
+            names.append([
+                AddressLevel.CITY,
+                city,
+                row['市区町村名_カナ'],
+                row['市区町村名_英字'],
+                code[0:5]])
 
         oaza = row['大字・町名']
         if oaza:
-            names.append([AddressLevel.OAZA, oaza])
+            names.append([
+                AddressLevel.OAZA,
+                oaza,
+                row['大字・町名_カナ'],
+                row['大字・町名_英字'],
+                code[0:9]])
 
         chome = row['丁目名']
         if chome:
-            names.append([AddressLevel.AZA, chome])
+            names.append([
+                AddressLevel.AZA,
+                chome,
+                row['丁目名_カナ'],
+                row['丁目名_数字'] + 'chome',
+                code])
 
         aza = row['小字名']
         if aza:
-            names.append([AddressLevel.AZA, aza])
+            names.append([
+                AddressLevel.AZA,
+                aza,
+                row['小字名_カナ'],
+                row['小字名_英字'],
+                code])
 
         return names
 

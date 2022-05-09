@@ -11,7 +11,7 @@ from sqlalchemy.orm import backref, relationship
 
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
-from jageocoder.base import Base
+from jageocoder.base import Base, get_session
 from jageocoder.itaiji import Converter
 from jageocoder.result import Result
 from jageocoder.strlib import strlib
@@ -734,6 +734,24 @@ class AddressNode(Base):
         aza_id = self.get_aza_id()
         if aza_id != '':
             return self.get_city_jiscode() + aza_id
+
+        return ''
+
+    def get_aza_names(self) -> str:
+        """
+        Returns representation of Aza node containing this node.
+        """
+        if self.level >= AddressLevel.OAZA:
+            code = self.get_aza_code()
+        elif self.level >= AddressLevel.CITY:
+            code = self.get_city_jiscode()
+        else:
+            code = self.get_pref_jiscode()
+
+        aza_record = AzaMaster.search_by_code(
+            code, get_session(self))
+        if aza_record:
+            return aza_record.names
 
         return ''
 
