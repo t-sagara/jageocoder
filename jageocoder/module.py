@@ -227,9 +227,6 @@ def install_dictionary(
     logger.info('Creating TRIE index at {}'.format(_tree.trie_path))
     _tree.create_trie_index()
 
-    logger.debug("Creating Aza-level table for reverse geocoding.")
-    _tree.create_reverse_index()
-
     logger.info('Installation completed.')
 
 
