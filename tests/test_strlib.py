@@ -13,6 +13,7 @@ class TestStrlibMethods(unittest.TestCase):
             ['２４', 24],
             ['一三五', 135],
             ['二千四十五万円', 20450000],
+            ['０線', 0],
         ]
         for qa in qa_list:
             r = strlib.get_number(qa[0])

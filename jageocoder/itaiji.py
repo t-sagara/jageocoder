@@ -229,7 +229,8 @@ class Converter(object):
 
             # Replace numbers including Chinese characters
             # with number + '.' in the notation.
-            if not keep_numbers and strlib.get_numeric_char(c):
+            if not keep_numbers and \
+                    strlib.get_numeric_char(c) is not False:
                 ninfo = strlib.get_number(notation[i:])
                 new_notation += str(ninfo['n']) + '.'
                 i += ninfo['i']

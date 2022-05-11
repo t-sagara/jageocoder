@@ -234,6 +234,7 @@ class Strlib(object):
             elif self.is_kansuji(c):
                 k = self.get_numeric_char(c)
                 if total + curval == 0 and k == 0:
+                    pos += 1
                     break
 
                 curval = curval * 10 + k
