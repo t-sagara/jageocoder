@@ -251,7 +251,7 @@ class AddressNode(Base):
             # child nodes, the part before the name is skipped
             # as a street name.
             for child in self.children:
-                pos = index.find(child.name_index)
+                pos = index.rfind(child.name_index)
                 if pos <= 0:
                     continue
 

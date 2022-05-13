@@ -1157,12 +1157,12 @@ class AddressTree(object):
             for trienode in trienodes:
                 node = trienode.node
 
-                if min_key == '' and node.level < AddressLevel.WARD:
+                if min_key == '' and node.level <= AddressLevel.WARD:
                     # To make the process quicker, once a node higher
                     # than the city level is found, addresses shorter
                     # than the node are not searched after this.
                     logger.debug((
-                        "A node with city or higher levels found. "
+                        "A node with ward or higher levels found. "
                         "Set min_key to '{}'").format(k))
                     min_key = k
 
