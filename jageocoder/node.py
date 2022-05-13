@@ -285,6 +285,9 @@ class AddressNode(Base):
             aza_positions = tree.converter.optional_aza_len(
                 index, 0)
             aza_positions.append(len(omissible_index))
+            if len(index) in aza_positions:
+                aza_positions.remove(len(index))
+
             aza_positions.sort()
 
             for azalen in aza_positions:
@@ -465,27 +468,22 @@ class AddressNode(Base):
         # self_names = self.get_fullname()
         omissible_index = index
         for aza_row in tree.session.query(AzaMaster).filter(
-                AzaMaster.code.like('{}%'.format(target_prefix))):
+                AzaMaster.code.like('{}%'.format(target_prefix)),
+                AzaMaster.aza_class == 3,
+                AzaMaster.start_count_type == 1):
 
             # logger.debug("Checking {}.".format(aza_row.names))
 
-            omissible = True
-            if aza_row.start_count_type == 1:
-                reason = "the node's start_count_type=1."
-                omissible = False
-
-            if omissible:
-                logger.debug("  -> {} is omissible.".format(
-                    aza_row.names))
-                continue
+            logger.debug("  -> {} is not omissible.".format(
+                aza_row.names))
 
             names = json.loads(aza_row.names)
             name = tree.converter.standardize(names[-1][1])
             pos = omissible_index.find(name)
             if pos >= 0:
                 logger.debug(
-                    "Can't ommit substring '{}', {}".format(
-                        name, reason))
+                    "Can't ommit substring '{}' in {}".format(
+                        names[-1][1], omissible_index))
                 omissible_index = omissible_index[0:pos]
                 if pos == 0:
                     break
