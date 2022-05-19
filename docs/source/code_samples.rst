@@ -1,0 +1,271 @@
+コードサンプル
+==============
+
+ここでは ``jageocoder`` モジュールを Python コード内から
+呼びだして利用する方法を、サンプルを用いて説明します。
+
+
+住所から経緯度を調べる
+----------------------
+
+住所文字列を指定し、その住所の経緯度を調べる処理を実装します。
+
+より厳密には、指定された住所文字列にもっとも長く一致するレコードを
+住所辞書データベースから検索し、そのレコードに格納されている
+経緯度の値を返します。
+
+.. code-block:: python
+
+   >>> import jageocoder
+   >>> jageocoder.init()
+   >>> results = jageocoder.searchNode('新宿区西新宿2-8-1')
+   >>> if len(results) > 0:
+   ...     print(results[0].node.x, results[0].node.y)
+   ...
+   139.691778 35.689627
+
+``jageocoder.searchNode(<address>)`` は、指定した住所文字列に
+最長一致すると解釈された ``jageocoder.result.Result`` クラスの
+オブジェクトリストを返します。
+
+.. code-block:: python
+
+   >>> type(results[0])
+   <class 'jageocoder.result.Result'>
+
+このクラスのオブジェクトは、一致した文字列を ``matched`` 属性に、
+住所要素を ``node`` 属性に持っています。
+
+.. code-block:: python
+
+   >>> results[0].matched
+   '新宿区西新宿2-8-'
+   >>> results[0].node
+   [12111340:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12951429:新宿区(139.703463,35.69389)3(jisx0402:13104/postcode:1600000)]>[12976444:西新宿(139.697501,35.690383)5()]>[12977775:二丁目(139.691774,35.68945)6(aza_id:0023002/postcode:1600023)]>[12977785:8番(139.691778,35.689627)7(None)]
+
+住所要素は ``jageocoder.node.AddressNode`` クラスのオブジェクトなので、
+``x`` 属性に経度、 ``y`` 属性に緯度、 ``level`` 属性に住所レベルを持ちます。
+
+.. code-block:: python
+
+   >>> results[0].node.x
+   139.691778
+   >>> results[0].node.y
+   35.689627
+   >>> results[0].node.level
+   7
+
+この ``x``, ``y`` を返すことで、住所に対応する経緯度を取得できます。
+
+
+住所検索条件を変更する
+----------------------
+
+``jageocoder.set_search_config()`` を利用すると、
+住所検索の条件を変更することができます。
+
+たとえば「中央区中央1」を検索すると、次のように
+「千葉県千葉市」と「神奈川県相模原市」にある「中央区中央一丁目」の
+住所が見つかります。
+
+.. code-block:: python
+
+   >>> import jageocoder
+   >>> jageocoder.init()
+   >>> results = jageocoder.searchNode('中央区中央1')
+   >>> [''.join(x.node.get_fullname()) for x in results]
+   ['千葉県千葉市中央区中央一丁目', '神奈川県相模原市中央区中央一丁目']
+
+もし対象の住所が神奈川県にあることがあらかじめ分かっている場合には、
+``target_area`` で検索範囲を神奈川県に指定しておくことで
+千葉市の候補を除外できます。
+
+.. code-block:: python
+
+   >>> jageocoder.set_search_config(target_area=['神奈川県'])
+   >>> jageocoder.searchNode('中央区中央1')
+   [{"node": {"id": 15917199, "name": "一丁目", "x": 139.368488, "y": 35.574247, "level": 6, "priority": 2, "note": "aza_id:0007001/postcode:2520239", "fullname": ["神奈川県", "相模原市", "中央区", "中央", "一丁目"]}, "matched": "中央区中央1"}]
+
+
+経緯度から住所を調べる
+----------------------
+
+地点の経緯度を指定し、その地点の住所を調べます。
+
+より厳密には、指定した地点を囲む３点（ドロネー三角形の頂点）を
+構成する住所の情報を取得し、一番目の点（最も指定した座標に近い点）の
+住所表記を返します。
+
+.. code-block:: python
+
+   >>> import jageocoder
+   >>> jageocoder.init()
+   >>> triangle = jageocoder.reverse(139.6917, 35.6896)
+   >>> if len(triangle) > 0:
+   ...     print(triangle[0]['candidate']['fullname'])
+   ...
+   ['東京都', '新宿区', '西新宿', '二丁目']
+
+``jageocoder.reverse()`` に ``level`` オプションパラメータを
+指定すると、検索する住所のレベルを変更できます。
+
+.. code-block:: python
+
+   >>> triangle = jageocoder.reverse(139.6917, 35.6896, level=7)
+   >>> if len(triangle) > 0:
+   ...     print(triangle[0]['candidate']['fullname'])
+   ...
+   ['東京都', '新宿区', '西新宿', '二丁目', '8番']
+
+
+住所の属性情報を調べる
+----------------------
+
+``jageocoder.node.Node`` クラスのオブジェクトには、
+経緯度以外にもさまざまな属性やクラスメソッドがあります。
+
+まず以下のコードで「新宿区西新宿2-8-1」に対応する住所要素の
+AddressNode オブジェクトを node 変数に代入しておきます。
+
+.. code-block:: python
+
+   >>> import jageocoder
+   >>> jageocoder.init()
+   >>> results = jageocoder.searchNode('新宿区西新宿2-8-1')
+   >>> node = results[0].node
+
+**GeoJSON 表現**
+
+``as_geojson()`` メソッドを利用すると GeoJSON 表現を取得できます。
+このメソッドが返すのは dict 形式のオブジェクトで、 ``json.dumps()`` で
+エンコードすると GeoJSON 文字列になります。
+
+.. code-block:: python
+
+   >>> import json
+   >>> print(json.dumps(node.as_geojson(), indent=2, ensure_ascii=False))
+   {
+     "type": "Feature",
+     "geometry": {
+       "type": "Point",
+       "coordinates": [
+         139.691778,
+         35.689627
+       ]
+     },
+     "properties": {
+       "id": 12977785,
+       "name": "8番",
+       "level": 7,
+       "priority": 3,
+       "note": null,
+       "fullname": [
+         "東京都",
+         "新宿区",
+         "西新宿",
+         "二丁目",
+         "8番"
+       ]
+     }
+   }
+
+**都道府県コード**
+
+``get_pref_jiscode()`` メソッドを利用すると JISX0401 で規定されている
+都道府県コード（2桁）を取得できます。
+同様に、 ``get_pref_local_authority_code()`` メソッドでこの都道府県の
+団体コード（6桁）を取得できます。
+
+.. code-block:: python
+
+   >>> node.get_pref_jiscode()
+   '13'
+   >>> node.get_pref_local_authority_code()
+   '130001'
+
+**市区町村コード**
+
+``get_city_jiscode()`` メソッドを利用すると JISX0402 で規定されている
+市区町村コード（5桁）を取得できます。
+同様に、 ``get_city_local_authority_code()`` メソッドでこの市区町村の
+団体コード（6桁）を取得できます。
+
+.. code-block:: python
+
+   >>> node.get_city_jiscode()
+   '13104'
+   >>> node.get_city_local_authority_code()
+   '131041'
+
+**アドレス・ベース・レジストリ**
+
+``get_aza_code()`` メソッドで、この住所に対応するアドレス・ベース・レジストリの
+町字コードを取得できます。
+``get_aza_names()`` メソッドで町字レベルの名称（漢字表記、カナ表記、
+英字表記）を取得できます。
+
+.. code-block:: python
+
+   >>> node.get_aza_code()
+   '131040023002'
+   >>> node.get_aza_names()
+   '[[1, "東京都", "トウキョウト", "Tokyo", "13"], [3, "新宿区", "シンジュクク", "Shinjuku-ku", "13104"], [5, "西新宿", "ニシシンジュク", "", "131040023"], [6, "二丁目", "２チョウメ", "2chome", "131040023002"]]'
+
+**郵便番号**
+
+``get_postcode()`` メソッドで郵便番号を取得できます。
+ただし事業者郵便番号は登録されていません。
+
+.. code-block:: python
+
+   >>> node.get_postcode()
+   '1600023'
+
+**地図URLのリンク**
+
+``get_gsimap_link()`` メソッドで地理院地図へのリンクURLを、
+``get_googlemap_link()`` メソッドで Google 地図へのリンクURLを
+生成します。
+
+これらのリンクは座標から生成しています。
+
+.. code-block:: python
+
+   >>> node.get_gsimap_link()
+   'https://maps.gsi.go.jp/#16/35.689627/139.691778/'
+   >>> node.get_googlemap_link()
+   'https://maps.google.com/maps?q=35.689627,139.691778&z=16'
+
+**親ノードを辿る**
+
+「親ノード」とは、住所の一つ上の階層を表すノードのことです。
+AddressNode の属性 ``parent`` で取得できます。
+
+今 ``node`` は '8番' を指しているので、親ノードは '二丁目' になります。
+
+.. code-block:: python
+
+   >>> parent = node.parent
+   >>> parent.get_fullname()
+   ['東京都', '新宿区', '西新宿', '二丁目']
+   >>> parent.x, parent.y
+   (139.691774, 35.68945)
+
+**子ノードを辿る**
+
+「子ノード」とは、住所の一つ下の階層を表すノードのことです。
+AddressNode の属性 ``children`` で取得します。
+
+親ノードは一つですが、子ノードは複数あります。
+実際に返すのは SQL クエリオブジェクトですが、
+イテレータでループしたり list にキャストできます。
+
+今 ``parent`` は '二丁目' を指しているので、子ノードは
+そこに含まれる街区符号（○番）になります。
+
+.. code-block:: python
+
+   >>> parent.children
+   <sqlalchemy.orm.dynamic.AppenderQuery object at 0x7f7d2f241438>
+   >>> [child.name for child in parent.children]
+   ['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']

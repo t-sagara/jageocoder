@@ -1283,8 +1283,8 @@ class AddressTree(object):
 
             results.append(Result(v[0], matched))
 
-        # Sort the results in descending order by node.level.
-        results.sort(key=lambda r: r.node.level, reverse=True)
+        # Sort the results in acending order by node.priority.
+        results.sort(key=lambda r: r.node.priority)
 
         return results
 

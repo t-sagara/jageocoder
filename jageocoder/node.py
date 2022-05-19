@@ -4,7 +4,7 @@ import logging
 import re
 from typing import List, Optional
 
-from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
+from sqlalchemy import Column, Float, ForeignKey, Integer, SmallInteger, String, Text
 from sqlalchemy import or_
 from sqlalchemy.orm import deferred
 from sqlalchemy.orm import backref, relationship
@@ -39,6 +39,9 @@ class AddressNode(Base):
     level : int
         The level of the address element.
         The meaning of each value is as follows.
+    priority : int
+        Priority assigned to each source of data.
+        Smaller value indicates higher priority.
     note : string
         Note or comment.
     parent_id : int
@@ -53,7 +56,8 @@ class AddressNode(Base):
     name_index = Column(String(256), nullable=False)
     x = deferred(Column(Float, nullable=True))
     y = deferred(Column(Float, nullable=True))
-    level = Column(Integer, nullable=True)
+    level = Column(SmallInteger, nullable=True)
+    priority = Column(SmallInteger, nullable=False)
     note = deferred(Column(Text, nullable=True))
     parent_id = Column(Integer, ForeignKey('node.id'), nullable=True)
     children = relationship(
@@ -91,6 +95,7 @@ class AddressNode(Base):
         self.x = kwargs.get('x', kwargs.get('lon'))
         self.y = kwargs.get('y', kwargs.get('lat'))
         self.level = kwargs.get('level')
+        self.priority = kwargs.get('priority', 99)
         self.note = kwargs.get('note', None)
 
     def add_child(self, child):
@@ -513,6 +518,7 @@ class AddressNode(Base):
             "x": self.x,
             "y": self.y,
             "level": self.level,
+            "priority": self.priority,
             "note": self.note,
             "fullname": self.get_fullname(),
         }
@@ -531,6 +537,7 @@ class AddressNode(Base):
                 "id": self.id,
                 "name": self.name,
                 "level": self.level,
+                "priority": self.priority,
                 "note": self.note,
                 "fullname": self.get_fullname(),
             }

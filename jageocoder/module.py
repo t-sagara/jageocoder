@@ -77,7 +77,7 @@ def set_search_config(**kwargs):
         - If False, do not skip
         - If True, always skip
 
-    - target_areas: List[str] (Default = [])
+    - target_area: List[str] (Default = [])
         Specify the areas to be searched.
         The area can be specified by the list of name of the node
         (such as prefecture name or city name), or JIS code.
