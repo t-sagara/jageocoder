@@ -140,6 +140,7 @@ converter/oaza/
 converter/geonlp/
 converter/saigai.gsi.go.jp/
 converter/output/
+evaluate/
 
 # Test directory
 \test_createdb/

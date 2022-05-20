@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -44,6 +45,12 @@ class TestCreateDBMethods(unittest.TestCase):
 
             self.tree.close()
             del self.tree
+
+            shutil.make_archive(
+                str(self.zippath)[:-4],
+                format='zip',
+                root_dir=db_dir,
+                logger=logger)
 
     def test_install(self):
         with tempfile.TemporaryDirectory('test_create_') as base_dir:

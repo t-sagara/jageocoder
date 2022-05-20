@@ -12,9 +12,11 @@ from sqlalchemy.orm import backref, relationship
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.base import Base, get_session
+from jageocoder.dataset import Dataset  #
 from jageocoder.itaiji import Converter
 from jageocoder.result import Result
 from jageocoder.strlib import strlib
+
 
 logger = logging.getLogger(__name__)
 default_itaiji_converter = Converter()  # With default settings
@@ -48,6 +50,7 @@ class AddressNode(Base):
         The id of the parent node.
     children : list of AddressNode
         The child nodes.
+    dataset : source dataset where the node come from.
     """
     __tablename__ = 'node'
 
@@ -57,7 +60,7 @@ class AddressNode(Base):
     x = deferred(Column(Float, nullable=True))
     y = deferred(Column(Float, nullable=True))
     level = Column(SmallInteger, nullable=True)
-    priority = Column(SmallInteger, nullable=False)
+    priority = Column(SmallInteger, ForeignKey('dataset.id'), nullable=True)
     note = deferred(Column(Text, nullable=True))
     parent_id = Column(Integer, ForeignKey('node.id'), nullable=True)
     children = relationship(
@@ -66,6 +69,7 @@ class AddressNode(Base):
         backref=backref("parent", remote_side="AddressNode.id"),
         lazy="dynamic",
     )
+    dataset = relationship(Dataset, cascade="all")
 
     def __init__(self, *args, **kwargs):
         """

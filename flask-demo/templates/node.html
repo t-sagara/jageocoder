@@ -46,6 +46,8 @@
       <li>経度： {{ node.x }}, 緯度： {{ node.y }}</li>
       <li>レベル： {{ node.level }}</li>
       <li>優先度： {{ node.priority }}</li>
+      <li>データセット： <a href="{{ node.dataset.url }}" target="_blank">
+      {{ node.dataset.title }}</a></li>
       <li>メモ： {{ node.note }}</li>
     </ul>
 
