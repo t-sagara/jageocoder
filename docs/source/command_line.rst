@@ -1,7 +1,7 @@
 コマンドライン・インタフェース
 ==============================
 
-ここでは ``jageocoder`` モジュールをコマンドラインから呼びだして
+ここでは jageocoder モジュールをコマンドラインから呼びだして
 利用する方法を説明します。
 
 同じ内容はオンラインヘルプでも確認できます。
@@ -9,6 +9,8 @@
 .. code-block:: console
 
    (.venv) $ python -m jageocoder -h
+
+.. _commandline-geocoding:
 
 ジオコーディング
 ----------------
@@ -49,6 +51,8 @@
    # 「東京都多摩市落合一丁目15番地」が返ります。
    (.venv) $ python -m jageocoder search --area=東京都 '落合１－１５－２'
    {"matched": "落合１－１５－", "candidates": [{"id": 12724450, "name": "15番地", "x": 139.428969, "y": 35.625779, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "多摩市", "落合", "一丁目", "15番地"]}]}
+
+.. _commandline-reverse-geocoding:
 
 逆ジオコーディング
 ------------------
@@ -95,12 +99,13 @@
    # 「東京都新宿区西新宿四丁目15番」が返ります。
    [{"candidate": {"id": 12977785, "name": "8番", "x": 139.691778, "y": 35.689627, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "新宿区", "西新 宿", "二丁目", "8番"]}, "dist": 7.669497303543382}, {"candidate": {"id": 12977775, "name": "二丁目", "x": 139.691774, "y": 35.68945, "level": 6, "priority": 2, "note": "aza_id:0023002/postcode:1600023", "fullname": ["東京都", "新宿区", "西 新宿", "二丁目"]}, "dist": 17.940303970792183}, {"candidate": {"id": 12979033, "name": "15番", "x": 139.688172, "y": 35.689264, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "新宿区", "西新宿", "四丁目", "15番"]}, "dist": 321.50874020809823}]
 
+.. _commandline-get-db-dir:
 
 住所辞書ディレクトリの取得
 --------------------------
 
-実行中の Python 環境で、住所辞書データベースが格納されている
-（あるいは格納される）ディレクトリを取得します。
+実行中の Python 環境で、住所辞書データベースがインストールされている
+ディレクトリを取得します。
 
 辞書データベースは ``{sys.prefix}/jageocoder/db/`` の下に
 作成されますが、ユーザが書き込み権限を持っていない場合には
@@ -123,18 +128,19 @@
 .. code-block:: console
 
    (.venv) $ python -m jageocoder get-db-dir
-   /home/sagara/jageocoder/db
+   /home/sagara/.local/share/virtualenvs/jageocoder-kWBL7Ve6/jageocoder/db/
 
+.. _commandline-download-dictionary:
 
 住所辞書ファイルのダウンロード
 ------------------------------
 
 インストール済みの jageocoder と互換性のある
-住所辞書ファイルをウェブからダウンロードします。
+住所辞書ファイルを、ウェブからダウンロードします。
 
 特に理由が無い限り URL は省略してください。
-逆に URL が分かっている場合は ``curl`` や ``wget`` などで
-ダウンロードしても構いません。
+逆にダウンロードするべきファイルの URL が分かっている場合は
+``curl`` や ``wget`` コマンドでダウンロードしても構いません。
 
 コマンド
    ``download-dictionary``
@@ -156,6 +162,7 @@
    (.venv) $ python -m jageocoder download-dictionary --gaiku
    INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/gaiku-20220519.zip to /home/sagara/gaiku-20220519.zip
 
+.. _commandline-install-dictionary:
 
 住所辞書ファイルのインストール
 ------------------------------
@@ -187,6 +194,7 @@
    # ダウンロード済みの住所辞書ファイルをインストールします
    (.venv) $ python -m jageocoder install-dictionary gaiku-20220519.zip
 
+.. _commandline-uninstall-dictionary:
 
 住所辞書ファイルのアンインストール
 ----------------------------------
@@ -212,6 +220,8 @@
    (.venv) $ python -m jageocoder uninstall-dictionary
    INFO:jageocoder.module:248:Removing directory /home/sagara/jageocoder/db
    INFO:jageocoder.module:251:Dictionary has been uninstalled.
+
+.. _commandline-migrate-dictionary:
 
 住所辞書ファイルのマイグレーション
 ----------------------------------

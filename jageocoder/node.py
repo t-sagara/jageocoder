@@ -102,8 +102,8 @@ class AddressNode(Base):
         """
         Add a node as a child of this node.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         child : AddressNode
             The node that will be a child node.
         """
@@ -113,8 +113,8 @@ class AddressNode(Base):
         """
         Add this node as a child of an other node.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         parent : AddressNode
             The node that will be the parent.
         """
@@ -124,8 +124,8 @@ class AddressNode(Base):
         """
         Get a child node with the specified name.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         target_name : str
             The name (or standardized name) of the target node.
 
@@ -162,8 +162,8 @@ class AddressNode(Base):
         """
         Search nodes recursively that match the specified address notation.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         index : str
             The standardized address notation.
         processed_nodes: List of AddressNode, optional
@@ -815,18 +815,18 @@ class AddressNode(Base):
         area: str
             Specify the area by name or jiscode.
 
-        Notes
-        -----
-        If a city code is specified and the node is at
-        the prefecture level, it will return 0 if the first two digits
-        of the code do not match, otherwise it will return -1.
-
         Returns
         -------
         int
             It returns 1 if the node is inside the region,
             0 if it is not inside, and -1 if it cannot be
             determined by this node.
+
+        Notes
+        -----
+        If a city code is specified and the node is at
+        the prefecture level, it will return 0 if the first two digits
+        of the code do not match, otherwise it will return -1.
         """
         if re.match(r'\d{2}', area):
             # 2 digits prefecture code

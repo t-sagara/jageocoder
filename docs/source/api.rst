@@ -1,29 +1,18 @@
-API
-===
+API リファレンス
+================
 
-AddressTree
------------
+jageocoder を Python コード内で利用するには、
+ほとんどの場合 :doc:`code_samples` に紹介したモジュールメソッドの
+:py:meth:`searchNode() <jageocoder.searchNode>`,
+:py:meth:`reverse() <jageocoder.reverse>` および
+:py:class:`jageocoder.node.AddressNode` クラスのメソッドで十分です。
 
-.. autoclass:: jageocoder.tree.AddressTree
-   :members:
-   :special-members: __init__
-   :undoc-members:
-   :show-inheritance:
+ここではより詳細な API のリファレンスを提供します。
 
-AddressNode
------------
+.. toctree::
 
-.. autoclass:: jageocoder.node.AddressNode
-   :members:
-   :special-members: __init__
-   :undoc-members:
-   :show-inheritance:
-
-AddressLevel
-------------
-
-.. autoclass:: jageocoder.address.AddressLevel
-   :members:
-   :special-members: __init__
-   :undoc-members:
-   :show-inheritance:
+   api_module
+   api_tree
+   api_node
+   api_level
+   api_result

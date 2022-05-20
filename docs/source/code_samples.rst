@@ -4,6 +4,7 @@
 ここでは ``jageocoder`` モジュールを Python コード内から
 呼びだして利用する方法を、サンプルを用いて説明します。
 
+.. _sample-geocoding:
 
 住所から経緯度を調べる
 ----------------------
@@ -24,8 +25,9 @@
    ...
    139.691778 35.689627
 
-``jageocoder.searchNode(<address>)`` は、指定した住所文字列に
-最長一致すると解釈された ``jageocoder.result.Result`` クラスの
+:py:meth:`jageocoder.searchNode` は、
+指定した住所文字列に最長一致すると解釈された
+:py:class:`Result <jageocoder.result.Result>` クラスの
 オブジェクトリストを返します。
 
 .. code-block:: python
@@ -43,8 +45,10 @@
    >>> results[0].node
    [12111340:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12951429:新宿区(139.703463,35.69389)3(jisx0402:13104/postcode:1600000)]>[12976444:西新宿(139.697501,35.690383)5()]>[12977775:二丁目(139.691774,35.68945)6(aza_id:0023002/postcode:1600023)]>[12977785:8番(139.691778,35.689627)7(None)]
 
-住所要素は ``jageocoder.node.AddressNode`` クラスのオブジェクトなので、
-``x`` 属性に経度、 ``y`` 属性に緯度、 ``level`` 属性に住所レベルを持ちます。
+住所要素は :py:class:`AddressNode <jageocoder.node.AddressNode>`
+クラスのオブジェクトなので、:py:attr:`x <jageocoder.node.AddressNode.x>`
+属性に経度、 :py:attr:`y <jageocoder.node.AddressNode.y>` 属性に緯度、
+:py:attr:`level <jageocoder.node.AddressNode.level>` 属性に住所レベルを持ちます。
 
 .. code-block:: python
 
@@ -55,13 +59,16 @@
    >>> results[0].node.level
    7
 
-この ``x``, ``y`` を返すことで、住所に対応する経緯度を取得できます。
+住所レベルの数値の意味は :py:class:`jageocoder.address.AddressLevel`
+の定義を参照してください。
+この x, y を返すことで、住所に対応する経緯度を取得できます。
 
+.. _sample-set-search-config:
 
 住所検索条件を変更する
 ----------------------
 
-``jageocoder.set_search_config()`` を利用すると、
+:py:meth:`jageocoder.set_search_config` を利用すると、
 住所検索の条件を変更することができます。
 
 たとえば「中央区中央1」を検索すると、次のように
@@ -86,6 +93,7 @@
    >>> jageocoder.searchNode('中央区中央1')
    [{"node": {"id": 15917199, "name": "一丁目", "x": 139.368488, "y": 35.574247, "level": 6, "priority": 2, "note": "aza_id:0007001/postcode:2520239", "fullname": ["神奈川県", "相模原市", "中央区", "中央", "一丁目"]}, "matched": "中央区中央1"}]
 
+.. _sample-reverse-geocoding:
 
 経緯度から住所を調べる
 ----------------------
@@ -106,7 +114,7 @@
    ...
    ['東京都', '新宿区', '西新宿', '二丁目']
 
-``jageocoder.reverse()`` に ``level`` オプションパラメータを
+:py:meth:`jageocoder.reverse` に ``level`` オプションパラメータを
 指定すると、検索する住所のレベルを変更できます。
 
 .. code-block:: python
@@ -117,11 +125,13 @@
    ...
    ['東京都', '新宿区', '西新宿', '二丁目', '8番']
 
+.. _sample-node-methods:
 
 住所の属性情報を調べる
 ----------------------
 
-``jageocoder.node.Node`` クラスのオブジェクトには、
+:py:class:`AddressNode <jageocoder.node.AddressNode>`
+クラスのオブジェクトには、
 経緯度以外にもさまざまな属性やクラスメソッドがあります。
 
 まず以下のコードで「新宿区西新宿2-8-1」に対応する住所要素の
@@ -136,9 +146,10 @@ AddressNode オブジェクトを node 変数に代入しておきます。
 
 **GeoJSON 表現**
 
-``as_geojson()`` メソッドを利用すると GeoJSON 表現を取得できます。
-このメソッドが返すのは dict 形式のオブジェクトで、 ``json.dumps()`` で
-エンコードすると GeoJSON 文字列になります。
+:py:meth:`as_geojson() <jageocoder.node.AddressNode.as_geojson>`
+メソッドを利用すると GeoJSON 表現を取得できます。
+このメソッドが返すのは dict 形式のオブジェクトです。
+GeoJSON 文字列を取得するには、 ``json.dumps()`` でエンコードしてください。
 
 .. code-block:: python
 
@@ -171,10 +182,10 @@ AddressNode オブジェクトを node 変数に代入しておきます。
 
 **都道府県コード**
 
-``get_pref_jiscode()`` メソッドを利用すると JISX0401 で規定されている
-都道府県コード（2桁）を取得できます。
-同様に、 ``get_pref_local_authority_code()`` メソッドでこの都道府県の
-団体コード（6桁）を取得できます。
+:py:meth:`get_pref_jiscode() <jageocoder.node.AddressNode.get_pref_jiscode>`
+メソッドを利用すると JISX0401 で規定されている都道府県コード（2桁）を取得できます。
+同様に、 :py:meth:`get_pref_local_authority_code() <jageocoder.node.AddressNode.get_pref_local_authority_code>`
+メソッドでこの都道府県の団体コード（6桁）を取得できます。
 
 .. code-block:: python
 
@@ -185,10 +196,11 @@ AddressNode オブジェクトを node 変数に代入しておきます。
 
 **市区町村コード**
 
-``get_city_jiscode()`` メソッドを利用すると JISX0402 で規定されている
-市区町村コード（5桁）を取得できます。
-同様に、 ``get_city_local_authority_code()`` メソッドでこの市区町村の
-団体コード（6桁）を取得できます。
+:py:meth:`get_city_jiscode() <jageocoder.node.AddressNode.get_city_jiscode>`
+メソッドを利用すると
+JISX0402 で規定されている市区町村コード（5桁）を取得できます。
+同様に、 :py:meth:`get_city_local_authority_code() <jageocoder.node.AddressNode.get_city_local_authority_code()>`
+メソッドでこの市区町村の団体コード（6桁）を取得できます。
 
 .. code-block:: python
 
@@ -199,10 +211,10 @@ AddressNode オブジェクトを node 変数に代入しておきます。
 
 **アドレス・ベース・レジストリ**
 
-``get_aza_code()`` メソッドで、この住所に対応するアドレス・ベース・レジストリの
-町字コードを取得できます。
-``get_aza_names()`` メソッドで町字レベルの名称（漢字表記、カナ表記、
-英字表記）を取得できます。
+:py:meth:`get_aza_code() <jageocoder.node.AddressNode.get_aza_code>` メソッドで、
+この住所に対応するアドレス・ベース・レジストリの町字コードを取得できます。
+:py:meth:`get_aza_names() <jageocoder.node.AddressNode.get_aza_names()>` メソッドで
+町字レベルの名称（漢字表記、カナ表記、英字表記）を取得できます。
 
 .. code-block:: python
 
@@ -213,8 +225,8 @@ AddressNode オブジェクトを node 変数に代入しておきます。
 
 **郵便番号**
 
-``get_postcode()`` メソッドで郵便番号を取得できます。
-ただし事業者郵便番号は登録されていません。
+:py:meth:`get_postcode() <jageocoder.node.AddressNode.get_postcode>` メソッドで
+郵便番号を取得できます。ただし事業者郵便番号は登録されていません。
 
 .. code-block:: python
 
@@ -223,9 +235,10 @@ AddressNode オブジェクトを node 変数に代入しておきます。
 
 **地図URLのリンク**
 
-``get_gsimap_link()`` メソッドで地理院地図へのリンクURLを、
-``get_googlemap_link()`` メソッドで Google 地図へのリンクURLを
-生成します。
+:py:meth:`get_gsimap_link() <jageocoder.node.AddressNode.get_gsimap_link>`
+メソッドで地理院地図へのリンクURLを、
+:py:meth:`get_googlemap_link() <jageocoder.node.AddressNode.get_googlemap_link>`
+メソッドでGoogle 地図へのリンクURLを生成します。
 
 これらのリンクは座標から生成しています。
 

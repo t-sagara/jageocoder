@@ -3,7 +3,7 @@
 インストール手順
 ================
 
-.. _install_package:
+.. _install-package:
 
 パッケージのインストール
 ------------------------
@@ -20,7 +20,8 @@
 
    (.venv) $ pip install jageocoder==1.2.1
 
-.. _install_dictionary:
+
+.. _install-dictionary:
 
 住所辞書のインストール
 ----------------------
@@ -44,15 +45,16 @@
 
    (.venv) $ python -m jageocoder install-dictionary jusho-20220519.zip
 
-住所辞書のパスとファイル名はダウンロードしたファイルを指すように
+``jusho-20220519.zip`` はダウンロードしたファイルを指すように
 変更してください。
+
 
 .. _uninstallation:
 
 アンインストール手順
 --------------------
 
-アンインストールする場合、先に辞書データベースを削除してください。
+jageocoder をアンインストールする場合、先に辞書データベースを削除してください。
 辞書データベースの場所が分かっている場合はそのディレクトリごと
 削除しても構いませんが、 ``uninstall-dictionary`` コマンドを
 利用すると簡単に削除できます。
@@ -66,3 +68,23 @@
 .. code-block:: console
 
    (.venv) $ pip uninstall jageocoder
+
+
+住所辞書データベースディレクトリを指定する
+------------------------------------------
+
+住所辞書データベースは、特に指定しない場合 Python 環境内に作成されます
+（参考： :ref:`commandline-get-db-dir`）。
+
+このデータベースは数GBのサイズがあるため、複数の Python 環境で jageocoder
+を利用する際などには共用したいことがあります。そのような場合には、環境変数
+``JAGEOCODER_DB_DIR`` をセットすると、
+住所辞書データベースのディレクトリを指定することができます。
+
+.. code-block:: console
+
+   (.venv) $ export JAGEOCODER_DB_DIR=$HOME/jageocoder/db
+   (.venv) $ python -m jageocoder get-db-dir
+   /home/sagara/jageocoder/db
+
+ただし一つのデータベースを共用する jageocoder のバージョンは揃えてください。

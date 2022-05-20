@@ -1,4 +1,5 @@
 # Configuration file for the Sphinx documentation builder.
+import jageocoder
 
 # -- Project information
 
@@ -6,8 +7,8 @@ project = 'jageocoder'
 copyright = '2022, sagara@info-proto.com'
 author = 'Takeshi Sagara'
 
-release = '1.2'
-version = '1.2.1'
+release = jageocoder.version()  # '1.3'
+version = jageocoder.version()  # '1.3.0dev1'
 
 # -- General configuration
 
