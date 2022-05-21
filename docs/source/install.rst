@@ -33,10 +33,10 @@
 .. code-block:: console
 
    (.venv) $ python -m jageocoder download-dictionary
-   INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/jusho-20220519.zip to /home/sagara/jusho-20220519.zip
+   INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/jusho-20220519.zip to ...
 
 
-**注意** 住所辞書ファイルは圧縮した状態で 900MB 程度と大きいため、
+**注意** 住所辞書ファイルは圧縮した状態で 834MB 程度と大きいため、
 ダウンロード・インストールには時間がかかります。
 
 次にダウンロードした zip ファイルをインストールします。
@@ -45,8 +45,8 @@
 
    (.venv) $ python -m jageocoder install-dictionary jusho-20220519.zip
 
-``jusho-20220519.zip`` はダウンロードしたファイルを指すように
-変更してください。
+``jusho-20220519.zip`` はダウンロードしたファイル名に変更してください。
+
 
 
 .. _uninstallation:
@@ -87,4 +87,4 @@ jageocoder をアンインストールする場合、先に辞書データベー
    (.venv) $ python -m jageocoder get-db-dir
    /home/sagara/jageocoder/db
 
-ただし一つのデータベースを共用する jageocoder のバージョンは揃えてください。
+ただし jageocoder のバージョンは住所辞書に合わせてください。

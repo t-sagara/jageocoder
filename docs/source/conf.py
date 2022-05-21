@@ -19,7 +19,6 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.napoleon',  # Numpy style pydoc
-    'myst_parser',  # Use Markdown
 ]
 
 intersphinx_mapping = {

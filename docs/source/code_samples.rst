@@ -90,8 +90,24 @@
 .. code-block:: python
 
    >>> jageocoder.set_search_config(target_area=['神奈川県'])
-   >>> jageocoder.searchNode('中央区中央1')
-   [{"node": {"id": 15917199, "name": "一丁目", "x": 139.368488, "y": 35.574247, "level": 6, "priority": 2, "note": "aza_id:0007001/postcode:2520239", "fullname": ["神奈川県", "相模原市", "中央区", "中央", "一丁目"]}, "matched": "中央区中央1"}]
+   >>> results = jageocoder.searchNode('中央区中央1')
+   >>> [''.join(x.node.get_fullname()) for x in results]
+   ['神奈川県相模原市中央区中央一丁目']
+
+設定した ``target_area`` を初期値に戻したい場合は ``[]`` を
+セットしてください。また、設定条件を確認するには
+:py:meth:`jageocoder.get_search_config` を呼んでください。
+
+.. code-block:: python
+
+   >>> jageocoder.set_search_config(target_area=[])
+   >>> jageocoder.get_search_config()
+   {
+      'debug': False,
+      'aza_skip': False,
+      'best_only': True,
+      'target_area': []
+   }
 
 .. _sample-reverse-geocoding:
 
@@ -223,6 +239,9 @@ JISX0402 で規定されている市区町村コード（5桁）を取得でき�
    >>> node.get_aza_names()
    '[[1, "東京都", "トウキョウト", "Tokyo", "13"], [3, "新宿区", "シンジュクク", "Shinjuku-ku", "13104"], [5, "西新宿", "ニシシンジュク", "", "131040023"], [6, "二丁目", "２チョウメ", "2chome", "131040023002"]]'
 
+:py:meth:`get_aza_names() <jageocoder.node.AddressNode.get_aza_names()>` は
+list オブジェクトではなく JSON エンコードされた文字列を返すので注意してください。
+
 **郵便番号**
 
 :py:meth:`get_postcode() <jageocoder.node.AddressNode.get_postcode>` メソッドで
@@ -282,3 +301,6 @@ AddressNode の属性 ``children`` で取得します。
    <sqlalchemy.orm.dynamic.AppenderQuery object at 0x7f7d2f241438>
    >>> [child.name for child in parent.children]
    ['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
+
+AddressNode のメソッドのより詳しい説明は API リファレンスの
+:doc:`api_node` を参照してください。

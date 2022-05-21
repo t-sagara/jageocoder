@@ -28,14 +28,19 @@ def init(db_dir: Optional[os.PathLike] = None,
     db_dir: os.PathLike, optional
         The database directory.
         'address.db' and 'address.trie' are stored in this directory.
+
     mode: str, optional(default='r')
         Specifies the mode for opening the database.
+
         - In the case of 'a', if the database already exists, it will be used.
           If it does not exist, create a new one.
+
         - In the case of 'w', if the database already exists, delete it first.
           Then create a new one.
+
         - In the case of 'r', if the database already exists, it will be used.
           Otherwise raise a JageocoderError exception.
+
     debug: bool, Optional(default=False)
         Debugging flag.
     """

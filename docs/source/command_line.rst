@@ -160,7 +160,7 @@
 
    # 街区レベルまでの住所辞書ファイルをダウンロードします
    (.venv) $ python -m jageocoder download-dictionary --gaiku
-   INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/gaiku-20220519.zip to /home/sagara/gaiku-20220519.zip
+   INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/gaiku-20220519.zip to ...
 
 .. _commandline-install-dictionary:
 
@@ -218,7 +218,7 @@
 
    # 住所辞書データベースをアンインストールします
    (.venv) $ python -m jageocoder uninstall-dictionary
-   INFO:jageocoder.module:248:Removing directory /home/sagara/jageocoder/db
+   INFO:jageocoder.module:248:Removing directory ...
    INFO:jageocoder.module:251:Dictionary has been uninstalled.
 
 .. _commandline-migrate-dictionary:
@@ -227,12 +227,12 @@
 ----------------------------------
 
 ``jageocoder`` のバージョンを上げた際に、インストール済みの
-住所辞書データベースを利用できるように更新します。
+住所辞書データベースが非互換になる場合、利用できるように変換します。
 この処理は全てのレコードのチェックを行なうため、
 インストールに比べても非常に長い時間がかかります。
 
-大きく仕様が変更された場合など、マイグレーションできない場合も
-あるので、バージョンアップした場合は辞書も新しいものを
+大きく仕様が変更された場合はマイグレーションできない場合もあります。
+特に理由が無い限り、バージョンアップした場合は辞書も新しいものを
 インストールしなおすことをお勧めします。
 
 コマンド
