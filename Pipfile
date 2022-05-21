@@ -10,6 +10,8 @@ jageocoder = {editable = true, path = "."}
 deprecated = "*"
 docopt = "*"
 flask-cors = "*"
+sphinx = "*"
+sphinx-rtd-theme = "*"
 
 [dev-packages]
 autopep8 = "*"
