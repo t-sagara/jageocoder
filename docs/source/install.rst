@@ -18,7 +18,7 @@
 
 .. code-block:: console
 
-   (.venv) $ pip install jageocoder==1.2.1
+   (.venv) $ pip install jageocoder==1.3.0
 
 
 .. _install-dictionary:
@@ -36,7 +36,7 @@
    INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/jusho-20220519.zip to ...
 
 
-**注意** 住所辞書ファイルは圧縮した状態で 834MB 程度と大きいため、
+**注意** 住所辞書ファイルは圧縮した状態で 836MB 程度と大きいため、
 ダウンロード・インストールには時間がかかります。
 
 次にダウンロードした zip ファイルをインストールします。

@@ -1,7 +1,7 @@
 コードサンプル
 ==============
 
-ここでは ``jageocoder`` モジュールを Python コード内から
+ここでは jageocoder モジュールを Python コード内から
 呼びだして利用する方法を、サンプルを用いて説明します。
 
 .. _sample-geocoding:
@@ -35,8 +35,9 @@
    >>> type(results[0])
    <class 'jageocoder.result.Result'>
 
-このクラスのオブジェクトは、一致した文字列を ``matched`` 属性に、
-住所要素を ``node`` 属性に持っています。
+このクラスのオブジェクトは、一致した文字列を
+:py:attr:`matched <jageocoder.result.Result.matched>` 属性に、住所要素を
+:py:attr:`node <jageocoder.result.Result.node>` 属性に持っています。
 
 .. code-block:: python
 
@@ -237,10 +238,10 @@ JISX0402 で規定されている市区町村コード（5桁）を取得でき�
    >>> node.get_aza_code()
    '131040023002'
    >>> node.get_aza_names()
-   '[[1, "東京都", "トウキョウト", "Tokyo", "13"], [3, "新宿区", "シンジュクク", "Shinjuku-ku", "13104"], [5, "西新宿", "ニシシンジュク", "", "131040023"], [6, "二丁目", "２チョウメ", "2chome", "131040023002"]]'
+   [[1, '東京都', 'トウキョウト', 'Tokyo', '13'], [3, '新宿区', 'シンジュクク', 'Shinjuku-ku', '13104'], [5, '西新宿', 'ニシシンジュク', '', '131040023'], [6, '二 丁目', '２チョウメ', '2chome', '131040023002']]
 
 :py:meth:`get_aza_names() <jageocoder.node.AddressNode.get_aza_names()>` は
-list オブジェクトではなく JSON エンコードされた文字列を返すので注意してください。
+v1.3 から list オブジェクトを返すように変更されました。
 
 **郵便番号**
 
@@ -271,9 +272,10 @@ list オブジェクトではなく JSON エンコードされた文字列を返
 **親ノードを辿る**
 
 「親ノード」とは、住所の一つ上の階層を表すノードのことです。
-AddressNode の属性 ``parent`` で取得できます。
+AddressNode の属性 :py:attr:`parent <jageocoder.node.AddressNode.parent>`
+で取得できます。
 
-今 ``node`` は '8番' を指しているので、親ノードは '二丁目' になります。
+今 node は '8番' を指しているので、親ノードは '二丁目' になります。
 
 .. code-block:: python
 
@@ -286,14 +288,15 @@ AddressNode の属性 ``parent`` で取得できます。
 **子ノードを辿る**
 
 「子ノード」とは、住所の一つ下の階層を表すノードのことです。
-AddressNode の属性 ``children`` で取得します。
+AddressNode の属性 :py:attr:`children <jageocoder.node.AddressNode.children>`
+で取得します。
 
 親ノードは一つですが、子ノードは複数あります。
 実際に返すのは SQL クエリオブジェクトですが、
 イテレータでループしたり list にキャストできます。
 
-今 ``parent`` は '二丁目' を指しているので、子ノードは
-そこに含まれる街区符号（○番）になります。
+今 parent は '二丁目' を指しているので、子ノードは
+そこに含まれる街区レベル（○番）を持つノードのリストになります。
 
 .. code-block:: python
 

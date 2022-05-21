@@ -746,9 +746,17 @@ class AddressNode(Base):
 
         return ''
 
-    def get_aza_names(self) -> str:
+    def get_aza_names(self) -> list:
         """
         Returns representation of Aza node containing this node.
+
+        Returns
+        -------
+        list
+            A list containing notations from the prefecture level
+            to the Aza level in the following format:
+
+            [AddressLevel, Kanji, Kana, English, code]
         """
         if self.level >= AddressLevel.OAZA:
             code = self.get_aza_code()
@@ -760,9 +768,9 @@ class AddressNode(Base):
         aza_record = AzaMaster.search_by_code(
             code, get_session(self))
         if aza_record:
-            return aza_record.names
+            return json.loads(aza_record.names)
 
-        return ''
+        return []
 
     def get_postcode(self) -> str:
         """
