@@ -147,14 +147,19 @@ class AddressTree(object):
             The database directory.
             If omitted, the directory returned by get_db_dir() is used.
             'address.db' and 'address.trie' are stored under this directory.
+
         mode: str, optional (default='a')
             Specifies the mode for opening the database.
+
             - In the case of 'a', if the database already exists,
               use it. Otherwize create a new one.
+
             - In the case of 'w', if the database already exists,
               delete it first. Then create a new one.
+
             - In the case of 'r', if the database already exists,
               use it. Otherwise raise a JageocoderError exception.
+
         debug: bool, optional (default=False)
             Debugging flag. If set to True, write debugging messages.
             If omitted, refer 'JAGEOCODER_DEBUG' environment variable,
