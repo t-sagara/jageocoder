@@ -45,6 +45,9 @@
       <li>表記： {{ node.name }}</li>
       <li>経度： {{ node.x }}, 緯度： {{ node.y }}</li>
       <li>レベル： {{ node.level }}</li>
+      <li>優先度： {{ node.priority }}</li>
+      <li>データセット： <a href="{{ node.dataset.url }}" target="_blank">
+      {{ node.dataset.title }}</a></li>
       <li>メモ： {{ node.note }}</li>
     </ul>
 
@@ -71,7 +74,7 @@
       <a href="{{ url_for('search_aza_id', aza_id=node.get_aza_id()) }}">
       {{ node.get_aza_id() }}</a></li>
       <li>字コード（市区町村コード+字ID） (get_aza_code)：
-      <a href="{{ url_for('search_aza_id', aza_id=node.get_aza_code()) }}">
+      <a href="{{ url_for('get_aza', code=node.get_aza_code()) }}">
       {{ node.get_aza_code() }}</a></li>
       <li>字表記 (get_aza_names)： {{ node.get_aza_names() }}</li>
       <li>郵便番号 (get_postcode)：

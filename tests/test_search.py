@@ -105,6 +105,18 @@ class TestSearchMethods(unittest.TestCase):
             level=5,
             fullname=["京都府", "京都市", "上京区", "藪之内町"])
 
+    def test_kyoto_yamatooji(self):
+        """
+        Test a notation which is containing street name in Kyoto city,
+        where the street name contains oaza-name.
+        """
+        self._check(
+            query="東山区大和大路通正面下る大和大路1-535",
+            match="東山区大和大路通正面下る大和大路1-535",
+            level=7,
+            fullname=["京都府", "京都市", "東山区",
+                      "大和大路", "一丁目", "535番地"])
+
     def test_oaza(self):
         """
         Test notations with and without "大字"

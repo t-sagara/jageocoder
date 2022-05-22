@@ -14,7 +14,7 @@ Linux, Windows, MacOS 上に、 jageocoder をインストールして
 インストール
 ------------
 
-``pip`` (または``pip3``) コマンドで jageocoder パッケージをインストールします。
+``pip`` (または ``pip3`` ) コマンドで jageocoder パッケージをインストールします。
 次に、住所辞書をダウンロードしてインストールします。
 
 .. code-block:: console
@@ -36,7 +36,7 @@ Jageocoder は Python プログラム内から呼びだすパッケージとし�
 .. code-block:: console
 
    $ python -m jageocoder search '新宿区西新宿２－８－１'
-   {"matched": "新宿区西新宿２－８－", "candidates": [{"id": 12977785, "name": "8番", "x": 139.691778, "y": 35.689627, "level": 7, "note": null, "fullname": ["東京都", "新宿区", "西新宿", "二丁目", "8番"]}]}
+   {"matched": "新宿区西新宿２－８－", "candidates": [{"id": 12977785, "name": "8番", "x": 139.691778, "y": 35.689627, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "新宿区", "西新宿", "二丁目", "8番"]}]}
 
 
 コマンドラインで逆ジオコーディング
@@ -47,7 +47,7 @@ Jageocoder は Python プログラム内から呼びだすパッケージとし�
 .. code-block:: console
 
    $ python -m jageocoder reverse 139.6917 35.6896
-   [{"candidate": {"id": 12977775, "name": "二丁目", "x": 139.691774, "y": 35.68945, "level": 6, "note": "aza_id:0023002/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "二丁目"]}, "dist": 17.940303970792183}, {"candidate": {"id": 12978643, "name": "六丁目", "x": 139.690969, "y": 35.693426, "level": 6, "note": "aza_id:0023006/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "六丁目"]}, "dist": 429.6327545403412}, {"candidate": {"id": 12978943, "name": "四丁目", "x": 139.68762, "y": 35.68754, "level": 6, "note": "aza_id:0023004/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "四丁目"]}, "dist": 434.31591285255234}]
+   [{"candidate": {"id": 12977775, "name": "二丁目", "x": 139.691774, "y": 35.68945, "level": 6, "priority": 2, "note": "aza_id:0023002/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "二丁目"]}, "dist": 17.940303970792183}, {"candidate": {"id": 12978643, "name": "六丁目", "x": 139.690969, "y": 35.693426, "level": 6, "priority": 2, "note": "aza_id:0023006/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "六丁目"]}, "dist": 429.6327545403412}, {"candidate": {"id": 12978943, "name": "四丁目", "x": 139.68762, "y": 35.68754, "level": 6, "priority": 2, "note": "aza_id:0023004/postcode:1600023", "fullname": ["東京 都", "新宿区", "西新宿", "四丁目"]}, "dist": 434.31591285255234}]
 
 より詳しい使い方は :doc:`command_line` を参照してください。
 
@@ -72,6 +72,7 @@ Python プログラムから呼びだしてジオコーディングを行ない�
          "x": 139.691778,
          "y": 35.689627,
          "level": 7,
+         "priority": 3,
          "note": null,
          "fullname": [
            "東京都",
@@ -83,7 +84,6 @@ Python プログラムから呼びだしてジオコーディングを行ない�
        }
      ]
    }
-
 
 逆ジオコーディングの簡単なコード
 --------------------------------
@@ -105,6 +105,7 @@ Python プログラムから呼びだして逆ジオコーディングを行な�
          "x": 139.691774,
          "y": 35.68945,
          "level": 6,
+         "priority": 2,
          "note": "aza_id:0023002/postcode:1600023",
          "fullname": [
            "東京都",
@@ -122,6 +123,7 @@ Python プログラムから呼びだして逆ジオコーディングを行な�
          "x": 139.690969,
          "y": 35.693426,
          "level": 6,
+         "priority": 2,
          "note": "aza_id:0023006/postcode:1600023",
          "fullname": [
            "東京都",
@@ -139,6 +141,7 @@ Python プログラムから呼びだして逆ジオコーディングを行な�
          "x": 139.68762,
          "y": 35.68754,
          "level": 6,
+         "priority": 2,
          "note": "aza_id:0023004/postcode:1600023",
          "fullname": [
            "東京都",

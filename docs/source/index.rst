@@ -10,7 +10,7 @@ Jageocoder ドキュメント
    >>> import jageocoder
    >>> jageocoder.init()
    >>> jageocoder.search('新宿区西新宿2-8-1')
-   {'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 12977785, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
+   {'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 5961406, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
 
 
 動作環境

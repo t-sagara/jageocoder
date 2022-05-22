@@ -4,8 +4,8 @@ A Python module for Japanese-address geocoding.
 
 Note
 ----
-Before using this module, install address-dictionary from the Web
-as follows:
+Before using this module, install address-dictionary
+from the Web as follows:
 
     $ python -m jageocoder install-dictionary
 
@@ -19,8 +19,8 @@ running the following steps.
     >>> jageocoder.searchNode('<Japanese-address>')
 """
 
-__version__ = '1.2.2'  # The package version
-__dictionary_version__ = '20220505'  # Compatible dictionary version
+__version__ = '1.3.0dev1'  # The package version
+__dictionary_version__ = '20220519'  # Compatible dictionary version
 __author__ = 'Takeshi Sagara <sagara@info-proto.com>'
 
 __all__ = [

@@ -362,6 +362,11 @@ class AzaMaster(Base):
             aza_master record or None.
         """
         aza_row = None
+
+        if len(code) == 13:
+            # lasdec(6digits) + aza_id(7digits)
+            code = code[0:5] + code[6:]
+
         for aza_row in session.query(AzaMaster).filter(
                 AzaMaster.code == code):
             break

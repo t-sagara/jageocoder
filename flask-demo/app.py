@@ -1,9 +1,13 @@
-from jageocoder.address import AddressLevel
-import jageocoder
-from flask_cors import cross_origin
-from flask import Flask, request, render_template, jsonify
+import json
 from typing import List
 import re
+
+from flask_cors import cross_origin
+from flask import Flask, request, render_template, jsonify
+
+from jageocoder.address import AddressLevel
+from jageocoder.aza_master import AzaMaster
+import jageocoder
 
 jageocoder.init()
 
@@ -33,8 +37,24 @@ def index():
         result=None)
 
 
+@app.route("/azamaster/<code>", methods=['POST', 'GET'])
+def get_aza(code):
+    aza_node = AzaMaster.search_by_code(
+        code,
+        jageocoder.get_module_tree().session)
+
+    if aza_node:
+        names = json.loads(aza_node.names)
+    else:
+        names = None
+
+    return render_template(
+        'aza.html', aza=aza_node, names=names)
+
+
 @app.route("/aza/<aza_id>", methods=['POST', 'GET'])
 def search_aza_id(aza_id):
+
     if len(aza_id) == 12:
         # jisx0402(5digits) + aza_id(7digits)
         candidates = jageocoder.get_module_tree().search_nodes_by_codes(

@@ -4,7 +4,7 @@ import logging
 import re
 from typing import List, Optional
 
-from sqlalchemy import Column, ForeignKey, Integer, Float, String, Text
+from sqlalchemy import Column, Float, ForeignKey, Integer, SmallInteger, String, Text
 from sqlalchemy import or_
 from sqlalchemy.orm import deferred
 from sqlalchemy.orm import backref, relationship
@@ -12,9 +12,11 @@ from sqlalchemy.orm import backref, relationship
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.base import Base, get_session
+from jageocoder.dataset import Dataset  #
 from jageocoder.itaiji import Converter
 from jageocoder.result import Result
 from jageocoder.strlib import strlib
+
 
 logger = logging.getLogger(__name__)
 default_itaiji_converter = Converter()  # With default settings
@@ -39,12 +41,16 @@ class AddressNode(Base):
     level : int
         The level of the address element.
         The meaning of each value is as follows.
+    priority : int
+        Priority assigned to each source of data.
+        Smaller value indicates higher priority.
     note : string
         Note or comment.
     parent_id : int
         The id of the parent node.
     children : list of AddressNode
         The child nodes.
+    dataset : source dataset where the node come from.
     """
     __tablename__ = 'node'
 
@@ -53,7 +59,8 @@ class AddressNode(Base):
     name_index = Column(String(256), nullable=False)
     x = deferred(Column(Float, nullable=True))
     y = deferred(Column(Float, nullable=True))
-    level = Column(Integer, nullable=True)
+    level = Column(SmallInteger, nullable=True)
+    priority = Column(SmallInteger, ForeignKey('dataset.id'), nullable=True)
     note = deferred(Column(Text, nullable=True))
     parent_id = Column(Integer, ForeignKey('node.id'), nullable=True)
     children = relationship(
@@ -62,6 +69,7 @@ class AddressNode(Base):
         backref=backref("parent", remote_side="AddressNode.id"),
         lazy="dynamic",
     )
+    dataset = relationship(Dataset, cascade="all")
 
     def __init__(self, *args, **kwargs):
         """
@@ -91,14 +99,15 @@ class AddressNode(Base):
         self.x = kwargs.get('x', kwargs.get('lon'))
         self.y = kwargs.get('y', kwargs.get('lat'))
         self.level = kwargs.get('level')
+        self.priority = kwargs.get('priority', 99)
         self.note = kwargs.get('note', None)
 
     def add_child(self, child):
         """
         Add a node as a child of this node.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         child : AddressNode
             The node that will be a child node.
         """
@@ -108,8 +117,8 @@ class AddressNode(Base):
         """
         Add this node as a child of an other node.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         parent : AddressNode
             The node that will be the parent.
         """
@@ -119,8 +128,8 @@ class AddressNode(Base):
         """
         Get a child node with the specified name.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         target_name : str
             The name (or standardized name) of the target node.
 
@@ -157,8 +166,8 @@ class AddressNode(Base):
         """
         Search nodes recursively that match the specified address notation.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         index : str
             The standardized address notation.
         processed_nodes: List of AddressNode, optional
@@ -251,7 +260,7 @@ class AddressNode(Base):
             # child nodes, the part before the name is skipped
             # as a street name.
             for child in self.children:
-                pos = index.find(child.name_index)
+                pos = index.rfind(child.name_index)
                 if pos <= 0:
                     continue
 
@@ -285,6 +294,9 @@ class AddressNode(Base):
             aza_positions = tree.converter.optional_aza_len(
                 index, 0)
             aza_positions.append(len(omissible_index))
+            if len(index) in aza_positions:
+                aza_positions.remove(len(index))
+
             aza_positions.sort()
 
             for azalen in aza_positions:
@@ -465,27 +477,22 @@ class AddressNode(Base):
         # self_names = self.get_fullname()
         omissible_index = index
         for aza_row in tree.session.query(AzaMaster).filter(
-                AzaMaster.code.like('{}%'.format(target_prefix))):
+                AzaMaster.code.like('{}%'.format(target_prefix)),
+                AzaMaster.aza_class == 3,
+                AzaMaster.start_count_type == 1):
 
             # logger.debug("Checking {}.".format(aza_row.names))
 
-            omissible = True
-            if aza_row.start_count_type == 1:
-                reason = "the node's start_count_type=1."
-                omissible = False
-
-            if omissible:
-                logger.debug("  -> {} is omissible.".format(
-                    aza_row.names))
-                continue
+            logger.debug("  -> {} is not omissible.".format(
+                aza_row.names))
 
             names = json.loads(aza_row.names)
             name = tree.converter.standardize(names[-1][1])
             pos = omissible_index.find(name)
             if pos >= 0:
                 logger.debug(
-                    "Can't ommit substring '{}', {}".format(
-                        name, reason))
+                    "Can't ommit substring '{}' in {}".format(
+                        names[-1][1], omissible_index))
                 omissible_index = omissible_index[0:pos]
                 if pos == 0:
                     break
@@ -515,6 +522,7 @@ class AddressNode(Base):
             "x": self.x,
             "y": self.y,
             "level": self.level,
+            "priority": self.priority,
             "note": self.note,
             "fullname": self.get_fullname(),
         }
@@ -533,6 +541,7 @@ class AddressNode(Base):
                 "id": self.id,
                 "name": self.name,
                 "level": self.level,
+                "priority": self.priority,
                 "note": self.note,
                 "fullname": self.get_fullname(),
             }
@@ -737,9 +746,17 @@ class AddressNode(Base):
 
         return ''
 
-    def get_aza_names(self) -> str:
+    def get_aza_names(self) -> list:
         """
         Returns representation of Aza node containing this node.
+
+        Returns
+        -------
+        list
+            A list containing notations from the prefecture level
+            to the Aza level in the following format:
+
+            [AddressLevel, Kanji, Kana, English, code]
         """
         if self.level >= AddressLevel.OAZA:
             code = self.get_aza_code()
@@ -751,9 +768,9 @@ class AddressNode(Base):
         aza_record = AzaMaster.search_by_code(
             code, get_session(self))
         if aza_record:
-            return aza_record.names
+            return json.loads(aza_record.names)
 
-        return ''
+        return []
 
     def get_postcode(self) -> str:
         """
@@ -810,18 +827,18 @@ class AddressNode(Base):
         area: str
             Specify the area by name or jiscode.
 
-        Notes
-        -----
-        If a city code is specified and the node is at
-        the prefecture level, it will return 0 if the first two digits
-        of the code do not match, otherwise it will return -1.
-
         Returns
         -------
         int
             It returns 1 if the node is inside the region,
             0 if it is not inside, and -1 if it cannot be
             determined by this node.
+
+        Notes
+        -----
+        If a city code is specified and the node is at
+        the prefecture level, it will return 0 if the first two digits
+        of the code do not match, otherwise it will return -1.
         """
         if re.match(r'\d{2}', area):
             # 2 digits prefecture code
