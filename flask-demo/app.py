@@ -27,7 +27,7 @@ def _split_args(val: str) -> List[str]:
 @app.route("/")
 def index():
     query = request.args.get('q', '')
-    skip_aza = request.args.get('skip_aza', 'on')
+    skip_aza = request.args.get('skip_aza', 'auto')
     area = request.args.get('area', '')
     return render_template(
         'index.html',
