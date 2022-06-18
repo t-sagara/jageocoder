@@ -823,6 +823,7 @@ class AddressTree(object):
         self.index_table = {}
         logger.debug("Collecting labels for the trie index...")
         self._get_index_table()
+        self._extend_index_table()
 
         logger.debug("Building Trie...")
         self.trie = AddressTrie(self.trie_path, self.index_table)
@@ -894,7 +895,45 @@ class AddressTree(object):
                 else:
                     self.index_table[candidate] = [v.id]
 
-        self.session.commit()
+        # self.session.commit()
+
+    def _extend_index_table(self) -> NoReturn:
+        """
+        Expand the index, including support for omission of county names.
+        """
+        # Build temporary lookup table
+        logger.debug("Building temporary town and village table..")
+        tmp_id_name_table = {}
+        for node in self.session.query(
+            AddressNode.id, AddressNode.name, AddressNode.name_index,
+            AddressNode.parent_id, AddressNode.level).filter(
+                AddressNode.level <= AddressLevel.CITY):
+            tmp_id_name_table[node.id] = node
+
+        logger.debug("  {} records found.".format(
+            len(tmp_id_name_table)))
+
+        # Extend index_table
+        for k, v in tmp_id_name_table.items():
+            if v.parent_id == -1:
+                continue
+
+            parent_node = tmp_id_name_table[v.parent_id]
+            if parent_node.level == AddressLevel.PREF:
+                continue
+
+            pref_node = tmp_id_name_table[parent_node.parent_id]
+
+            logger.debug("Extend index by adding '{}/{}'".format(
+                pref_node.name, v.name))
+            label = pref_node.name + v.name
+            label_standardized = self.converter.standardize(label)
+            if label_standardized in self.index_table:
+                self.index_table[label_standardized].append(v.id)
+            else:
+                self.index_table[label_standardized] = [v.id]
+
+        # self.session.commit()
 
     def _set_index_table(self) -> NoReturn:
         """
@@ -912,7 +951,9 @@ class AddressTree(object):
         logger.debug("  Dropping index...")
         try:
             self.session.execute("DROP INDEX ix_trienode_trie_id")
-        except OperationalError:
+            self.session.commit()
+        except OperationalError as e:
+            logger.warning(e)
             logger.debug("    the index does not exist. (ignored)")
 
         logger.debug("  Adding mapping records...")
@@ -922,15 +963,17 @@ class AddressTree(object):
                 tn = TrieNode(trie_id=trie_id, node_id=node_id)
                 self.session.add(tn)
 
+        self.session.commit()
+
         logger.debug("  Creating index on trienode.trie_id ...")
         trienode_trie_id_index = Index(
             'ix_trienode_trie_id', TrieNode.trie_id)
         try:
             trienode_trie_id_index.create(self.engine)
-        except OperationalError:
+        except OperationalError as e:
+            logger.warning(e)
             logger.debug("  the index already exists. (ignored)")
 
-        self.session.commit()
         logger.debug("  done.")
 
     def save_all(self) -> NoReturn:
