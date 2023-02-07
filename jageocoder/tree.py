@@ -953,7 +953,6 @@ class AddressTree(object):
             self.session.execute("DROP INDEX ix_trienode_trie_id")
             self.session.commit()
         except OperationalError as e:
-            logger.warning(e)
             logger.debug("    the index does not exist. (ignored)")
 
         logger.debug("  Adding mapping records...")

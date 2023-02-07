@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sqlalchemy = "*"
+sqlalchemy = ">=2.0"
 jaconv = "*"
 jageocoder = {editable = true, path = "."}
 deprecated = "*"
