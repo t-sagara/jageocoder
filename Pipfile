@@ -1,3 +1,6 @@
+[pipenv]
+allow_prereleases = true
+
 [[source]]
 url = "https://pypi.org/simple"
 verify_ssl = true
@@ -10,12 +13,14 @@ jageocoder = {editable = true, path = "."}
 deprecated = "*"
 docopt = "*"
 flask-cors = "*"
-sphinx = "*"
-sphinx-rtd-theme = "*"
 
 [dev-packages]
 autopep8 = "*"
 flake8 = "*"
+certifi = ">=2022.12.07"
+setuptools = ">=65.6.1"
+sphinx = "*"
+sphinx-rtd-theme = "*"
 
 [scripts]
 format = "autopep8 -ivr --ignore E226,E24,W50,W690,E501 ."
