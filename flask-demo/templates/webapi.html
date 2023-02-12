@@ -1,217 +1,159 @@
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width-device-width, initial-scale=1.0">
-    <title>WebAPI - Jageocoder</title>
-    <style type="text/css">
-      body {
-          margin: 1em;
-      }
-      input#query {
-          width: 50%;
-      }
-      textarea#result_text {
-          width: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>
-      <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a> WebAPI</h1>
+{% extends 'base.html' %}
 
-    <h2>住所ジオコーディングAPI</h2>
-    <p>住所から緯度経度を取得します。</p>
-    <p>例：<code>東京都新宿区西新宿2丁目8-1</code>を検索</p>
-    <pre>GET https://jageocoder.info-proto.com/geocode?addr=%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%96%B0%E5%AE%BF%E5%8C%BA%E8%A5%BF%E6%96%B0%E5%AE%BF2%E4%B8%81%E7%9B%AE8%E2%88%921</pre>
-    <p>レスポンスは以下のようになります。</p>
-    <pre>[{
-  "matched": "東京都新宿区西新宿2丁目8−",
-  "node": {
-    "fullname": ["東京都", "新宿区", "西新宿", "二丁目", "8番"],
-    "id": 12299851,
-    "level": 7,
-    "name": "8番",
-    "note": null,
-    "x": 139.691778,
-    "y": 35.689627
-  }
+{% block title %}WebAPI | Jageocoder{% endblock %}
+
+{% block content %}
+<h2>住所ジオコーディングAPI</h2>
+<p>住所から緯度経度を取得します。</p>
+<p>例：<code>東京都新宿区西新宿2丁目8-1</code>を検索</p>
+<pre>GET https://jageocoder.info-proto.com/geocode?addr=%E6%9D%B1%E4%BA%AC%E9%83%BD%E6%96%B0%E5%AE%BF%E5%8C%BA%E8%A5%BF%E6%96%B0%E5%AE%BF2%E4%B8%81%E7%9B%AE8%E2%88%921</pre>
+<p>レスポンスは以下のようになります。</p>
+<pre>[{
+"matched": "東京都新宿区西新宿2丁目8−",
+"node": {
+"fullname": ["東京都", "新宿区", "西新宿", "二丁目", "8番"],
+"id": 12299851,
+"level": 7,
+"name": "8番",
+"note": null,
+"x": 139.691778,
+"y": 35.689627
+}
 }]</pre>
-    <p>レスポンス項目</p>
-    <ul>
-      <li><dl>
-        <dt>matched</dt>
-        <dd>住所として解析できた文字列。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>node.fullname</dt>
-        <dd>一致した住所の要素のリスト。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>node.id</dt>
-        <dd>一致した末尾の住所要素のID。ただしこの ID は辞書の内部IDであり、
-          辞書のバージョンによって変化するので、住所の識別子としては
-        利用できません。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>node.level</dt>
-        <dd>一致した住所レベル（1:都道府県, 2:郡, 3:市町村・23特別区,
-        4:政令市の区, 5:大字, 6:字・丁目, 7:街区・地番, 8:住居番号・枝番）。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>node.name</dt>
-        <dd>一致した末尾の住所要素の表記。</dd>
-      </dl></li>
-      <dl><li>
-        <dt>node.note</dt>
-        <dd>一致した末尾の住所要素の注記。</dd>
-      </li></dl>
-      <dl><li>
-        <dt>node.x</dt>
-        <dd>10進度数で表現した経度。</dd>
-      </li></dl>
-      <dl><li>
-        <dt>node.y</dt>
-        <dd>10進度数で表現した緯度。</dd>
-      </li></dl>
-    </ul>
+<p>レスポンス項目</p>
+<ul>
+  <li><dl>
+    <dt>matched</dt>
+    <dd>住所として解析できた文字列。</dd>
+  </dl></li>
+  <li><dl>
+    <dt>node.fullname</dt>
+    <dd>一致した住所の要素のリスト。</dd>
+  </dl></li>
+  <li><dl>
+    <dt>node.id</dt>
+    <dd>一致した末尾の住所要素のID。ただしこの ID は辞書の内部IDであり、
+      辞書のバージョンによって変化するので、住所の識別子としては
+    利用できません。</dd>
+  </dl></li>
+  <li><dl>
+    <dt>node.level</dt>
+    <dd>一致した住所レベル（1:都道府県, 2:郡, 3:市町村・23特別区,
+    4:政令市の区, 5:大字, 6:字・丁目, 7:街区・地番, 8:住居番号・枝番）。</dd>
+  </dl></li>
+  <li><dl>
+    <dt>node.name</dt>
+    <dd>一致した末尾の住所要素の表記。</dd>
+  </dl></li>
+  <dl><li>
+    <dt>node.note</dt>
+    <dd>一致した末尾の住所要素の注記。</dd>
+  </li></dl>
+  <dl><li>
+    <dt>node.x</dt>
+    <dd>10進度数で表現した経度。</dd>
+  </li></dl>
+  <dl><li>
+    <dt>node.y</dt>
+    <dd>10進度数で表現した緯度。</dd>
+  </li></dl>
+</ul>
 
-    <h2>リバース住所ジオコーディングAPI</h2>
-    <p>緯度経度を指定し、その周辺の住所（字・町丁目レベル）を取得します。</p>
-    <p>例：<code>北緯35.689472度, 東経139.69175度</code>を検索</p>
-    <pre>GET https://jageocoder.info-proto.com/rgeocode?lat=35.689472&lon=139.69175</pre>
-    <p>レスポンスは以下のようになります。</p>
-    <pre>[
-  {
-    "candidate": {
-      "fullname": [
-        "東京都",
-        "新宿区",
-        "西新宿",
-        "二丁目"
-      ],
-      "id": 12299841,
-      "level": 6,
-      "name": "二丁目",
-      "note": "postcode:1600023",
-      "x": 139.691774,
-      "y": 35.68945
-    },
-    "dist": 3.2676564373748427
-  },
-  {
-    "candidate": {
-      "fullname": [
-        "東京都",
-        "新宿区",
-        "西新宿",
-        "四丁目"
-      ],
-      "id": 12301009,
-      "level": 6,
-      "name": "四丁目",
-      "note": "postcode:1600023",
-      "x": 139.68762,
-      "y": 35.68754
-    },
-    "dist": 430.93323436646347
-  },
-  {
-    "candidate": {
-      "fullname": [
-        "東京都",
-        "新宿区",
-        "西新宿",
-        "六丁目"
-      ],
-      "id": 12300709,
-      "level": 6,
-      "name": "六丁目",
-      "note": "postcode:1600023",
-      "x": 139.690969,
-      "y": 35.693426
-    },
-    "dist": 444.3681993030674
-  }
+<h2>リバース住所ジオコーディングAPI</h2>
+<p>緯度経度を指定し、その周辺の住所（字・町丁目レベル）を取得します。</p>
+<p>例：<code>北緯35.689472度, 東経139.69175度</code>を検索</p>
+<pre>GET https://jageocoder.info-proto.com/rgeocode?lat=35.689472&lon=139.69175</pre>
+<p>レスポンスは以下のようになります。</p>
+<pre>[
+{
+"candidate": {
+  "fullname": [
+    "東京都",
+    "新宿区",
+    "西新宿",
+    "二丁目"
+  ],
+  "id": 12299841,
+  "level": 6,
+  "name": "二丁目",
+  "note": "postcode:1600023",
+  "x": 139.691774,
+  "y": 35.68945
+},
+"dist": 3.2676564373748427
+},
+{
+"candidate": {
+  "fullname": [
+    "東京都",
+    "新宿区",
+    "西新宿",
+    "四丁目"
+  ],
+  "id": 12301009,
+  "level": 6,
+  "name": "四丁目",
+  "note": "postcode:1600023",
+  "x": 139.68762,
+  "y": 35.68754
+},
+"dist": 430.93323436646347
+},
+{
+"candidate": {
+  "fullname": [
+    "東京都",
+    "新宿区",
+    "西新宿",
+    "六丁目"
+  ],
+  "id": 12300709,
+  "level": 6,
+  "name": "六丁目",
+  "note": "postcode:1600023",
+  "x": 139.690969,
+  "y": 35.693426
+},
+"dist": 444.3681993030674
+}
 ]
 </pre>
-    <p>レスポンス項目</p>
-    <ul>
-      <li><dl>
-        <dt>dist</dt>
-        <dd>指定した点から候補住所の代表点までの距離（メートル）。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>candidate.fullname</dt>
-        <dd>候補住所の要素のリスト。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>candidate.id</dt>
-        <dd>候補住所要素のID。ただしこの ID は辞書の内部IDであり、
-          辞書のバージョンによって変化するので、住所の識別子としては
-        利用できません。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>candidate.level</dt>
-        <dd>候補住所の住所レベル（1:都道府県, 2:郡, 3:市町村・23特別区,
-        4:政令市の区, 5:大字, 6:字・丁目, 7:街区・地番, 8:住居番号・枝番）。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>candidate.name</dt>
-        <dd>候補住所要素の表記。</dd>
-      </dl></li>
-      <dl><li>
-        <dt>candidate.note</dt>
-        <dd>候補住所要素の注記。</dd>
-      </li></dl>
-      <dl><li>
-        <dt>candidate.x</dt>
-        <dd>10進度数で表現した経度。</dd>
-      </li></dl>
-      <dl><li>
-        <dt>candidate.y</dt>
-        <dd>10進度数で表現した緯度。</dd>
-      </li></dl>
-    </ul>
-
-    <h2>データ出典</h2>
-    <p>「位置参照情報（大字町丁目・街区レベル）令和２年」（国土交通省）、
-    「電子国土基本図（地名情報）住居表示住所 2021-02-25」（国土地理院）、
-    「Geolonia 住所データ」（株式会社Geolonia） https://geolonia.github.io/japanese-addresses/
-    をもとに、株式会社情報試作室が加工した
-    jageocoder 用住所データベース（住居表示レベル）を利用しています。</p>
-
-    <h2>利用条件</h2>
-    <p>本サービスは以下のいずれかの目的でのみ利用できるものとします。</p>
-    <ul>
-      <li>jageocoderの性能評価</li>
-      <li>住所と経緯度の変換を主目的としないアプリケーションからの呼び出し
-      （商用・非商用、公開・非公開は問いません）</li>
-    </ul>
-
-    <h2>免責事項</h2>
-    <p>本サービスは以下の事項を了解の上でご利用ください。</p>
-    <ul>
-      <li>変換結果の正しさを保証しません。</li>
-      <li>利用した結果生じたいかなる不利益・損害に対しても責任を負いません。</li>
-      <li>サーバメンテナンスやデータ更新などのため、無断で停止する場合があります。</li>
-      <li>サーバの負荷が大きすぎる場合、アクセスを制限することがあります。</li>
-    </ul>
-
-    <h2>個人情報・プライバシー</h2>
-    <p>本サービスでは、ウェブサーバでアクセスログを記録しています。
-      アクセスログには、クライアントのIPアドレス、時刻、リクエストURLが
-    含まれます。</p>
-    <p>これらのログは不正利用や不具合発生時の原因調査に利用し、
-    それ以外の目的で利用したり第三者に提供することはありません。</p>
-
-    <h2>その他留意事項</h2>
-    <p>多数の住所を連続して経緯度に変換したい場合や、プライバシーに配慮が
-      必要な住所を変換したい場合、サーバが停止しては困る場合などには、
-      <a href="https://github.com/t-sagara/jageocoder">Jageocoder</a> を利用して
-    専用サーバを立ててご利用ください。</p>
-
-    <h2>お問い合わせ</h2>
-    <p>本サービスに対するお問い合わせは info@info-proto.com までお願いします。</p>
-  </body>
-</html>
+<p>レスポンス項目</p>
+<ul>
+  <li><dl>
+    <dt>dist</dt>
+    <dd>指定した点から候補住所の代表点までの距離（メートル）。</dd>
+  </dl></li>
+  <li><dl>
+    <dt>candidate.fullname</dt>
+    <dd>候補住所の要素のリスト。</dd>
+  </dl></li>
+  <li><dl>
+    <dt>candidate.id</dt>
+    <dd>候補住所要素のID。ただしこの ID は辞書の内部IDであり、
+      辞書のバージョンによって変化するので、住所の識別子としては
+    利用できません。</dd>
+  </dl></li>
+  <li><dl>
+    <dt>candidate.level</dt>
+    <dd>候補住所の住所レベル（1:都道府県, 2:郡, 3:市町村・23特別区,
+    4:政令市の区, 5:大字, 6:字・丁目, 7:街区・地番, 8:住居番号・枝番）。</dd>
+  </dl></li>
+  <li><dl>
+    <dt>candidate.name</dt>
+    <dd>候補住所要素の表記。</dd>
+  </dl></li>
+  <dl><li>
+    <dt>candidate.note</dt>
+    <dd>候補住所要素の注記。</dd>
+  </li></dl>
+  <dl><li>
+    <dt>candidate.x</dt>
+    <dd>10進度数で表現した経度。</dd>
+  </li></dl>
+  <dl><li>
+    <dt>candidate.y</dt>
+    <dd>10進度数で表現した緯度。</dd>
+  </li></dl>
+</ul>
+{% endblock %}

@@ -1,150 +1,127 @@
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width-device-width, initial-scale=1.0">
-    <title>Jageocoder Demonstration</title>
-    <style type="text/css">
-      body {
-          margin: 1em;
-      }
-      input#query {
-          width: 50%;
-      }
-      textarea#result_text {
-          width: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>
-      <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
-      のデモンストレーション</h1>
-    <form action="{{ url_for('search', q='', skip_aza='auto') }}" method="GET">
-      <input id="query" value="{{ q }}" name="q" placeholder="検索したい住所を入力" />
-      <input id="area" value="{{ area }}" name="area"
-      placeholder="検索対象（都道府県・市区町村）" />
-      <input type="submit" value="検索" /><br />
-      小字の省略：
-      <input type="radio" name="skip_aza" value="auto"
-        {% if skip_aza == 'auto' %}checked="checked"{% endif %}
-        />自動判定&nbsp;
-      <input type="radio" name="skip_aza" value="on"
-        {% if skip_aza == 'on' %}checked="checked"{% endif %}
-        />省略する&nbsp;
-      <input type="radio" name="skip_aza" value="off"
-        {% if skip_aza == 'off' %}checked="checked"{% endif %}
-        />省略しない&nbsp;
-    </form>
+{% extends 'base.html' %}
 
-    {% if results %}
-    <p>結果一覧
-      <a href="{{ url_for('index', q=q, skip_aza=skip_aza) }}">
-      住所の例に戻る</a>
-    </p>
-    <ul id="results">
-      {% for result in results %}
-        <li class="node">
-          {% for node in result.node.get_parent_list() %}
-            <a href="{{ url_for('show_node', id=node.id, q=q, skip_aza=skip_aza, area=area) }}">
-            {{ node.name }}</a><nbsp;>
-          {% endfor %}
-          <ul>
-            <li>一致した文字列： {{ result.matched }}</li>
-            <li>座標：
-              経度 {{ result.node.x }}, 緯度 {{ result.node.y }}
-              <a href="{{ result.node.get_gsimap_link() }}" target="_gsimap">地理院地図</a>
-              <a href="{{ result.node.get_googlemap_link() }}" target="_googlemap">Googleマップ</a>
-            </li>
-          </ul>
-        </li>
+{% block title %}トップ | Jageocoder{% endblock %}
+
+{% block content %}
+<form action="{{ url_for('search', q='', skip_aza='auto') }}" method="GET">
+  <input id="query" value="{{ q }}" name="q" placeholder="検索したい住所を入力" />
+  <input id="area" value="{{ area }}" name="area"
+  placeholder="検索対象（都道府県・市区町村）" />
+  <input type="submit" value="検索" /><br />
+  小字の省略：
+  <input type="radio" name="skip_aza" value="auto"
+    {% if skip_aza == 'auto' %}checked="checked"{% endif %}
+    />自動判定&nbsp;
+  <input type="radio" name="skip_aza" value="on"
+    {% if skip_aza == 'on' %}checked="checked"{% endif %}
+    />省略する&nbsp;
+  <input type="radio" name="skip_aza" value="off"
+    {% if skip_aza == 'off' %}checked="checked"{% endif %}
+    />省略しない&nbsp;
+</form>
+
+{% if results %}
+<p>結果一覧</p>
+<ul id="results">
+  {% for result in results %}
+    <li class="node">
+      {% for node in result.node.get_parent_list() %}
+        <a href="{{ url_for('show_node', id=node.id, q=q, skip_aza=skip_aza, area=area) }}">
+        {{ node.name }}</a><nbsp;>
       {% endfor %}
-    </ul>
-    <p>JSON表現</p>
-    <textarea id="result_text" rows="5">{{ results }}</textarea>
-    {% else %}
-    <p>住所の例</p>
-    <ul>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='多摩市落合1-15多摩センタートーセイビル', skip_aza='auto') }}">
-        多摩市落合1-15多摩センタートーセイビル</a></dt>
-        <dd>「番」「番地」をハイフンや「の」などで省略しても解析できます。ビル・マンション名には対応していません。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='茨城県竜ヶ崎市字米町3903', skip_aza='auto') }}">
-        茨城県竜ヶ崎市字米町3903</a></dt>
-        <dd>「竜」と「龍」などの異体字に対応しています。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='中央区中央1', skip_aza='auto') }}">中央区中央1</a></dt>
-        <dd>都道府県名や市区町村名の省略に対応しています。候補が複数見つかった場合は複数の結果を返します。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='東京都西多摩郡瑞穂町箱根ケ崎2335番地', skip_aza='auto') }}">
-        東京都西多摩郡瑞穂町箱根ケ崎2335番地</a></dt>
-        <dd>大字名の先頭の「大字」や、字名の先頭の「字」の省略に対応しています。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='埼玉県大里郡寄居町大字鷹巣', skip_aza='auto') }}">
-        埼玉県大里郡寄居町大字鷹巣</a></dt>
-        <dd>「鷹ノ巣」の「ノ」などの省略に対応しています。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='札幌市中央区北3西1-7', skip_aza='auto') }}">
-        札幌市中央区北3西1-7</a></dt>
-        <dd>札幌市の「北三条西一丁目」を「北3西1」のように省略する表記に対応しています。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='京都市中京区寺町通御池上る上本能寺前町488番地',
-          skip_aza='auto') }}">
-        京都市中京区寺町通御池上る上本能寺前町488番地</a></dt>
-        <dd>京都市の通り名には部分的に対応しており、通り名部分をスキップして町名から処理します。
-        町名が省略されている表記には対応できません。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='千葉県八街市八街字松ヶ久保い77番', skip_aza='auto') }}">
-        千葉県八街市八街字松ヶ久保い77番</a></dt>
-        <dd>辞書にない字名（字松ヶ久保）が含まれていても、対応する大字を検索します。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='福島県いわき市平上高久塚田97乙', skip_aza='auto') }}">
-        福島県いわき市平上高久塚田97乙</a></dt>
-        <dd>地番の脱落地に対応しています。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='長野県千曲市礒部下河原1137番地', skip_aza='auto') }}">
-        長野県千曲市礒部下河原1137番地</a></dt>
-        <dd>アドレス・ベース・レジストリに小字（下河原）が登録されていない場合、
-        または小字の起番フラグが２（非起番）の場合、小字を省略します。</dd>
-      </dl></li>
-      <li><dl>
-        <dt><a href="{{ url_for('search',
-          q='長野県小谷村大字中小谷丙１３１', skip_aza='auto') }}">
-        長野県小谷村大字中小谷名１３１</a></dt>
-        <dd>郡名が省略されている場合は自動的に補完します。</dd>
-      </dl></li>
-      <!--li><dl>
-        <dt><a href="{{ url_for('search',
-          q='熊本県菊池郡菊陽町大字原水字小平ノ上４６１７',
-          skip_aza='on') }}">
-        熊本県菊池郡菊陽町大字原水字小平ノ上４６１７</a></dt>
-        <dd>小字の省略判定が間違っている場合、「省略する・しない」を指定すると
-          正しい結果が得られることがあります。
-        </dd>
-      </dl></li-->
-    </ul>
-    <p><a href="{{ url_for('license') }}">利用データ・出典・利用条件</a></p>
-    <p><a href="{{ url_for('webapi') }}">WebAPI</a></p>
-    {% endif %}
-  </body>
-</html>
+      <ul>
+        <li>一致した文字列： {{ result.matched }}</li>
+        <li>座標：
+          経度 {{ result.node.x }}, 緯度 {{ result.node.y }}
+          <a href="{{ result.node.get_gsimap_link() }}" target="_gsimap">地理院地図</a>
+          <a href="{{ result.node.get_googlemap_link() }}" target="_googlemap">Googleマップ</a>
+        </li>
+      </ul>
+    </li>
+  {% endfor %}
+</ul>
+<p>JSON表現</p>
+<textarea id="result_text" rows="5">{{ results }}</textarea>
+{% else %}
+<p>住所の例</p>
+<ul>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='多摩市落合1-15多摩センタートーセイビル', skip_aza='auto') }}">
+    多摩市落合1-15多摩センタートーセイビル</a></dt>
+    <dd>「番」「番地」をハイフンや「の」などで省略しても解析できます。ビル・マンション名には対応していません。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='茨城県竜ヶ崎市字米町3903', skip_aza='auto') }}">
+    茨城県竜ヶ崎市字米町3903</a></dt>
+    <dd>「竜」と「龍」などの異体字に対応しています。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='中央区中央1', skip_aza='auto') }}">中央区中央1</a></dt>
+    <dd>都道府県名や市区町村名の省略に対応しています。候補が複数見つかった場合は複数の結果を返します。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='東京都西多摩郡瑞穂町箱根ケ崎2335番地', skip_aza='auto') }}">
+    東京都西多摩郡瑞穂町箱根ケ崎2335番地</a></dt>
+    <dd>大字名の先頭の「大字」や、字名の先頭の「字」の省略に対応しています。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='埼玉県大里郡寄居町大字鷹巣', skip_aza='auto') }}">
+    埼玉県大里郡寄居町大字鷹巣</a></dt>
+    <dd>「鷹ノ巣」の「ノ」などの省略に対応しています。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='札幌市中央区北3西1-7', skip_aza='auto') }}">
+    札幌市中央区北3西1-7</a></dt>
+    <dd>札幌市の「北三条西一丁目」を「北3西1」のように省略する表記に対応しています。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='京都市中京区寺町通御池上る上本能寺前町488番地',
+      skip_aza='auto') }}">
+    京都市中京区寺町通御池上る上本能寺前町488番地</a></dt>
+    <dd>京都市の通り名には部分的に対応しており、通り名部分をスキップして町名から処理します。
+    町名が省略されている表記には対応できません。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='千葉県八街市八街字松ヶ久保い77番', skip_aza='auto') }}">
+    千葉県八街市八街字松ヶ久保い77番</a></dt>
+    <dd>辞書にない字名（字松ヶ久保）が含まれていても、対応する大字を検索します。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='福島県いわき市平上高久塚田97乙', skip_aza='auto') }}">
+    福島県いわき市平上高久塚田97乙</a></dt>
+    <dd>地番の脱落地に対応しています。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='長野県千曲市礒部下河原1137番地', skip_aza='auto') }}">
+    長野県千曲市礒部下河原1137番地</a></dt>
+    <dd>アドレス・ベース・レジストリに小字（下河原）が登録されていない場合、
+    または小字の起番フラグが２（非起番）の場合、小字を省略します。</dd>
+  </dl></li>
+  <li><dl>
+    <dt><a href="{{ url_for('search',
+      q='長野県小谷村大字中小谷丙１３１', skip_aza='auto') }}">
+    長野県小谷村大字中小谷名１３１</a></dt>
+    <dd>郡名が省略されている場合は自動的に補完します。</dd>
+  </dl></li>
+  <!--li><dl>
+    <dt><a href="{{ url_for('search',
+      q='熊本県菊池郡菊陽町大字原水字小平ノ上４６１７',
+      skip_aza='on') }}">
+    熊本県菊池郡菊陽町大字原水字小平ノ上４６１７</a></dt>
+    <dd>小字の省略判定が間違っている場合、「省略する・しない」を指定すると
+      正しい結果が得られることがあります。
+    </dd>
+  </dl></li-->
+</ul>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width-device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <style type="text/css">
+      body {
+          margin: 1em;
+      }
+      input#query {
+          width: 50%;
+      }
+      textarea#result_text {
+          width: 100%;
+      }
+      div.header {
+        margin-bottom: 10px;
+      }
+      div.footer {
+        margin-top: 10px;
+        border-top: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
+  のデモンストレーション: 
+      <a href="{{ url_for('index') }}">住所の例</a>
+      <a href="{{ url_for('license') }}">利用データ・出典・利用条件</a>
+      <a href="{{ url_for('webapi') }}">WebAPI</a>
+    </div>
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+
+    <div class="footer">
+      <p>パッケージバージョン: {{ module_version }}, 辞書バージョン: {{ dictionary_version }}</p>
+    </div>
+  </body>
+</html>

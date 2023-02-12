@@ -1,40 +1,18 @@
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width-device-width, initial-scale=1.0">
-    <title>Jageocoder Demonstration</title>
-    <style type="text/css">
-      body {
-          margin: 1em;
-      }
-      input#query {
-          width: 50%;
-      }
-      textarea#result_text {
-          width: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>
-      <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
-      のデモンストレーション</h1>
+{% extends 'base.html' %}
 
-    <p><a href="{{ url_for('index') }}">住所の例に戻る</a></p>
+{% block title %}ノード一覧 | Jageocoder{% endblock %}
 
-    <h2>ノードリスト</h2>
-    <ul id="attributes">
-      {% if nodes|length > 0%}
-      {% for node in nodes %}
-      <li><a href="{{ url_for('show_node', id=node.id) }}">
-        {{ node.get_fullname() }} ({{ node.dataset.title }})
-      </li>
-      {% endfor %}
-      {% else %}
-      （条件に該当するノードが見つかりません）
-      {% endif %}
-    </ul>
-
-  </body>
-</html>
+{% block content %}
+<h2>ノードリスト</h2>
+<ul id="attributes">
+  {% if nodes|length > 0%}
+  {% for node in nodes %}
+  <li><a href="{{ url_for('show_node', id=node.id) }}">
+    {{ node.get_fullname() }} ({{ node.dataset.title }})
+  </li>
+  {% endfor %}
+  {% else %}
+  （条件に該当するノードが見つかりません）
+  {% endif %}
+</ul>
+{% endblock %}
