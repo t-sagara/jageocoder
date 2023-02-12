@@ -10,12 +10,22 @@ from jageocoder.aza_master import AzaMaster
 import jageocoder
 
 jageocoder.init()
+module_version = jageocoder.__version__
+dictionary_version = jageocoder.installed_dictionary_version()
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 
 
 re_splitter = re.compile(r'[ \u2000,、]+')
+
+
+@app.context_processor
+def inject_versions():
+    return {
+        "module_version": module_version,
+        "dictionary_version": dictionary_version,
+    }
 
 
 def _split_args(val: str) -> List[str]:
@@ -133,7 +143,10 @@ def search_postcode(code):
 
 @app.route("/license")
 def license():
-    return render_template('license.html')
+    dictionary_readme = jageocoder.installed_dictionary_readme()
+    return render_template(
+        'license.html',
+        readme=dictionary_readme)
 
 
 @app.route("/webapi")

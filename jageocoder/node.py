@@ -144,8 +144,11 @@ class AddressNode(Base):
         )).one_or_none()
 
     @lru_cache(maxsize=512)
-    def search_child_with_criteria(self, pattern: str,
-                                   max_level: Optional[int] = None):
+    def search_child_with_criteria(
+            self,
+            pattern: str,
+            max_level: Optional[int] = None,
+            require_coordinates: bool = False):
         conds = []
         conds.append(AddressNode.name_index.like(pattern))
         logger.debug("  conds: name_index LIKE '{}'".format(pattern))
@@ -153,6 +156,10 @@ class AddressNode(Base):
         if max_level is not None:
             conds.append(AddressNode.level <= max_level)
             logger.debug("    and level <= {}".format(max_level))
+
+        if require_coordinates is True:
+            conds.append(AddressNode.y < 90.0)
+            logger.debug("    and having valid coordinates")
 
         filtered_children = self.children.filter(*conds).order_by(
             AddressNode.id)
@@ -202,7 +209,9 @@ class AddressNode(Base):
             max_level = AddressLevel.AZA
 
         filtered_children = self.search_child_with_criteria(
-            pattern=substr, max_level=max_level)
+            pattern=substr,
+            max_level=max_level,
+            require_coordinates=tree.get_config('require_coordinates'))
 
         # Check if the index begins with an extra character of
         # the current node.

@@ -14,6 +14,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.pool import NullPool
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.sql import text
 
 import jageocoder
 from jageocoder.address import AddressLevel
@@ -225,12 +226,15 @@ class AddressTree(object):
             'aza_skip': None,
             'best_only': True,
             'target_area': [],
+            'require_coordinates': True,
         }
         self.set_config(**{
             'debug': self.debug,
             'aza_skip': os.environ.get('JAGEOCODER_AZA_SKIP', False),
             'best_only': os.environ.get('JAGEOCODER_BEST_ONLY', True),
-            'target_area': os.environ.get('JAGEOCODER_TARGET_AREA', None)
+            'target_area': os.environ.get('JAGEOCODER_TARGET_AREA', None),
+            'require_coordinates': os.environ.get(
+                'JAGEOCODER_REQUIRE_COORDINATES', True),
         })
 
         # Itaiji converter
@@ -345,7 +349,7 @@ class AddressTree(object):
         ------
         AddressNode
         """
-        return self.session.query(AddressNode).get(node_id)
+        return self.session.get(AddressNode, node_id)
 
     def search_nodes_by_codes(
             self,
@@ -408,6 +412,10 @@ class AddressTree(object):
             - If None, make the decision automatically
             - If False, do not skip
             - If True, always skip
+
+        - require_coordinates: bool (default = True)
+            If set to False, nodes without coordinates are also
+            included in the search.
 
         - target_areas: List[str] (Default = [])
             Specify the areas to be searched.
@@ -525,8 +533,8 @@ class AddressTree(object):
         >>> jageocoder.get_module_tree().get_config(['best_only', 'target_area'])
         {'best_only': True, 'target_area': []}
         >>> jageocoder.get_module_tree().get_config()
-        {'debug': False, 'aza_skip': 'off', 'best_only': True, 'target_area': []}
-        """
+        {'debug': False, 'aza_skip': 'off', 'best_only': True, 'target_area': [], 'require_coordinates': False}
+        """  # noqa: E401
         if keys is None:
             return self.config
 
@@ -950,7 +958,7 @@ class AddressTree(object):
         self.session.query(TrieNode).delete()
         logger.debug("  Dropping index...")
         try:
-            self.session.execute("DROP INDEX ix_trienode_trie_id")
+            self.session.execute(text("DROP INDEX ix_trienode_trie_id"))
             self.session.commit()
         except OperationalError as e:
             logger.debug("    the index does not exist. (ignored)")

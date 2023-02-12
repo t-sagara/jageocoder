@@ -82,6 +82,10 @@ def set_search_config(**kwargs):
         - If False, do not skip
         - If True, always skip
 
+    - require_coordinates: bool (default = True)
+        If set to False, nodes without coordinates are also
+        included in the search.
+
     - target_area: List[str] (Default = [])
         Specify the areas to be searched.
         The area can be specified by the list of name of the node
@@ -232,6 +236,10 @@ def install_dictionary(
     logger.info('Creating TRIE index at {}'.format(_tree.trie_path))
     _tree.create_trie_index()
 
+    # Put metadata.txt
+    with open(os.path.join(db_dir, "metadata.txt"), "w") as f:
+        print(os.path.basename(path_or_url), file=f)
+
     logger.info('Installation completed.')
 
 
@@ -278,6 +286,62 @@ def migrate_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     logger.info('Updating TRIE index {}'.format(_tree.trie_path))
     _tree.create_trie_index()
     logger.info('The dictionary is successfully migrated.')
+
+
+def installed_dictionary_version(db_dir: Optional[os.PathLike] = None) -> str:
+    """
+    Get the installed dictionary version.
+
+    Parameters
+    ----------
+    db_dir: os.PathLike, optional
+        The directory where the database files has been installed.
+        If omitted, it will be determined by `get_db_dir()`.
+
+    Returns
+    -------
+    str
+        The version string of the installed dicitionary.
+    """
+    if db_dir is None:
+        db_dir = get_db_dir(mode='a')
+
+    metadata_path = os.path.join(db_dir, "metadata.txt")
+    if not os.path.exists(metadata_path):
+        return "(no version information)"
+
+    with open(metadata_path, "r") as f:
+        version = f.readline().rstrip()
+
+    return version
+
+
+def installed_dictionary_readme(db_dir: Optional[os.PathLike] = None) -> str:
+    """
+    Get the content of README.txt attached to the installed dictionary.
+
+    Parameters
+    ----------
+    db_dir: os.PathLike, optional
+        The directory where the database files has been installed.
+        If omitted, it will be determined by `get_db_dir()`.
+
+    Returns
+    -------
+    str
+        The content of the text.
+    """
+    if db_dir is None:
+        db_dir = get_db_dir(mode='a')
+
+    readme_path = os.path.join(db_dir, "README.txt")
+    if not os.path.exists(readme_path):
+        return "(no README information)"
+
+    with open(readme_path, "r") as f:
+        content = f.read()
+
+    return content
 
 
 def search(query: str) -> dict:

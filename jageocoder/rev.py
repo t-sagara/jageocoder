@@ -3,6 +3,7 @@ import math
 from typing import List, NoReturn, Optional, Union
 
 from geographiclib.geodesic import Geodesic
+from sqlalchemy.sql import text
 
 from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode
@@ -428,7 +429,7 @@ class Reverse(object):
         dx = 0.01 / math.cos(self.y * math.pi / 180.0)
         while len(results) < 10 and dy < 0.1:
             results = []
-            sql = ("SELECT id FROM node_aza"
+            sql = text("SELECT id FROM node_aza"
                    " WHERE x >= :minx AND x <= :maxx"
                    " AND y >= :miny AND y <= :maxy"
                    " ORDER BY level ASC")

@@ -1,122 +1,44 @@
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width-device-width, initial-scale=1.0">
-    <title>Jageocoder Demonstration</title>
-    <style type="text/css">
-      body {
-          margin: 1em;
-      }
-      input#query {
-          width: 50%;
-      }
-      textarea#result_text {
-          width: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>
-      <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
-      のデモンストレーション</h1>
+{% extends 'base.html' %}
 
-    <p><a href="{{ url_for('index') }}">トップページへ</a></p>
+{% block title %}利用条件・出典 | Jageocoder{% endblock %}
 
-    <h2>利用データ・出典</h2>
-    <p>このデータは以下の情報を組み合わせて作成しています。</p>
-    <ul>
-      <li><dl>
-        <dt>(1) 都道府県・市区町村レベルの代表点</dt>
-        <dd>ROIS-DS人文学オープンデータ共同利用センターが公開している
-        <a href="https://geonlp.ex.nii.ac.jp/dictionary/geoshape-city/">
-        「歴史的行政区域データセットβ版地名辞書」</a>から住所要素名
-        および座標を抽出しました。</dd>
-      </dl></li>
-      <li><dl>
-        <dt>(2) 大字レベルおよび街区レベル</dt>
-        <dd>国交省の<a href="https://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi">
-        「位置参照情報ダウンロードサービス」</a>から取得したデータより、
-        大字レベルと街区レベルの住所要素名および座標を抽出しました。<br />
-        <ul><li>大字町丁目レベル位置参照情報（令和２年） 14.0b</li>
-        <li>街区レベル位置参照方法（令和２年） 19.0a</li></ul></dd>
-      </dl></li>
-      <li><dl>
-        <dt>(3) Geolonia 住所データ</dt>
-        <dd>株式会社 Geolonia がオープンデータとして公開している全国の町丁目
-        レベルの住所データ<a href="https://geolonia.github.io/japanese-addresses">
-        「Geolonia 住所データ」</a>より、町丁目（大字）レベルの住所要素名および
-        座標を抽出しました。<br />
-        <ul><li>2021-12-02 更新版 （2021-12-06 ダウンロード）</li>
-        <li>ライセンス CC-BY 4.0</li></ul></dd>
-      </dl></li>
-      <li><dl>
-        <dt>(4) 住居表示レベル</dt>
-        <dd>国土地理院の<a href="https://www.gsi.go.jp/kihonjohochousa/jukyo_jusho.html">
-        『電子国土基本図（地名情報）「住居表示住所」』</a>サイトから
-        取得したデータより、住居表示住所の住所要素名および座標を
-        抽出しました。<br />
-        <ul><li>2021-02-25 更新版 （2021-03-03 ダウンロード）</li>
-          <li>このデータは、弊社が国土地理院より下記の承認を受けて作成し、提供するものです。
-          「測量法に基づく国土地理院長承認（使用）R 2JHs 1122」</li></ul></dd>
-      </dl></li>
-      <li><dl>
-        <dt>(5) 日本郵便郵便番号データ</dt>
-        <dd>日本郵便が公開している
-          <a href="https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip">
-          「郵便番号データ」</a>より、大字・字レベルの住所要素に対応する
-          郵便番号（7桁コード）を取得し、付与しました。<br />
-        <ul><li>2021-11-30 更新版</li>
-        <li>郵便番号データは「自由に配布」が許可されています。
-        https://www.post.japanpost.jp/zipcode/dl/readme.html</li></ul></dd>
-      </dl></li>
-      <li><dl>
-        <dt>(6) アドレス・ベース・レジストリ</dt>
-        <dd>デジタル庁が公開している
-          <a href="https://registry-catalog.registries.digital.go.jp/dataset/o1-000000_g2-000003">
-          「日本 町字マスター データセット」</a>より、字レベルの住所要素に対応する
-          字ID（7桁コード）を取得し、付与しました。また、
-          <a href="https://registry-catalog.registries.digital.go.jp/dataset/o1-010001_g2-000006">
-          都道府県単位の「町字マスター位置参照拡張 データセット」</a>より、字レベルの
-          座標を取得しました。<br />
-        <ul><li>2022-04-22 公開版 （2022-04-25 ダウンロード）</li>
-          <li><a href="https://www.digital.go.jp/policies/base_registry_address_tos/">利用規約</a></li></ul></dd>
-      </dl></li>
-    </ul>
+{% block content %}
+<h2>出典および元データに関する利用条件</h2>
+<pre>
+{{ readme }}
+</pre>
 
-    <h2>利用条件</h2>
-    <p>このサイトは、jageocoder の性能を確認するためのデモサイトであり、
-    以下のいずれかの目的でのみ利用できるものとします。</p>
-    <ul>
-      <li>jageocoderの性能評価</li>
-      <li>住所と経緯度の変換を主目的としないアプリケーションからの呼び出し
-      （商用・非商用、公開・非公開は問いません）</li>
-    </ul>
+<h2>サイトの利用条件</h2>
+<p>このサイトは、jageocoder の性能を確認するためのデモサイトであり、
+以下のいずれかの目的でのみ利用できるものとします。</p>
+<ul>
+  <li>jageocoderの性能評価</li>
+  <li>住所と経緯度の変換を主目的としないアプリケーションからの呼び出し
+  （商用・非商用、公開・非公開は問いません）</li>
+</ul>
 
-    <h2>免責事項</h2>
-    <p>本サービスは以下の事項を了解の上でご利用ください。</p>
-    <ul>
-      <li>変換結果の正しさを保証しません。</li>
-      <li>利用した結果生じたいかなる不利益・損害に対しても責任を負いません。</li>
-      <li>サーバメンテナンスやデータ更新などのため、無断で停止する場合があります。</li>
-      <li>サーバの負荷が大きすぎる場合、アクセスを制限することがあります。</li>
-    </ul>
+<h2>免責事項</h2>
+<p>本サービスは以下の事項を了解の上でご利用ください。</p>
+<ul>
+  <li>変換結果の正しさを保証しません。</li>
+  <li>利用した結果生じたいかなる不利益・損害に対しても責任を負いません。</li>
+  <li>サーバメンテナンスやデータ更新などのため、無断で停止する場合があります。</li>
+  <li>サーバの負荷が大きすぎる場合、アクセスを制限することがあります。</li>
+</ul>
 
-    <h2>個人情報・プライバシー</h2>
-    <p>本サービスでは、ウェブサーバでアクセスログを記録しています。
-      アクセスログには、クライアントのIPアドレス、時刻、リクエストURLが
-    含まれます。</p>
-    <p>これらのログは不正利用や不具合発生時の原因調査に利用し、
-    それ以外の目的で利用したり第三者に提供することはありません。</p>
+<h2>個人情報・プライバシー</h2>
+<p>本サービスでは、ウェブサーバでアクセスログを記録しています。
+  アクセスログには、クライアントのIPアドレス、時刻、リクエストURLが
+含まれます。</p>
+<p>これらのログは不正利用や不具合発生時の原因調査に利用し、
+それ以外の目的で利用したり第三者に提供することはありません。</p>
 
-    <h2>その他留意事項</h2>
-    <p>多数の住所を連続して経緯度に変換したい場合や、プライバシーに配慮が
-      必要な住所を変換したい場合、サーバが停止しては困る場合などには、
-      <a href="https://github.com/t-sagara/jageocoder">Jageocoder</a> を利用して
-    専用サーバを立ててご利用ください。</p>
+<h2>その他留意事項</h2>
+<p>多数の住所を連続して経緯度に変換したい場合や、プライバシーに配慮が
+  必要な住所を変換したい場合、サーバが停止しては困る場合などには、
+  <a href="https://github.com/t-sagara/jageocoder">Jageocoder</a> を利用して
+専用サーバを立ててご利用ください。</p>
 
-    <h2>お問い合わせ</h2>
-    <p>本サービスに対するお問い合わせは info@info-proto.com までお願いします。</p>
-
-  </body>
-</html>
+<h2>お問い合わせ</h2>
+<p>本サービスに対するお問い合わせは info@info-proto.com までお願いします。</p>
+{% endblock %}
