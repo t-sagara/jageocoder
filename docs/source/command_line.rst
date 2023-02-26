@@ -8,7 +8,7 @@
 
 .. code-block:: console
 
-   (.venv) $ python -m jageocoder -h
+   (.venv) $ jageocoder -h
 
 .. _commandline-geocoding:
 
@@ -44,12 +44,12 @@
    # 「落合１－１５－２」を検索します。
    # 「栃木県下都賀郡壬生町落合一丁目15番2号」と
    # 「広島県広島市安佐北区落合一丁目15番2号」が返ります。
-   (.venv) $ python -m jageocoder search '落合１－１５－２'
+   (.venv) $ jageocoder search '落合１－１５－２'
    {"matched": "落合１－１５－２", "candidates": [{"id": 6894076, "name": "2号", "x": 139.820208258, "y": 36.450565089, "level": 8, "priority": 4, "note": null, "fullname": ["栃木県", "下都賀郡", "壬生町", "落合", "一丁目", "15番", "2号"]}, {"id": 34195069, "name": "2号", "x": 132.510432116, "y": 34.473211622, "level": 8, "priority": 4, "note": null, "fullname": ["広島県", "広島市", "安佐北区", "落合", "一丁目", "15番", "2号"]}]}
 
    # 「落合１－１５－２」を東京都から検索します。
    # 「東京都多摩市落合一丁目15番地」が返ります。
-   (.venv) $ python -m jageocoder search --area=東京都 '落合１－１５－２'
+   (.venv) $ jageocoder search --area=東京都 '落合１－１５－２'
    {"matched": "落合１－１５－", "candidates": [{"id": 12724450, "name": "15番地", "x": 139.428969, "y": 35.625779, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "多摩市", "落合", "一丁目", "15番地"]}]}
 
 .. _commandline-reverse-geocoding:
@@ -90,14 +90,14 @@
    # 経度 139.6917, 緯度 35.6896 の地点付近の住所を検索します。
    # 「東京都新宿区西新宿二丁目」、「東京都新宿区西新宿六丁目」、
    # 「東京都新宿区西新宿四丁目」が返ります。
-   (.venv) $ python -m jageocoder reverse 139.6917 35.6896
+   (.venv) $ jageocoder reverse 139.6917 35.6896
    [{"candidate": {"id": 12977775, "name": "二丁目", "x": 139.691774, "y": 35.68945, "level": 6, "priority": 2, "note": "aza_id:0023002/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "二丁目"]}, "dist": 17.940303970792183}, {"candidate": {"id": 12978643, "name": "六丁目", "x": 139.690969, "y": 35.693426, "level": 6, "priority": 2, "note": "aza_id:0023006/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "六丁目"]}, "dist": 429.6327545403412}, {"candidate": {"id": 12978943, "name": "四丁目", "x": 139.68762, "y": 35.68754, "level": 6, "priority": 2, "note": "aza_id:0023004/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "四丁目"]}, "dist": 434.31591285255234}]
 
    # 経度 139.6917, 緯度 35.6896 の地点付近の住所を
    # 街区（○○番）レベルで検索します。
    # 「東京都新宿区西新宿二丁目8番」、「東京都新宿区西新宿二丁目」、
    # 「東京都新宿区西新宿四丁目15番」が返ります。
-   (.venv) $ python -m jageocoder reverse 139.6917 35.6896 --level=7
+   (.venv) $ jageocoder reverse 139.6917 35.6896 --level=7
    [{"candidate": {"id": 12977785, "name": "8番", "x": 139.691778, "y": 35.689627, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "新宿区", "西新宿", "二丁目", "8番"]}, "dist": 7.669497303543382}, {"candidate": {"id": 12977775, "name": "二丁目", "x": 139.691774, "y": 35.68945, "level": 6, "priority": 2, "note": "aza_id:0023002/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "二丁目"]}, "dist": 17.940303970792183}, {"candidate": {"id": 12979033, "name": "15番", "x": 139.688172, "y": 35.689264, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "新宿区", "西新宿", "四丁目", "15番"]}, "dist": 321.50874020809823}]
 
 .. _commandline-get-db-dir:
@@ -128,7 +128,7 @@
 
 .. code-block:: console
 
-   (.venv) $ python -m jageocoder get-db-dir
+   (.venv) $ jageocoder get-db-dir
    /home/sagara/.local/share/virtualenvs/jageocoder-kWBL7Ve6/jageocoder/db/
 
 .. _commandline-download-dictionary:
@@ -160,7 +160,7 @@
 .. code-block:: console
 
    # 街区レベルまでの住所辞書ファイルをダウンロードします
-   (.venv) $ python -m jageocoder download-dictionary --gaiku
+   (.venv) $ jageocoder download-dictionary --gaiku
    INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/gaiku-20220519.zip to ...
 
 .. _commandline-install-dictionary:
@@ -193,7 +193,7 @@
 .. code-block:: console
 
    # ダウンロード済みの住所辞書ファイルをインストールします
-   (.venv) $ python -m jageocoder install-dictionary gaiku-20220519.zip
+   (.venv) $ jageocoder install-dictionary gaiku-20220519.zip
 
 .. _commandline-uninstall-dictionary:
 
@@ -218,7 +218,7 @@
 .. code-block:: console
 
    # 住所辞書データベースをアンインストールします
-   (.venv) $ python -m jageocoder uninstall-dictionary
+   (.venv) $ jageocoder uninstall-dictionary
    INFO:jageocoder.module:248:Removing directory ...
    INFO:jageocoder.module:251:Dictionary has been uninstalled.
 
@@ -252,4 +252,4 @@
 .. code-block:: console
 
    # 住所辞書データベースをマイグレートします
-   (.venv) $ python -m jageocoder migrate-dictionary
+   (.venv) $ jageocoder migrate-dictionary

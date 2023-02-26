@@ -32,7 +32,7 @@
 
 .. code-block:: console
 
-   (.venv) $ python -m jageocoder download-dictionary
+   (.venv) $ jageocoder download-dictionary
    INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/jusho-20220519.zip to ...
 
 
@@ -43,7 +43,7 @@
 
 .. code-block:: console
 
-   (.venv) $ python -m jageocoder install-dictionary jusho-20220519.zip
+   (.venv) $ jageocoder install-dictionary jusho-20220519.zip
 
 ``jusho-20220519.zip`` はダウンロードしたファイル名に変更してください。
 
@@ -61,7 +61,7 @@ jageocoder をアンインストールする場合、先に辞書データベー
 
 .. code-block:: console
 
-   (.venv) $ python -m jageocoder uninstall-dictionary
+   (.venv) $ jageocoder uninstall-dictionary
 
 その後、 jageocoder パッケージを pip でアンインストールしてください。
 
@@ -84,7 +84,7 @@ jageocoder をアンインストールする場合、先に辞書データベー
 .. code-block:: console
 
    (.venv) $ export JAGEOCODER_DB_DIR=$HOME/jageocoder/db
-   (.venv) $ python -m jageocoder get-db-dir
+   (.venv) $ jageocoder get-db-dir
    /home/sagara/jageocoder/db
 
 ただし jageocoder のバージョンは住所辞書に合わせてください。

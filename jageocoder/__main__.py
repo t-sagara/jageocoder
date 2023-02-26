@@ -87,7 +87,7 @@ def get_download_url(level: Optional[str] = None,
     return url
 
 
-if __name__ == '__main__':
+def main():
     args = docopt(HELP)
 
     if args['--debug']:
@@ -162,3 +162,7 @@ if __name__ == '__main__':
     elif args['migrate-dictionary']:
         jageocoder.migrate_dictionary(
             db_dir=args['--db-dir'])
+
+
+if __name__ == '__main__':
+    main()
