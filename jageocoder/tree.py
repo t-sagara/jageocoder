@@ -1464,3 +1464,33 @@ class AddressTree(object):
             logger.debug("  the index already exists. (ignored)")
 
         self.session.commit()
+
+    def get_prefs(self):
+        """
+        Get list of prefectures in the Database.
+
+        Returns
+        -------
+        List[str]
+            List of prefecture names.
+        """
+        prefs = self.session.query(AddressNode.name).filter(
+            AddressNode.level == 1).all()
+        return [x[0] for x in prefs]
+
+    def get_cities(self):
+        """
+        Get list of cities in the Database.
+
+        Returns
+        -------
+        List[str]
+            List of city names.
+
+        Notes
+        -----
+        The list does not include provinces and words.
+        """
+        cities = self.session.query(AddressNode.name).filter(
+            AddressNode.level == 3).all()
+        return [x[0] for x in cities]
