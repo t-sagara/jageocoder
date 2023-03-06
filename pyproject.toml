@@ -26,6 +26,7 @@ jaconv = "^0.3.4"
 docopt = "^0.6.2"
 geographiclib = "^2.0"
 deprecated = "^1.2.13"
+Werkzeug = ">=2.2.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"

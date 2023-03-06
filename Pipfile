@@ -13,6 +13,7 @@ jageocoder = {editable = true, path = "."}
 deprecated = "*"
 docopt = "*"
 flask-cors = "*"
+Werkzeug = ">=2.2.3"
 
 [dev-packages]
 autopep8 = "*"
