@@ -33,29 +33,29 @@ Examples:
 
 - Search address
 
-  python -m {p} search 多摩市落合1-15
-  python -m {p} search --area=14152 中央1-1
-  python -m {p} search --area=東京都 落合1-15
+  {p} search 多摩市落合1-15
+  {p} search --area=14152 中央1-1
+  {p} search --area=東京都 落合1-15
 
 - Show dictionary directory
 
-  python -m {p} get-db-dir
+  {p} get-db-dir
 
 - Install dictionary
 
   (From web)
-  python -m {p} install-dictionary
+  {p} install-dictionary
 
   (From local zipfile)
-  python -m {p} install-dictionary ~/jusho.zip
+  {p} install-dictionary ~/jusho.zip
 
 - Uninstall dictionary in '/home/foo/jageocoder_db/'
 
-  python -m {p} uninstall-dictionary --db-dir=/home/foo/jagteocoder_db
+  {p} uninstall-dictionary --db-dir=/home/foo/jagteocoder_db
 
 - Migrate dictionary (after upgrading the package)
 
-  python -m {p} migrate-dictionary
+  {p} migrate-dictionary
 """.format(p='jageocoder')
 
 
