@@ -425,6 +425,42 @@ class AddressTree(object):
         for k, v in kwargs.items():
             self._set_config(k, v)
 
+    def validate_config(self, key: str, value: Any) -> NoReturn:
+        """
+        Validate configuration key and parameters.
+
+        Parameters
+        ----------
+        key: str
+            The name of the parameter.
+        value: str, int, bool, None
+            The value to be set to the parameter.
+
+        Notes
+        -----
+        If the key-value pair is not valid, raise RuntimeError.
+        """
+        if key == 'target_area':
+            if value in (None, []):
+                return
+
+            # Check if the value is a name of node in the database.
+            std = self.converter.standardize(value)
+            candidates = self.trie.common_prefixes(std)
+            if std in candidates:
+                trie_node_id = candidates[std]
+                trie_nodes = self.session.query(TrieNode).filter_by(
+                    trie_id=trie_node_id).all()
+                for trie_node in trie_nodes:
+                    if trie_node.node.name == value:
+                        return
+
+            msg = "'{}' is not a valid value for {}.".format(value, key)
+            raise RuntimeError(msg)
+
+        else:
+            return
+
     def _set_config(
             self, key: str,
             value: Any):
@@ -504,6 +540,13 @@ class AddressTree(object):
             else:
                 msg = "The value for '{}' must be a list but {}."
                 raise RuntimeError(msg.format(key, type(value)))
+
+        if not isinstance(value, str) and isinstance(value, list):
+            for v in value:
+                self.validate_config(key, v)
+
+        else:
+            self.validate_config(key, value)
 
         self.config[key] = value
         return value
