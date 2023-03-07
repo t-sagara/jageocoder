@@ -441,7 +441,7 @@ class AddressTree(object):
         If the key-value pair is not valid, raise RuntimeError.
         """
         if key == 'target_area':
-            if value is None:
+            if value in (None, []):
                 return
 
             # Check if the value is a name of node in the database.
