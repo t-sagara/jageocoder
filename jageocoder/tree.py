@@ -423,7 +423,49 @@ class AddressTree(object):
             (such as prefecture name or city name), or JIS code.
         """
         for k, v in kwargs.items():
-            self._set_config(k, v)
+            if self.validate_config(k, v):
+                self._set_config(k, v)
+            else:
+                msg = "'{}' is not a valid value for {}.".format(v, k)
+                raise RuntimeError(msg)
+
+    def validate_config(self, key: str, value: Any) -> bool:
+        """
+        Validate configuration key and parameters.
+
+        Parameters
+        ----------
+        key: str
+            The name of the parameter.
+        value: str, int, bool, None
+            The value to be set to the parameter.
+
+        Returns
+        -------
+        bool
+            Return True if the key-value pair is valid.
+            Otherwise return False.
+        """
+        if key == 'target_area':
+            if value is None:
+                return True
+
+            # Check if the value is a name of node in the database.
+            std = self.converter.standardize(value)
+            candidates = self.trie.common_prefixes(std)
+            if std not in candidates:
+                return False
+            else:
+                trie_node_id = candidates[std]
+                trie_nodes = self.session.query(TrieNode).filter_by(
+                    trie_id=trie_node_id).all()
+                for trie_node in trie_nodes:
+                    if trie_node.node.name == value:
+                        return True
+
+                return False
+        else:
+            return True
 
     def _set_config(
             self, key: str,
@@ -1464,33 +1506,3 @@ class AddressTree(object):
             logger.debug("  the index already exists. (ignored)")
 
         self.session.commit()
-
-    def get_prefs(self):
-        """
-        Get list of prefectures in the Database.
-
-        Returns
-        -------
-        List[str]
-            List of prefecture names.
-        """
-        prefs = self.session.query(AddressNode.name).filter(
-            AddressNode.level == 1).all()
-        return [x[0] for x in prefs]
-
-    def get_cities(self):
-        """
-        Get list of cities in the Database.
-
-        Returns
-        -------
-        List[str]
-            List of city names.
-
-        Notes
-        -----
-        The list does not include provinces and words.
-        """
-        cities = self.session.query(AddressNode.name).filter(
-            AddressNode.level == 3).all()
-        return [x[0] for x in cities]
