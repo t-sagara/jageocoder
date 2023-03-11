@@ -406,7 +406,7 @@ def searchNode(query: str) -> List[Result]:
     >>> jageocoder.init()
     >>> jageocoder.searchNode('多摩市落合1-15-2')
     [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
-    """
+    """  # noqa: E501
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
 

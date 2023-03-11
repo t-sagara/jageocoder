@@ -596,7 +596,7 @@ class AddressNode(Base):
         >>> [str(x) for x in node.get_node_array_by_level()]
         ['None', '[11460206:東京都(139.69164,35.6895)1(jisx0401:13)]', 'None', '[12063501:多摩市(139.446366,35.636959)3(jisx0402:13224)]', 'None',
                                 '[12065382:落合(139.427097,35.624877)5(None)]', '[12065383:一丁目(139.427097,35.624877)6(None)]', '[12065389:15番地(139.428969,35.625779)7(None)]']
-        """
+        """  # noqa: E501
         result = [None] * (self.level + 1)
         cur_node = self
         while cur_node.parent:

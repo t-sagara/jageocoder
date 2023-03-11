@@ -36,7 +36,7 @@ The following packages will be installed automatically.
 
 ```sh
 pip install jageocoder
-python -m jageocoder install-dictionary
+jageocoder install-dictionary
 ```
 
 The dictionary database will be created under
@@ -49,7 +49,7 @@ the dictionary database, perform `get-db-dir` command as follows,
 or call `jageocoder.get_db_dir()` in your script.
 
 ```sh
-python -m jageocoder get-db-dir
+jageocoder get-db-dir
 ```
 
 If you prefer to create it in another location, set the environment
@@ -58,7 +58,7 @@ to specify the directory.
 
 ```sh
 export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
-python -m jageocoder install-dictionary
+install-dictionary
 ```
 
 ## Migrate dictinary
@@ -76,7 +76,7 @@ To migrate the dictionary, run the `migrate-dictionary` command.
 This process may take a long time.
 
 ```sh
-python -m jageocoder migrate-dictionary
+jageocoder migrate-dictionary
 ```
 
 ## Uninstall instructions
@@ -85,7 +85,7 @@ Remove the directory containing the database, or perform
 `uninstall-dictionary` command as follows.
 
 ```sh
-python -m jageocoder uninstall-dictionary
+jageocoder uninstall-dictionary
 ```
 
 Then, uninstall the package with `pip` command.
@@ -103,20 +103,20 @@ as a library and used by calling the API, but for testing purposes,
 you can check the geocoding results with the following command.
 
 ```sh
-python -m jageocoder search 新宿区西新宿２－８－１
+jageocoder search 新宿区西新宿２－８－１
 ```
 
 If you want to look up an address from longitude and latitude,
 specify `reverse` instead of `search`.
 
 ```sh
-python -m jageocoder reverse 139.6917 35.6896
+jageocoder reverse 139.6917 35.6896
 ```
 
 You can check the list of available commands with `--help`.
 
 ```sh
-python -m jageocoder --help
+jageocoder --help
 ```
 
 ## Using API

@@ -40,7 +40,7 @@ jageocoder をインストールすると、以下のパッケージなども
 
 ```sh
 pip install jageocoder
-python -m jageocoder install-dictionary
+jageocoder install-dictionary
 ```
 
 辞書データベースは `{sys.prefix}/jageocoder/db/` の下に
@@ -52,7 +52,7 @@ python -m jageocoder install-dictionary
 `jageocoder.get_db_dir()` メソッドを呼びだしてください。
 
 ```sh
-python -m jageocoder get-db-dir
+jageocoder get-db-dir
 ```
 
 上記以外の任意の場所に作成したい場合、住所辞書をインストールする前に
@@ -60,7 +60,7 @@ python -m jageocoder get-db-dir
 
 ```sh
 export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
-python -m jageocoder install-dictionary
+jageocoder install-dictionary
 ```
 
 ## 辞書のマイグレート
@@ -77,7 +77,7 @@ python -m jageocoder install-dictionary
 この処理には長時間かかることがあります。
 
 ```sh
-python -m jageocoder migrate-dictionary
+jageocoder migrate-dictionary
 ```
 
 ## アンインストール手順
@@ -87,7 +87,7 @@ python -m jageocoder migrate-dictionary
 `uninstall-dictionary` コマンドも利用できます。
 
 ```sh
-python -m jageocoder uninstall-dictionary
+jageocoder uninstall-dictionary
 ```
 
 その後、 jageocoder パッケージを pip でアンインストールしてください。
@@ -105,19 +105,19 @@ API を呼びだして利用することを想定していますが、テスト�
 以下のコマンドでジオコーディング結果を確認できます。
 
 ```sh
-python -m jageocoder search 新宿区西新宿２－８－１
+jageocoder search 新宿区西新宿２－８－１
 ```
 
 経緯度から住所を調べる場合は `reverse` を指定します。
 
 ```sh
-python -m jageocoder reverse 139.6917 35.6896
+jageocoder reverse 139.6917 35.6896
 ```
 
 利用可能なコマンド一覧は `--help` で確認してください。
 
 ```sh
-python -m jageocoder --help
+jageocoder --help
 ```
 
 ## APIを利用する

@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 from typing import Optional
 
 import jageocoder
@@ -33,29 +34,29 @@ Examples:
 
 - Search address
 
-  python -m {p} search 多摩市落合1-15
-  python -m {p} search --area=14152 中央1-1
-  python -m {p} search --area=東京都 落合1-15
+  {p} search 多摩市落合1-15
+  {p} search --area=14152 中央1-1
+  {p} search --area=東京都 落合1-15
 
 - Show dictionary directory
 
-  python -m {p} get-db-dir
+  {p} get-db-dir
 
 - Install dictionary
 
   (From web)
-  python -m {p} install-dictionary
+  {p} install-dictionary
 
   (From local zipfile)
-  python -m {p} install-dictionary ~/jusho.zip
+  {p} install-dictionary ~/jusho.zip
 
 - Uninstall dictionary in '/home/foo/jageocoder_db/'
 
-  python -m {p} uninstall-dictionary --db-dir=/home/foo/jagteocoder_db
+  {p} uninstall-dictionary --db-dir=/home/foo/jagteocoder_db
 
 - Migrate dictionary (after upgrading the package)
 
-  python -m {p} migrate-dictionary
+  {p} migrate-dictionary
 """.format(p='jageocoder')
 
 
@@ -87,7 +88,7 @@ def get_download_url(level: Optional[str] = None,
     return url
 
 
-if __name__ == '__main__':
+def main():
     args = docopt(HELP)
 
     if args['--debug']:
@@ -115,11 +116,17 @@ if __name__ == '__main__':
         elif args['--force-aza-skip']:
             skip_aza = 'on'
 
-        jageocoder.set_search_config(
-            aza_skip=skip_aza, target_area=target_area)
-        print(json.dumps(
-            jageocoder.search(query=args['<address>']),
-            ensure_ascii=False))
+        try:
+            jageocoder.set_search_config(
+                aza_skip=skip_aza, target_area=target_area)
+            print(json.dumps(
+                jageocoder.search(query=args['<address>']),
+                ensure_ascii=False))
+        except RuntimeError:
+            print(
+                "'{}' is incorrect as a parameter for the --area option.".format(
+                    args['--area']),
+                file=sys.stderr)
 
     elif args['reverse']:
         from jageocoder.address import AddressLevel
@@ -162,3 +169,7 @@ if __name__ == '__main__':
     elif args['migrate-dictionary']:
         jageocoder.migrate_dictionary(
             db_dir=args['--db-dir'])
+
+
+if __name__ == '__main__':
+    main()
