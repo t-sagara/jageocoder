@@ -17,6 +17,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
 ]
+include = ["itaiji_dic.json"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
