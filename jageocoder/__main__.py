@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 from typing import Optional
 
 import jageocoder
@@ -115,11 +116,17 @@ def main():
         elif args['--force-aza-skip']:
             skip_aza = 'on'
 
-        jageocoder.set_search_config(
-            aza_skip=skip_aza, target_area=target_area)
-        print(json.dumps(
-            jageocoder.search(query=args['<address>']),
-            ensure_ascii=False))
+        try:
+            jageocoder.set_search_config(
+                aza_skip=skip_aza, target_area=target_area)
+            print(json.dumps(
+                jageocoder.search(query=args['<address>']),
+                ensure_ascii=False))
+        except RuntimeError:
+            print(
+                "'{}' is incorrect as a parameter for the --area option.".format(
+                    args['--area']),
+                file=sys.stderr)
 
     elif args['reverse']:
         from jageocoder.address import AddressLevel

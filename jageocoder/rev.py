@@ -429,10 +429,11 @@ class Reverse(object):
         dx = 0.01 / math.cos(self.y * math.pi / 180.0)
         while len(results) < 10 and dy < 0.1:
             results = []
-            sql = text("SELECT id FROM node_aza"
-                   " WHERE x >= :minx AND x <= :maxx"
-                   " AND y >= :miny AND y <= :maxy"
-                   " ORDER BY level ASC")
+            sql = text(
+                "SELECT id FROM node_aza"
+                " WHERE x >= :minx AND x <= :maxx"
+                " AND y >= :miny AND y <= :maxy"
+                " ORDER BY level ASC")
             res = self.tree.session.execute(
                 sql,
                 {"minx": self.x-dx, "maxx": self.x+dx,

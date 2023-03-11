@@ -577,7 +577,7 @@ class AddressTree(object):
         {'best_only': True, 'target_area': []}
         >>> jageocoder.get_module_tree().get_config()
         {'debug': False, 'aza_skip': 'off', 'best_only': True, 'target_area': [], 'require_coordinates': False}
-        """  # noqa: E401
+        """  # noqa: E501
         if keys is None:
             return self.config
 
@@ -628,7 +628,7 @@ class AddressTree(object):
         3
         >>> base.check_line_format(['北海道','札幌市','中央区','大通','西二十丁目','141.326249','43.057218',6,'01101/ODN-20/'])
         4
-        """
+        """  # noqa: E501
 
         # Find the first consecutive position of a real number or None.
         pos0 = None
@@ -703,7 +703,7 @@ class AddressTree(object):
         [['1;北海道','3;札幌市','4;中央区','5;大通','6;西二十丁目'],141.326249,43.057218,None,'01101/ODN-20/']
         >>> base.parse_line_args(['北海道','札幌市','中央区','大通','西二十丁目','141.326249','43.057218',6,'01101/ODN-20/'], 4)
         [['北海道','札幌市','中央区','大通','西二十丁目'],141.326249,43.057218,6,'01101/ODN-20/']
-        """
+        """  # noqa: E501
 
         def fv(val: str) -> Union[float, None]:
             """
@@ -1003,7 +1003,7 @@ class AddressTree(object):
         try:
             self.session.execute(text("DROP INDEX ix_trienode_trie_id"))
             self.session.commit()
-        except OperationalError as e:
+        except OperationalError as e:  # noqa: F841
             logger.debug("    the index does not exist. (ignored)")
 
         logger.debug("  Adding mapping records...")
@@ -1365,7 +1365,7 @@ class AddressTree(object):
         >>> tree = jageocoder.get_module_tree()
         >>> tree.searchNode('多摩市落合1-15-2')
         [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
-        """
+        """  # noqa: E501
         results = self.search_by_trie(query=query)
         values = sorted(results.values(), reverse=True,
                         key=lambda v: len(v[1]))
