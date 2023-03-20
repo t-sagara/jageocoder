@@ -1149,7 +1149,7 @@ class AddressTree(object):
         """
         self.__not_in_readonly_mode()
         logger.debug("Dropping indexes...")
-        self.session.execute("DROP INDEX ix_node_parent_id")
+        self.session.execute(text("DROP INDEX ix_node_parent_id"))
         logger.debug("  done.")
 
     def create_tree_index(self) -> NoReturn:
@@ -1457,21 +1457,21 @@ class AddressTree(object):
         """
         self.__not_in_readonly_mode()
         logger.info("Creating aza table for reverse geocoding...")
-        sql = ("DROP TABLE IF EXISTS node_aza")
+        sql = text("DROP TABLE IF EXISTS node_aza")
         self.session.execute(sql)
 
-        sql = ("CREATE TABLE node_aza AS"
-               " SELECT id, x, y, level FROM node"
-               " WHERE level IN (:oaza, :aza)")
+        sql = text("CREATE TABLE node_aza AS"
+                   " SELECT id, x, y, level FROM node"
+                   " WHERE level IN (:oaza, :aza)")
         self.session.execute(sql, {
             "oaza": AddressLevel.OAZA,
             "aza": AddressLevel.AZA,
         })
 
-        sql = ("CREATE INDEX idx_node_aza_x ON node_aza (x)")
+        sql = text("CREATE INDEX idx_node_aza_x ON node_aza (x)")
         self.session.execute(sql)
 
-        sql = ("CREATE INDEX idx_node_aza_y ON node_aza (y)")
+        sql = text("CREATE INDEX idx_node_aza_y ON node_aza (y)")
         self.session.execute(sql)
 
     def create_note_index_table(self) -> NoReturn:
@@ -1481,7 +1481,7 @@ class AddressTree(object):
         """
         self.__not_in_readonly_mode()
         logger.info("Creating note-node table...")
-        sql = ("DROP TABLE IF EXISTS {}".format(NoteNode.__table__))
+        sql = text("DROP TABLE IF EXISTS {}".format(NoteNode.__table__))
         self.session.execute(sql)
         Base.metadata.create_all(
             bind=self.engine,
