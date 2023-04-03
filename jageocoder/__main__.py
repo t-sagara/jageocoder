@@ -57,7 +57,7 @@ Examples:
 - Migrate dictionary (after upgrading the package)
 
   {p} migrate-dictionary
-""".format(p='jageocoder')
+""".format(p='jageocoder')  # noqa: E501
 
 
 def get_download_url(level: Optional[str] = None,
@@ -119,13 +119,19 @@ def main():
         try:
             jageocoder.set_search_config(
                 aza_skip=skip_aza, target_area=target_area)
+        except RuntimeError:
+            print((
+                "'{}' is incorrect as a parameter for "
+                "the --area option.").format(args['--area']),
+                file=sys.stderr)
+
+        try:
             print(json.dumps(
                 jageocoder.search(query=args['<address>']),
                 ensure_ascii=False))
-        except RuntimeError:
+        except RuntimeError as e:
             print(
-                "'{}' is incorrect as a parameter for the --area option.".format(
-                    args['--area']),
+                "An error occurred during the search: {}".format(e),
                 file=sys.stderr)
 
     elif args['reverse']:

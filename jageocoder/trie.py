@@ -146,7 +146,9 @@ class AddressTrie(object):
         A dict with a prefix string as key and a TRIE id as value.
         """
         if self.trie is None:
-            raise AddressTrieError('The trie-index is not created.')
+            raise AddressTrieError((
+                "The trie-index is not created."
+                "Try running 'jageocoder migrate-dictinary'"))
 
         results = {}
         for p in self.trie.iter_prefixes(query):

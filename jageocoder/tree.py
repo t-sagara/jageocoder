@@ -135,6 +135,8 @@ class AddressTree(object):
         Settings the search method in this tree.
     """
 
+    ROOT_NODE_ID = 0
+
     def __init__(self,
                  db_dir: Optional[os.PathLike] = None,
                  mode: str = 'a',
@@ -312,11 +314,11 @@ class AddressTree(object):
         # Try to get root from the database
         try:
             self.root = self.session.query(
-                AddressNode).filter_by(id=-1).one()
+                AddressNode).filter_by(id=self.ROOT_NODE_ID).one()
         except NoResultFound:
             # Create a new root
             self.root = AddressNode(
-                id=-1, name="_root_", parent_id=None,
+                id=self.ROOT_NODE_ID, name="_root_", parent_id=None,
                 note=jageocoder.dictionary_version())
 
         return self.root
@@ -912,12 +914,10 @@ class AddressTree(object):
             cur_node = v
             while True:
                 node_prefixes.insert(0, cur_node.name)
-                if cur_node.parent_id < 0:
+                if cur_node.parent_id == self.ROOT_NODE_ID:
                     break
 
                 if cur_node.parent_id not in tmp_id_name_table:
-                    import pdb
-                    pdb.set_trace()
                     raise RuntimeError(
                         ('The parent_id:{} of node:{} is not'.format(
                             cur_node.parent_id, cur_node),
@@ -966,7 +966,7 @@ class AddressTree(object):
 
         # Extend index_table
         for k, v in tmp_id_name_table.items():
-            if v.parent_id == -1:
+            if v.parent_id == self.ROOT_NODE_ID:
                 continue
 
             parent_node = tmp_id_name_table[v.parent_id]

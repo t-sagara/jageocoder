@@ -281,8 +281,8 @@ def migrate_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     # Update the name and trie index
     init(db_dir=db_dir, mode='a')
     global _tree
-    logger.info('Updating name index')
-    _tree.update_name_index()
+    # logger.info('Updating name index')
+    # _tree.update_name_index()
     logger.info('Updating TRIE index {}'.format(_tree.trie_path))
     _tree.create_trie_index()
     logger.info('The dictionary is successfully migrated.')
