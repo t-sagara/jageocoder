@@ -100,8 +100,14 @@ def main():
         print(jageocoder.get_db_dir(mode='r'))
         exit(0)
 
-    logging.basicConfig(format='%(levelname)s:%(name)s:%(lineno)s:%(message)s',
-                        level=log_level)
+    logger = logging.getLogger('jageocoder')
+    logger.setLevel(log_level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(
+        logging.Formatter('%(levelname)s:%(name)s:%(lineno)s:%(message)s')
+    )
+    logger.addHandler(console_handler)
 
     if args['search']:
         jageocoder.init(db_dir=args['--db-dir'], mode='r')

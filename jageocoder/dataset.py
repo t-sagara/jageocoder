@@ -1,13 +1,13 @@
 from logging import getLogger
+from pathlib import Path
 
-from sqlalchemy import Column, SmallInteger, String
+from PortableTab import BaseTable
 
-from jageocoder.base import Base
 
 logger = getLogger(__name__)
 
 
-class Dataset(Base):
+class Dataset(BaseTable):
     """
     Dataset metadata.
 
@@ -24,7 +24,29 @@ class Dataset(Base):
     """
 
     __tablename__ = 'dataset'
+    __schema__ = """
+        struct Dataset {
+            id @0 :UInt8;
+            title @1 :Text;
+            url @2 :Text;
+        }
+        """
+    __record_type__ = "Dataset"
 
-    id = Column(SmallInteger, primary_key=True)
-    title = Column(String, nullable=False, default='')
-    url = Column(String)
+    def __init__(self, db_dir: Path) -> None:
+        super().__init__(db_dir=db_dir)
+        self._map = None
+
+    def load_records(self):
+        self._map = {}
+        for i in range(self.count_records()):
+            record = self.get_record(pos=i, as_dict=True)
+            self._map[record[id]] = record
+
+        self.unload()
+
+    def get(self, id: int) -> dict:
+        if self._map is None:
+            self.load_records()
+
+        return self._map[id]

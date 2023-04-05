@@ -2,7 +2,7 @@ import json
 from logging import getLogger
 import os
 import re
-from typing import Union, List, NoReturn, Optional
+from typing import Union, List, Optional
 
 import jaconv
 
@@ -27,7 +27,7 @@ class Converter(object):
     trans_z2h = None
 
     @classmethod
-    def read_itaiji_table(cls) -> NoReturn:
+    def read_itaiji_table(cls) -> None:
         if cls.trans_itaiji is not None:
             # The table is already prepared.
             return

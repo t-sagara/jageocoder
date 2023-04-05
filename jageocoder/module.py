@@ -1,7 +1,7 @@
 import logging
 import os
 import tempfile
-from typing import Optional, NoReturn, Union, List
+from typing import Optional, Union, List
 import urllib.request
 from urllib.error import URLError
 import zipfile
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def init(db_dir: Optional[os.PathLike] = None,
          mode: Optional[str] = 'r',
          debug: Optional[bool] = False,
-         **kwargs) -> NoReturn:
+         **kwargs) -> None:
     """
     Initialize the module-level AddressTree object `jageocoder.tree`
     ready for use.
@@ -47,7 +47,7 @@ def init(db_dir: Optional[os.PathLike] = None,
     global _tree
 
     if _tree:
-        _tree.close()
+        del _tree
 
     _tree = AddressTree(db_dir=db_dir, mode=mode, debug=debug)
     set_search_config(**kwargs)
@@ -146,7 +146,7 @@ def get_module_tree() -> Union[AddressTree, None]:
     return _tree
 
 
-def download_dictionary(url: str) -> NoReturn:
+def download_dictionary(url: str) -> None:
     """
     Download address-dictionary from the specified url into
     the current directory.
@@ -174,7 +174,7 @@ def download_dictionary(url: str) -> NoReturn:
 
 def install_dictionary(
         path_or_url: os.PathLike,
-        db_dir: Optional[os.PathLike] = None) -> NoReturn:
+        db_dir: Optional[os.PathLike] = None) -> None:
     """
     Install address-dictionary from the specified path or url.
 
@@ -243,7 +243,7 @@ def install_dictionary(
     logger.info('Installation completed.')
 
 
-def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
+def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     """
     Uninstall address-dictionary.
 
@@ -264,7 +264,7 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
     logger.info('Dictionary has been uninstalled.')
 
 
-def migrate_dictionary(db_dir: Optional[os.PathLike] = None) -> NoReturn:
+def migrate_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     """
     Migrate address-dictionary.
 
@@ -430,7 +430,7 @@ def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
     return results
 
 
-def create_trie_index() -> NoReturn:
+def create_trie_index() -> None:
     """
     Create the TRIE index from the database file.
 
