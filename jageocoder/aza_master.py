@@ -263,7 +263,7 @@ class AzaMaster(BaseTable):
     @classmethod
     def standardize_aza_name(cls, names: list) -> str:
         """
-        Convert list of address element in [leve, name] format
+        Convert list of address element in [level, name] format
         into a string with typographical deviations removed.
         """
         converted = ''

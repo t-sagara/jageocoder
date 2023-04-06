@@ -25,7 +25,6 @@ from jageocoder.aza_master import AzaMaster
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import Converter
 from jageocoder.node import AddressNode, AddressNodeTable
-from jageocoder.note import NoteNode
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
 
@@ -367,11 +366,12 @@ class AddressTree(object):
         -------
         List[AddressNode]
         """
+        nodes = []
         pattern = '{}:{}'.format(category, value)
-        node_id_list = self.session.query(NoteNode.node_id).filter(
-            NoteNode.note == pattern).all()
-        nodes = self.session.query(AddressNode).filter(
-            AddressNode.id.in_(x[0] for x in node_id_list)).all()
+        for id in range(self.address_nodes.count_records()):
+            node = self.address_nodes.get_record(pos=id)
+            if pattern in node.note:
+                nodes.add(node)
 
         return nodes
 
