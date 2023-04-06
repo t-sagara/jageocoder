@@ -67,6 +67,15 @@ class AddressNodeTable(BaseTable):
         node.table = self
         return node
 
+    def create_indexes(self) -> None:
+        """
+        Create TRIE index on "name" and "note" columns.
+        """
+        self.create_trie_on("nameIndex")
+        self.create_trie_on(
+            attr="note",
+            func=lambda x: re.split(r"\s*/\s*", x))
+
 
 class AddressNode(object):
     """
@@ -177,28 +186,6 @@ class AddressNode(object):
         self.level = kwargs.get('level')
         self.priority = kwargs.get('priority', 99)
         self.note = kwargs.get('note', None)
-
-    # def add_child(self, child):
-    #     """
-    #     Add a node as a child of this node.
-
-    #     Parameters
-    #     ----------
-    #     child : AddressNode
-    #         The node that will be a child node.
-    #     """
-    #     self.children.append(child)
-
-    # def add_to_parent(self, parent):
-    #     """
-    #     Add this node as a child of an other node.
-
-    #     Parameters
-    #     ----------
-    #     parent : AddressNode
-    #         The node that will be the parent.
-    #     """
-    #     self.parent = parent
 
     def get_parent(self) -> Optional[AddressNode]:
         """
@@ -336,7 +323,7 @@ class AddressNode(object):
         else:
             # If it starts with not a number,
             # look for a node with a maching first letter.
-            substr = index[0:1] + r'.*'
+            substr = re.escape(index[0:1]) + r'.*'
 
         if '字' in optional_prefix:
             max_level = AddressLevel.AZA
@@ -611,10 +598,14 @@ class AddressNode(object):
 
         # self_names = self.get_fullname()
         omissible_index = index
+        count = self.tree.aza_masters.count_records()
         aza_pos = self.tree.aza_masters.binary_search(target_prefix)
         while True:
             if aza_pos < 0:
                 aza_pos = 0
+
+            if aza_pos >= count:
+                break
 
             record = self.tree.aza_masters.get_record(aza_pos)
             if record.code[0:len(target_prefix)] > target_prefix:

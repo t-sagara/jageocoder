@@ -8,20 +8,11 @@ import site
 import sys
 from typing import Any, Union, List, NoReturn, Optional, TextIO
 
-# from PortableTab import CapnpTable
 from deprecated import deprecated
-# from sqlalchemy import Index
-# from sqlalchemy.orm import sessionmaker, Session
-# from sqlalchemy.orm.exc import NoResultFound
-# from sqlalchemy.pool import NullPool
-# from sqlalchemy import create_engine
-# from sqlalchemy.exc import OperationalError
-# from sqlalchemy.sql import text
 
 import jageocoder
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
-# from jageocoder.base import Base
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import Converter
 from jageocoder.node import AddressNode, AddressNodeTable
@@ -368,10 +359,8 @@ class AddressTree(object):
         """
         nodes = []
         pattern = '{}:{}'.format(category, value)
-        for id in range(self.address_nodes.count_records()):
-            node = self.address_nodes.get_record(pos=id)
-            if pattern in node.note:
-                nodes.add(node)
+        nodes = self.address_nodes.search_records_on(
+            attr="note", value=pattern)  # exact match
 
         return nodes
 
@@ -1465,60 +1454,9 @@ class AddressTree(object):
 
         return recovered
 
-    def create_reverse_index(self) -> None:
-        """
-        Create table and index for reverse geocoding.
-        """
-        # self.__not_in_readonly_mode()
-        # logger.info("Creating aza table for reverse geocoding...")
-        # sql = text("DROP TABLE IF EXISTS node_aza")
-        # self.session.execute(sql)
-
-        # sql = text("CREATE TABLE node_aza AS"
-        #            " SELECT id, x, y, level FROM node"
-        #            " WHERE level IN (:oaza, :aza)")
-        # self.session.execute(sql, {
-        #     "oaza": AddressLevel.OAZA,
-        #     "aza": AddressLevel.AZA,
-        # })
-
-        # sql = text("CREATE INDEX idx_node_aza_x ON node_aza (x)")
-        # self.session.execute(sql)
-
-        # sql = text("CREATE INDEX idx_node_aza_y ON node_aza (y)")
-        # self.session.execute(sql)
-
     def create_note_index_table(self) -> None:
         """
         Collect notes from all address elements and create
         search table with index.
         """
-        # self.__not_in_readonly_mode()
-        # logger.info("Creating note-node table...")
-        # sql = text("DROP TABLE IF EXISTS {}".format(NoteNode.__table__))
-        # self.session.execute(sql)
-        # Base.metadata.create_all(
-        #     bind=self.engine,
-        #     tables=[NoteNode.__table__])
-
-        # # Create correspondence records between a note and a node id.
-        # for node in self.session.query(
-        #     AddressNode.id, AddressNode.note).filter(
-        #         AddressNode.note.isnot(None)):
-        #     for note in node.note.split('/'):
-        #         if note == '':
-        #             continue
-
-        #         notenode = NoteNode(node_id=node.id, note=note)
-        #         self.session.add(notenode)
-
-        # logger.debug("  Creating index on notenode.note ...")
-        # notenode_note_index = Index(
-        #     'ix_notenode_note', NoteNode.note)
-        # try:
-        #     notenode_note_index.create(self.engine)
-        # except OperationalError:
-        #     logger.debug("  the index already exists. (ignored)")
-
-        # self.session.commit()
-        logger.debug("Done.")
+        self.address_nodes.create_indexes()

@@ -718,19 +718,22 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "portabletab"
-version = "0.2.0"
+version = "0.3.0rc1"
 description = "Python package for serializing tables in portable format with Capnp."
 category = "main"
 optional = false
-python-versions = ">=3.7,<4.0"
-files = [
-    {file = "portabletab-0.2.0-py3-none-any.whl", hash = "sha256:26c4a3ec08e9af1415917096c1aa6acf7536425139a9c279648638a75ff4b9c8"},
-    {file = "portabletab-0.2.0.tar.gz", hash = "sha256:d5467ce3e730f498f062ee4bd1fd401c6f2cdf1bd88b72f700a223ee446d3af8"},
-]
+python-versions = "^3.7"
+files = []
+develop = true
 
 [package.dependencies]
-docopt = ">=0.6.2,<0.7.0"
-pycapnp = ">=1.3.0,<2.0.0"
+docopt = "^0.6.2"
+marisa-trie = "^0.7.8"
+pycapnp = "^1.3.0"
+
+[package.source]
+type = "directory"
+url = "../PortableTab"
 
 [[package]]
 name = "pycapnp"
@@ -1185,4 +1188,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "8d8fdfda2f67897b2022b6771910e307e8b5ade7e974d3a3d1a3a7439491b7dd"
+content-hash = "c10f2f33ac75a9f584357c3f405d89d2619a9520d9587016dceb6e69b1a1d636"
