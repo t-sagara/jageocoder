@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 from typing import Optional
 
@@ -7,11 +8,12 @@ import jageocoder
 from jageocoder.exceptions import JageocoderError
 from docopt import docopt
 
-HELP = """
+HELP = r"""
 'jageocoder' is a Python package of Japanese-address geocoder.
 
 Usage:
   {p} -h
+  {p} -v
   {p} search [-d] [--area=<area>] [--db-dir=<dir>] [--force-aza-skip|--disable-aza-skip] <address>
   {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] <longitude> <latitude>
   {p} get-db-dir [-d]
@@ -22,6 +24,7 @@ Usage:
 
 Options:
   -h --help           Show this help.
+  -v --version        Show package version.
   -d --debug          Show debug messages.
   --area=<area>       Specify the target area by jiscode or names.
   --force-aza-skip    Skip aza-names whenever possible.
@@ -57,7 +60,7 @@ Examples:
 - Migrate dictionary (after upgrading the package)
 
   {p} migrate-dictionary
-""".format(p='jageocoder')
+""".format(p='jageocoder')  # noqa: E501
 
 
 def get_download_url(level: Optional[str] = None,
@@ -91,6 +94,10 @@ def get_download_url(level: Optional[str] = None,
 def main():
     args = docopt(HELP)
 
+    if args['--version']:
+        print(jageocoder.__version__)
+        exit(0)
+
     if args['--debug']:
         log_level = logging.DEBUG
     else:
@@ -123,6 +130,16 @@ def main():
                 jageocoder.search(query=args['<address>']),
                 ensure_ascii=False))
         except RuntimeError:
+            if args['--area'] is None:
+                db_dir = os.environ.get("JAGEOCODER_DB_DIR")
+                if db_dir is not None:
+                    print((
+                        "In the directory {} specified by the JAGEOCODER_DB_DIR "
+                        "environment variable, ").format(db_dir),
+                        end="")
+
+                print("The dictionary is not installed correctly")
+                exit(0)
             print(
                 "'{}' is incorrect as a parameter for the --area option.".format(
                     args['--area']),

@@ -1,6 +1,6 @@
 from logging import getLogger
 import math
-from typing import List, NoReturn, Optional, Union
+from typing import List, Optional, Union
 
 from geographiclib.geodesic import Geodesic
 from sqlalchemy.sql import text
@@ -13,8 +13,10 @@ logger = getLogger(__name__)
 
 
 def p_contained(
-        p: [float, float], p0: [float, float],
-        p1: [float, float], p2: [float, float]) -> bool:
+        p: List[float, float],
+        p0: List[float, float],
+        p1: List[float, float],
+        p2: List[float, float]) -> bool:
     """
     Determine if the point p is inside the triangle (p0, p1, p2).
 
@@ -49,8 +51,10 @@ def p_contained(
 
 
 def get_circumcircle(
-        p0: [float, float], p1: [float, float],
-        p2: [float, float]) -> [float, float, float]:
+    p0: List[float, float],
+    p1: List[float, float],
+    p2: List[float, float]
+) -> List[float, float, float]:
     """
     Calculate the coordinates and radius of the circumcircle
     of the triangle (p0, p1, p2).
@@ -84,8 +88,11 @@ def get_circumcircle(
 
 
 def p_contained_circumcircle(
-        p: [float, float], p0: [float, float],
-        p1: [float, float], p2: [float, float]) -> bool:
+    p: List[float, float],
+    p0: List[float, float],
+    p1: List[float, float],
+    p2: List[float, float]
+) -> bool:
     """
     Determine if the point p is inside the circumcircle of
     triangle (p0, p1, p2).
@@ -123,7 +130,7 @@ class ReverseCandidate(object):
     def get_dist(self) -> Union[float, None]:
         return self.dist
 
-    def set_dist(self, dist: float) -> NoReturn:
+    def set_dist(self, dist: float) -> None:
         self.dist = dist
 
 
@@ -148,8 +155,10 @@ class Reverse(object):
     tablename = 'node_aza'
     geod = Geodesic.WGS84
 
-    def __init__(self, x: float, y: float,
-                 tree: AddressTree, max_level: Optional[int] = None):
+    def __init__(
+        self, x: float, y: float,
+        tree: AddressTree, max_level: Optional[int] = None
+    ) -> None:
         """
         Initialize.
 
@@ -178,7 +187,7 @@ class Reverse(object):
         self.triangle = None
         self.mbr = None
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Clear the stack of Address Candidates.
         """
@@ -187,7 +196,6 @@ class Reverse(object):
         self.mbr = None
 
     def is_in_circumcircle(self, node: AddressNode) -> bool:
-
         if self.mbr:
             if node.x < self.mbr['minx'] or node.x > self.mbr['maxx'] or\
                     node.y < self.mbr['miny'] or node.y > self.mbr['maxy']:
@@ -204,7 +212,7 @@ class Reverse(object):
 
         return False
 
-    def update_mbr(self) -> NoReturn:
+    def update_mbr(self) -> None:
         x, y, r2 = get_circumcircle(
             [self.triangle[0].x, self.triangle[0].y],
             [self.triangle[1].x, self.triangle[1].y],
@@ -307,7 +315,10 @@ class Reverse(object):
                       "so the node added to the list."))
         return True
 
-    def add_candidate_by_distance(self, cand: ReverseCandidate) -> bool:
+    def add_candidate_by_distance(
+            self,
+            cand: ReverseCandidate
+    ) -> bool:
         """
         Add an address candidate and select top-k nearest neighbors.
 
@@ -341,7 +352,8 @@ class Reverse(object):
     def add_candidate_recursively(
             self,
             seed_node: AddressNode,
-            max_level: Optional[int] = None) -> bool:
+            max_level: Optional[int] = None
+    ) -> bool:
         """
         Add one address node as a candidate, and add its child nodes recursively.
         This method call `add_candidate()` which calls `add_candidate()`
@@ -379,7 +391,8 @@ class Reverse(object):
     def add_candidate_recursively_simple(
             self,
             seed_node: AddressNode,
-            max_level: Optional[int] = None) -> bool:
+            max_level: Optional[int] = None
+    ) -> bool:
         """
         Add one address node as a candidate, and add its child nodes recursively.
 
@@ -447,7 +460,7 @@ class Reverse(object):
 
         return results
 
-    def searchNode(self) -> list:
+    def searchNode(self) -> List[ReverseCandidate]:
         """
         Search address nodes near the target point.
         """
@@ -491,7 +504,7 @@ class Reverse(object):
         results.sort(key=lambda cand: cand.get_dist())
         return results[0:3]
 
-    def search(self) -> list:
+    def search(self) -> List[ReverseCandidate]:
         """
         Search address nodes near the target point,
         and return as dict representations.

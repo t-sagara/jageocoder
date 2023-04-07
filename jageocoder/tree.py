@@ -5,7 +5,7 @@ import os
 import re
 import site
 import sys
-from typing import Any, Union, NoReturn, List, Optional, TextIO
+from typing import Any, Union, List, Optional, TextIO
 
 from deprecated import deprecated
 from sqlalchemy import Index
@@ -168,8 +168,10 @@ class AddressTree(object):
         """
         # Set default values
         self.mode = mode
+        db_dir = db_dir or get_db_dir(mode)
         if db_dir is None:
-            db_dir = get_db_dir(mode)
+            msg = "Dictionary is not installed correctly."
+            raise AddressTreeException(msg)
         else:
             db_dir = os.path.abspath(db_dir)
 
@@ -240,7 +242,7 @@ class AddressTree(object):
         # Itaiji converter
         self.converter = Converter()
 
-    def close(self) -> NoReturn:
+    def close(self) -> None:
         if self.session:
             self.session.close()
 
@@ -265,7 +267,7 @@ class AddressTree(object):
 
         return True
 
-    def __not_in_readonly_mode(self) -> NoReturn:
+    def __not_in_readonly_mode(self) -> None:
         """
         Check if the dictionary is not opened in the read-only mode.
 
@@ -275,7 +277,7 @@ class AddressTree(object):
             raise AddressTreeException(
                 'This method is not available in read-only mode.')
 
-    def __create_db(self) -> NoReturn:
+    def __create_db(self) -> None:
         """
         Create database and tables.
         """
@@ -425,7 +427,7 @@ class AddressTree(object):
         for k, v in kwargs.items():
             self._set_config(k, v)
 
-    def validate_config(self, key: str, value: Any) -> NoReturn:
+    def validate_config(self, key: str, value: Any) -> None:
         """
         Validate configuration key and parameters.
 
@@ -866,7 +868,7 @@ class AddressTree(object):
 
         return diffs
 
-    def create_trie_index(self) -> NoReturn:
+    def create_trie_index(self) -> None:
         """
         Create the TRIE index from the tree.
         """
@@ -882,7 +884,7 @@ class AddressTree(object):
 
         self._set_index_table()
 
-    def _get_index_table(self) -> NoReturn:
+    def _get_index_table(self) -> None:
         """
         Collect the names of all address elements
         to be registered in the TRIE index.
@@ -948,7 +950,7 @@ class AddressTree(object):
 
         # self.session.commit()
 
-    def _extend_index_table(self) -> NoReturn:
+    def _extend_index_table(self) -> None:
         """
         Expand the index, including support for omission of county names.
         """
@@ -986,7 +988,7 @@ class AddressTree(object):
 
         # self.session.commit()
 
-    def _set_index_table(self) -> NoReturn:
+    def _set_index_table(self) -> None:
         """
         Map all the id of the TRIE index (TRIE id) to the node id.
 
@@ -1026,7 +1028,7 @@ class AddressTree(object):
 
         logger.debug("  done.")
 
-    def save_all(self) -> NoReturn:
+    def save_all(self) -> None:
         """
         Save all AddressNode in the tree to the database.
         """
@@ -1037,7 +1039,7 @@ class AddressTree(object):
         logger.debug("Finished save tree.")
 
     def read_file(self, path: os.PathLike,
-                  do_update: bool = False) -> NoReturn:
+                  do_update: bool = False) -> None:
         """
         Add AddressNodes from a text file.
         See 'data/test.txt' for the format of the text file.
@@ -1059,7 +1061,7 @@ class AddressTree(object):
             self.read_stream(f, do_update=do_update)
 
     def read_stream(self, fp: TextIO,
-                    do_update: bool = False) -> NoReturn:
+                    do_update: bool = False) -> None:
         """
         Add AddressNodes to the tree from a stream.
 
@@ -1141,7 +1143,7 @@ class AddressTree(object):
 
         logger.debug("Done.")
 
-    def drop_indexes(self) -> NoReturn:
+    def drop_indexes(self) -> None:
         """
         Drop indexes to improve the speed of bulk insertion.
         - ix_node_parent_id ON node (parent_id)
@@ -1152,7 +1154,7 @@ class AddressTree(object):
         self.session.execute(text("DROP INDEX ix_node_parent_id"))
         logger.debug("  done.")
 
-    def create_tree_index(self) -> NoReturn:
+    def create_tree_index(self) -> None:
         """
         Add index later that were not initially defined.
         - ix_node_parent_id ON node (parent_id)
@@ -1451,7 +1453,7 @@ class AddressTree(object):
 
         return recovered
 
-    def create_reverse_index(self) -> NoReturn:
+    def create_reverse_index(self) -> None:
         """
         Create table and index for reverse geocoding.
         """
@@ -1474,7 +1476,7 @@ class AddressTree(object):
         sql = text("CREATE INDEX idx_node_aza_y ON node_aza (y)")
         self.session.execute(sql)
 
-    def create_note_index_table(self) -> NoReturn:
+    def create_note_index_table(self) -> None:
         """
         Collect notes from all address elements and create
         search table with index.
