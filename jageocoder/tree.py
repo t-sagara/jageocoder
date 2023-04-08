@@ -899,10 +899,18 @@ class AddressTree(object):
             node = self.address_nodes.get_record(pos=pos)
             if node.level <= AddressLevel.OAZA:
                 tmp_id_name_table[node.id] = node
-                pos += 1
+                if node.level < AddressLevel.OAZA:
+                    pos += 1
+                else:
+                    pos = node.sibling_id
+
             else:
                 parent = self.address_nodes.get_record(pos=node.parent_id)
-                pos = parent.sibling_id
+                if parent.level < AddressLevel.OAZA:
+                    pos += 1
+                else:
+                    pos = parent.sibling_id
+
                 continue
 
         logger.debug("  {} records found.".format(
@@ -1270,6 +1278,7 @@ class AddressTree(object):
                 logger.debug("Search '{}' under {}({})".format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
+                    tree=self,
                     index=rest_index,
                     processed_nodes=processed_nodes)
                 processed_nodes.append(node_id)
@@ -1314,7 +1323,6 @@ class AddressTree(object):
                         else:
                             min_part = min(min_part, _part)
 
-        logger.debug(AddressNode.search_child_with_criteria.cache_info())
         return results
 
     def get_address_node(self, id: int) -> AddressNode:
@@ -1460,3 +1468,9 @@ class AddressTree(object):
         search table with index.
         """
         self.address_nodes.create_indexes()
+
+    def get_cache_info(self) -> dict:
+        cache_info = {
+            "get_record": AddressNodeTable.get_record.cache_info(),
+        }
+        return cache_info

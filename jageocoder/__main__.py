@@ -12,6 +12,7 @@ HELP = """
 
 Usage:
   {p} -h
+  {p} -v
   {p} search [-d] [--area=<area>] [--db-dir=<dir>] [--force-aza-skip|--disable-aza-skip] <address>
   {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] <longitude> <latitude>
   {p} get-db-dir [-d]
@@ -22,6 +23,7 @@ Usage:
 
 Options:
   -h --help           Show this help.
+  -v --version        Show version number.
   -d --debug          Show debug messages.
   --area=<area>       Specify the target area by jiscode or names.
   --force-aza-skip    Skip aza-names whenever possible.
@@ -90,6 +92,10 @@ def get_download_url(level: Optional[str] = None,
 
 def main():
     args = docopt(HELP)
+
+    if args['--version']:
+        print(jageocoder.__version__)
+        exit(0)
 
     if args['--debug']:
         log_level = logging.DEBUG
