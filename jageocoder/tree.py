@@ -43,20 +43,20 @@ def get_db_dir(mode: str = 'r') -> Optional[Path]:
     -----
     This method searches a directory in the following order of priority.
     - 'JAGEOCODER_DB_DIR' environment variable
-    - '(sys.prefix)/jageocoder/db/'
-    - '(site.USER_BASE)/jageocoder/db/'
+    - '(sys.prefix)/jageocoder/db2/'
+    - '(site.USER_BASE)/jageocoder/db2/'
     """
     if mode not in ('a', 'w', 'r'):
         raise AddressTreeException(
             'Invalid mode value. Specify one of "a", "w", or "r".')
 
     db_dirs: List[Path] = []
-    if 'JAGEOCODER_DB_DIR' in os.environ:
-        db_dirs.append(Path(os.environ['JAGEOCODER_DB_DIR']))
+    if 'JAGEOCODER_DB2_DIR' in os.environ:
+        db_dirs.append(Path(os.environ['JAGEOCODER_DB2_DIR']))
 
     db_dirs += [
-        Path(sys.prefix) / 'jageocoder/db/',
-        Path(site.USER_BASE) / 'jageocoder/db/',
+        Path(sys.prefix) / 'jageocoder/db2/',
+        Path(site.USER_BASE) / 'jageocoder/db2/',
     ]
 
     for db_dir in db_dirs:

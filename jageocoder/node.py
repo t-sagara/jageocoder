@@ -629,7 +629,8 @@ class AddressNode(object):
 
         for id in processed_nodes or []:
             node = self.table.get_record(pos=id)
-            if node.parent_id == self.parent_id:
+            if node.parent_id == self.parent_id and \
+                    node.name_index != self.name_index:
                 logger.debug((
                     "Can't skip substring after '{}', "
                     "a sibling node {} had been selected").format(
