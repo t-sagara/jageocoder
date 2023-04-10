@@ -309,7 +309,7 @@ class AddressNode(object):
         require_coordinates: bool [False]
             If set to True, the child node must have valid coordinates.
         """
-        logger.debug(f"Searching children unider '{self.name}'({self.id})")
+        logger.debug(f"Searching '{pattern}' under '{self.name}'({self.id})")
         logger.debug(f"  cond.1: name_index match '{pattern}'")
         if max_level is not None:
             logger.debug(f"  cond.2: level <= {max_level}")
@@ -319,19 +319,52 @@ class AddressNode(object):
 
         re_pattern = re.compile(pattern)
         address_node = self.table.get_record(pos=self.id)
-        next_pos = self.id + 1
         children = []
+
+        if self.sibling_id == self.id + 1:  # No child
+            return []
+
+        # Find the range of IDs of nodes that satisfy the condition
+        lb: int = self.id + 1  # lower bound
+        if min_candidate is None:
+            next_pos = self.id + 1
+        else:
+            # Use binary search
+            ub: int = address_node.sibling_id  # upper bound
+            cp: int = 0
+            candidate: AddressNode = None
+            while candidate is None or \
+                    ub > self.table.get_record(pos=lb).sibling_id:
+                cp = int((lb + ub) / 2)  # current position
+                candidate = self.table.get_record(pos=cp)
+                if candidate.parent_id != self.id:
+                    while candidate.parent_id != self.id:
+                        cp = candidate.parent_id
+                        candidate = self.table.get_record(pos=cp)
+
+                    if cp == lb:
+                        cp = candidate.sibling_id
+                        candidate = self.table.get_record(pos=cp)
+
+                if candidate.name_index < min_candidate:
+                    lb = cp
+                else:
+                    ub = cp
+
+            next_pos = lb
+
+        # Scan all records in the range
         while next_pos < address_node.sibling_id:
             candidate = self.table.get_record(pos=next_pos)
-            if candidate.parent_id != self.id:
-                parent = self.table.get_record(pos=candidate.parent_id)
-                next_pos = parent.sibling_id
-                continue
+            # if candidate.parent_id != self.id:
+            #     parent = self.table.get_record(pos=candidate.parent_id)
+            #     next_pos = parent.sibling_id
+            #     continue
 
-            if min_candidate is not None and \
-                    candidate.name_index < min_candidate:
-                next_pos = candidate.sibling_id
-                continue
+            # if min_candidate is not None and \
+            #         candidate.name_index < min_candidate:
+            #     next_pos = candidate.sibling_id
+            #     continue
 
             if gt_candidate is not None and \
                     candidate.name_index >= gt_candidate:
