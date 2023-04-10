@@ -347,7 +347,7 @@ class AddressNode(object):
         # Find the range of IDs of nodes that satisfy the condition
         lb: int = self.id + 1  # lower bound
         if min_candidate is None:
-            next_pos = self.id + 1
+            next_pos = self.id
         else:
             # Use binary search
             ub: int = address_node.sibling_id  # upper bound
@@ -362,7 +362,7 @@ class AddressNode(object):
                         cp = candidate.parent_id
                         candidate = self.table.get_record(pos=cp)
 
-                    if cp == lb:
+                    if cp == lb and candidate.sibling_id < ub:
                         cp = candidate.sibling_id
                         candidate = self.table.get_record(pos=cp)
 
