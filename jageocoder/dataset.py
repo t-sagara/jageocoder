@@ -41,7 +41,7 @@ class Dataset(BaseTable):
         self._map = {}
         for i in range(self.count_records()):
             record = self.get_record(pos=i, as_dict=True)
-            self._map[record[id]] = record
+            self._map[record["id"]] = record
 
         self.unload()
 

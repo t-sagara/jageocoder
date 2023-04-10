@@ -5,8 +5,6 @@ import re
 from flask_cors import cross_origin
 from flask import Flask, request, render_template, jsonify
 
-from jageocoder.address import AddressLevel
-from jageocoder.aza_master import AzaMaster
 import jageocoder
 
 jageocoder.init()
@@ -49,9 +47,8 @@ def index():
 
 @app.route("/azamaster/<code>", methods=['POST', 'GET'])
 def get_aza(code):
-    aza_node = AzaMaster.search_by_code(
-        code,
-        jageocoder.get_module_tree().session)
+    tree = jageocoder.get_module_tree()
+    aza_node = tree.aza_masters.search_by_code(code)
 
     if aza_node:
         names = json.loads(aza_node.names)
@@ -59,85 +56,98 @@ def get_aza(code):
         names = None
 
     return render_template(
-        'aza.html', aza=aza_node, names=names)
+        'aza.html',
+        tree=tree,
+        aza=aza_node, names=names)
 
 
 @app.route("/aza/<aza_id>", methods=['POST', 'GET'])
 def search_aza_id(aza_id):
-
+    tree = jageocoder.get_module_tree()
     if len(aza_id) == 12:
         # jisx0402(5digits) + aza_id(7digits)
-        candidates = jageocoder.get_module_tree().search_nodes_by_codes(
+        candidates = tree.search_nodes_by_codes(
             category="aza_id",
             value=aza_id[-7:])
         nodes = [x for x in candidates if x.get_city_jiscode() == aza_id[0:5]]
     elif len(aza_id) == 13:
         # lasdec(6digits) + aza_id(7digits)
-        candidates = jageocoder.get_module_tree().search_nodes_by_codes(
+        candidates = tree.search_nodes_by_codes(
             category="aza_id",
             value=aza_id[-7:])
         nodes = [x for x in candidates
                  if x.get_city_local_authority_code() == aza_id[0:6]]
     else:
-        nodes = jageocoder.get_module_tree().search_nodes_by_codes(
+        nodes = tree.search_nodes_by_codes(
             category="aza_id",
             value=aza_id)
 
     if len(nodes) == 1:
         return render_template(
             'node.html',
+            tree=tree,
             node=nodes[0])
 
     return render_template(
         'node_list.html',
+        tree=tree,
         nodes=nodes)
 
 
 @app.route("/jisx0401/<code>", methods=['POST', 'GET'])
 def search_jisx0401(code):
-    nodes = jageocoder.get_module_tree().search_nodes_by_codes(
+    tree = jageocoder.get_module_tree()
+    nodes = tree.search_nodes_by_codes(
         category="jisx0401",
         value=code[0:2])
 
     if len(nodes) == 1:
         return render_template(
             'node.html',
+            tree=tree,
             node=nodes[0])
 
     return render_template(
         'node_list.html',
+        tree=tree,
         nodes=nodes)
 
 
 @app.route("/jisx0402/<code>", methods=['POST', 'GET'])
 def search_jisx0402(code):
-    nodes = jageocoder.get_module_tree().search_nodes_by_codes(
+    tree = jageocoder.get_module_tree()
+    nodes = tree.search_nodes_by_codes(
         category="jisx0402",
         value=code[0:5])
 
     if len(nodes) == 1:
         return render_template(
             'node.html',
+            tree=tree,
             node=nodes[0])
 
     return render_template(
         'node_list.html',
+        tree=tree,
         nodes=nodes)
 
 
 @app.route("/postcode/<code>", methods=['POST', 'GET'])
 def search_postcode(code):
-    nodes = jageocoder.get_module_tree().search_nodes_by_codes(
+    tree = jageocoder.get_module_tree()
+    nodes = tree.search_nodes_by_codes(
         category="postcode",
         value=code[0:7])
 
     if len(nodes) == 1:
         return render_template(
             'node.html',
+            tree=tree,
             node=nodes[0])
 
     return render_template(
         'node_list.html',
+        tree=tree,
         nodes=nodes)
 
 
@@ -177,7 +187,8 @@ def search():
 
 @app.route("/node/<id>", methods=['POST', 'GET'])
 def show_node(id):
-    node = jageocoder.get_module_tree().get_node_by_id(id)
+    tree = jageocoder.get_module_tree()
+    node = tree.get_node_by_id(int(id))
     query = request.args.get('q', '')
     area = request.args.get('area', '')
     skip_aza = request.args.get('skip_aza', 'auto')
@@ -187,6 +198,7 @@ def show_node(id):
         skip_aza=skip_aza,
         area=area,
         q=query,
+        tree=tree,
         node=node)
 
 
@@ -215,6 +227,7 @@ def geocode():
     return jsonify([x.as_dict() for x in results]), 200
 
 
+"""
 @app.route("/rgeocode", methods=['POST', 'GET'])
 @cross_origin()
 def reverse_geocode():
@@ -236,3 +249,4 @@ def reverse_geocode():
         return "'lat' and 'lon' are required.", 400
 
     return jsonify(results), 200
+"""

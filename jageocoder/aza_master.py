@@ -334,9 +334,9 @@ class AzaMaster(BaseTable):
             # lasdec(6digits) + aza_id(7digits)
             code = code[0:5] + code[6:]
 
-        record = self.get_record(self.binary_search(code=code))
-        if record.code == code:
-            return record
+        for record in self.search_records_on(attr="code", value=code):
+            if record.code == code:
+                return record
 
         logger.debug("'{}' is not in the aza_master table.".format(code))
         return None

@@ -335,7 +335,7 @@ class AddressTree(object):
         ------
         AddressNode
         """
-        return self.session.get(AddressNode, node_id)
+        return self.address_nodes.get_record(node_id)
 
     def search_nodes_by_codes(
             self,

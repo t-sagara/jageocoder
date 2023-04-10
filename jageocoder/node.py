@@ -2,6 +2,7 @@ from __future__ import annotations
 from functools import lru_cache
 import json
 import logging
+import os
 import re
 from typing import List, Optional, TYPE_CHECKING
 
@@ -13,7 +14,7 @@ from PortableTab import BaseTable
 
 from jageocoder.address import AddressLevel
 # from jageocoder.base import Base, get_session
-# from jageocoder.dataset import Dataset
+from jageocoder.dataset import Dataset
 from jageocoder.itaiji import Converter
 from jageocoder.result import Result
 from jageocoder.strlib import strlib
@@ -46,6 +47,10 @@ class AddressNodeTable(BaseTable):
         }
         """
     __record_type__ = "AddressNode"
+
+    def __init__(self, db_dir: os.PathLike) -> None:
+        super().__init__(db_dir=db_dir)
+        self.datasets = Dataset(db_dir=db_dir)
 
     @lru_cache(maxsize=1024)
     def get_record(self, pos: int) -> AddressNode:
@@ -151,6 +156,13 @@ class AddressNode(object):
         # Set relations
         self.table = None
 
+    @property
+    def dataset(self):
+        """
+        Get dataset record.
+        """
+        return self.table.datasets.get(id=self.priority)
+
     @classmethod
     def from_record(cls, record) -> AddressNode:
         """
@@ -213,6 +225,10 @@ class AddressNode(object):
         self.priority = kwargs.get('priority', 99)
         self.note = kwargs.get('note', None)
 
+    @property
+    def parent(self) -> Optional[AddressNode]:
+        return self.get_parent()
+
     def get_parent(self) -> Optional[AddressNode]:
         """
         Get the parent node.
@@ -262,6 +278,10 @@ class AddressNode(object):
             next_pos = candidate.siblingId
 
         return None
+
+    @property
+    def children(self) -> List[AddressNode]:
+        return self.get_children()
 
     def get_children(self) -> List[AddressNode]:
         """
@@ -505,6 +525,7 @@ class AddressNode(object):
                 rest_index = index[offset:]
                 logger.debug(
                     "child:{} match {} chars".format(child, offset))
+                processed_nodes.append(child.id)
                 for cand in child.search_recursive(
                         tree=tree,
                         index=rest_index,
