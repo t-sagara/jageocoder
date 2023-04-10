@@ -6,14 +6,9 @@ import os
 import re
 from typing import List, Optional, TYPE_CHECKING
 
-# from sqlalchemy import Column, Float, ForeignKey, Integer, SmallInteger, String, Text
-# from sqlalchemy import or_
-# from sqlalchemy.orm import deferred
-# from sqlalchemy.orm import backref, relationship
 from PortableTab import BaseTable
 
 from jageocoder.address import AddressLevel
-# from jageocoder.base import Base, get_session
 from jageocoder.dataset import Dataset
 from jageocoder.itaiji import Converter
 from jageocoder.result import Result
@@ -376,15 +371,6 @@ class AddressNode(object):
         # Scan all records in the range
         while next_pos < address_node.sibling_id:
             candidate = self.table.get_record(pos=next_pos)
-            # if candidate.parent_id != self.id:
-            #     parent = self.table.get_record(pos=candidate.parent_id)
-            #     next_pos = parent.sibling_id
-            #     continue
-
-            # if min_candidate is not None and \
-            #         candidate.name_index < min_candidate:
-            #     next_pos = candidate.sibling_id
-            #     continue
 
             if gt_candidate is not None and \
                     candidate.name_index >= gt_candidate:

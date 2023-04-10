@@ -192,16 +192,6 @@ class AddressTree(object):
             if os.path.exists(self.trie_path):
                 os.remove(self.trie_path)
 
-        # Database connection
-        # self.engine = create_engine(
-        #     self.dsn, echo=self.debug,
-        #     connect_args={'check_same_thread': False},
-        #     poolclass=NullPool)
-        # self.conn = self.engine.connect()
-        # _session = sessionmaker()
-        # _session.configure(bind=self.engine)
-        # self.session = _session()
-
         self.root = None
         self.trie = AddressTrie(self.trie_path)
 
@@ -209,16 +199,6 @@ class AddressTree(object):
         self.re_float = re.compile(r'^\-?\d+\.?\d*$')
         self.re_int = re.compile(r'^\-?\d+$')
         self.re_address = re.compile(r'^(\d+);(.*)$')
-
-        # Check database version
-        # if self.mode == 'w':
-        #     self.__create_db()
-
-        # db_version = self.get_version()
-        # if not self.is_version_compatible():
-        #     logger.warning((
-        #         "The database ({}) is not compatible with the module ({})."
-        #     ).format(db_version, jageocoder.dictionary_version()))
 
         # Set default settings
         self.config = {
@@ -268,27 +248,6 @@ class AddressTree(object):
         if self.mode == 'r':
             raise AddressTreeException(
                 'This method is not available in read-only mode.')
-
-    # def __create_db(self) -> None:
-    #     """
-    #     Create database and tables.
-    #     """
-    #     self.__not_in_readonly_mode()
-    #     Base.metadata.create_all(self.engine)
-    #     root = self.get_root()
-    #     root.save_recursive(self.session)
-    #     self.session.commit()
-
-    # def get_session(self) -> Session:
-    #     """
-    #     Get the database session.
-
-    #     Returns
-    #     -------
-    #     sqlalchemy.orm.Session:
-    #         The current session object.
-    #     """
-    #     return self.session
 
     def get_root(self) -> AddressNode:
         """
@@ -1135,33 +1094,6 @@ class AddressTree(object):
             self.session.commit()
 
         logger.debug("Done.")
-
-    def drop_indexes(self) -> None:
-        """
-        Drop indexes to improve the speed of bulk insertion.
-        - ix_node_parent_id ON node (parent_id)
-        - ix_trienode_trie_id ON trienode (trie_id)
-        """
-        # self.__not_in_readonly_mode()
-        # logger.debug("Dropping indexes...")
-        # self.session.execute(text("DROP INDEX ix_node_parent_id"))
-        logger.debug("  done.")
-
-    def create_tree_index(self) -> None:
-        """
-        Add index later that were not initially defined.
-        - ix_node_parent_id ON node (parent_id)
-        """
-        # self.__not_in_readonly_mode()
-        # logger.debug("Creating index on node.parent_id ...")
-        # node_parent_id_index = Index(
-        #     'ix_node_parent_id', AddressNode.parent_id)
-        # try:
-        #     node_parent_id_index.create(self.engine)
-        # except OperationalError:
-        #     logger.warning("  the index already exists. (ignored)")
-
-        logger.debug("  done.")
 
     def search_by_tree(self, address_names: List[str]) -> AddressNode:
         """
