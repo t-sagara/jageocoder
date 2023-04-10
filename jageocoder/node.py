@@ -117,6 +117,7 @@ class AddressNode(object):
             self,
             id: Optional[int] = None,
             name: Optional[str] = None,
+            name_index: Optional[str] = None,
             x: Optional[float] = None,
             y: Optional[float] = None,
             level: Optional[int] = None,
@@ -134,6 +135,7 @@ class AddressNode(object):
         # Set basic attributes
         self.id = id
         self.name = name
+        self.name_index = name_index
         self.x = x
         self.y = y
         self.level = level
@@ -143,16 +145,24 @@ class AddressNode(object):
         self.sibling_id = sibling_id
 
         # For indexing
-        self.name_index = default_itaiji_converter.standardize(self.name)
+        if self.name_index is None:
+            self.name_index = default_itaiji_converter.standardize(self.name)
 
         # Set relations
         self.table = None
 
     @classmethod
     def from_record(cls, record) -> AddressNode:
+        """
+        East: 153°59'12″
+        West: 122°55'57″
+        South: 20°25'31″
+        North: 45°33'26″
+        """
         return AddressNode(
             id=record.id,
             name=record.name,
+            name_index=record.nameIndex,
             x=record.x,
             y=record.y,
             level=record.level,
@@ -161,6 +171,23 @@ class AddressNode(object):
             parent_id=record.parentId,
             sibling_id=record.siblingId,
         )
+
+    def to_record(self):
+        x = float(self.x or 999.9)
+        y = float(self.y or 999.9)
+
+        return {
+            "id": int(self.id),
+            "name": str(self.name or ""),
+            "nameIndex": str(self.name_index or ""),
+            "x": x if x <= 180.0 and x >= -180.0 else 999.9,
+            "y": y if y <= 90.0 and y >= -90.0 else 999.9,
+            "level": int(self.level or 0),
+            "priority": int(self.priority or 0),
+            "note": str(self.note or ""),
+            "parentId": int(self.parent_id or 0),
+            "siblingId": int(self.sibling_id or 0),
+        }
 
     @classmethod
     def root(cls) -> AddressNode:
