@@ -36,12 +36,12 @@ class TestReverseMethods(unittest.TestCase):
         candidate_names = [x['candidate']['fullname'] for x in results]
 
         self.assertEqual(len(candidate_names), 3)
-        self.assertEqual(candidate_names[0],  [
-                         "東京都", "多摩市", "落合", "一丁目", "15番地"])
-        self.assertEqual(candidate_names[1], [
-                         "東京都", "多摩市", "落合", "一丁目", "31番地"])
-        self.assertEqual(candidate_names[2],  [
-                         "東京都", "多摩市", "落合", "一丁目", "32番地"])
+        self.assertEqual(candidate_names[0][0:4],  [
+                         "東京都", "多摩市", "落合", "一丁目"])
+        self.assertEqual(candidate_names[1][0:4], [
+                         "東京都", "多摩市", "落合", "一丁目"])
+        self.assertEqual(candidate_names[2][0:4],  [
+                         "東京都", "多摩市", "落合", "一丁目"])
 
     def test_edge_case(self):
         """

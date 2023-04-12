@@ -1,6 +1,6 @@
 from logging import getLogger
 import math
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from geographiclib.geodesic import Geodesic
 from sqlalchemy.sql import text
@@ -13,10 +13,10 @@ logger = getLogger(__name__)
 
 
 def p_contained(
-        p: List[float, float],
-        p0: List[float, float],
-        p1: List[float, float],
-        p2: List[float, float]) -> bool:
+        p: Tuple[float, float],
+        p0: Tuple[float, float],
+        p1: Tuple[float, float],
+        p2: Tuple[float, float]) -> bool:
     """
     Determine if the point p is inside the triangle (p0, p1, p2).
 
@@ -51,10 +51,10 @@ def p_contained(
 
 
 def get_circumcircle(
-    p0: List[float, float],
-    p1: List[float, float],
-    p2: List[float, float]
-) -> List[float, float, float]:
+    p0: Tuple[float, float],
+    p1: Tuple[float, float],
+    p2: Tuple[float, float]
+) -> Tuple[float, float, float]:
     """
     Calculate the coordinates and radius of the circumcircle
     of the triangle (p0, p1, p2).
@@ -88,10 +88,10 @@ def get_circumcircle(
 
 
 def p_contained_circumcircle(
-    p: List[float, float],
-    p0: List[float, float],
-    p1: List[float, float],
-    p2: List[float, float]
+    p: Tuple[float, float],
+    p0: Tuple[float, float],
+    p1: Tuple[float, float],
+    p2: Tuple[float, float]
 ) -> bool:
     """
     Determine if the point p is inside the circumcircle of
