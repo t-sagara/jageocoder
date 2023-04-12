@@ -1,8 +1,9 @@
+from __future__ import annotations
 from functools import lru_cache
 import json
 import logging
 import re
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from sqlalchemy import Column, Float, ForeignKey, Integer, SmallInteger, String, Text
 from sqlalchemy import or_
@@ -17,6 +18,8 @@ from jageocoder.itaiji import Converter
 from jageocoder.result import Result
 from jageocoder.strlib import strlib
 
+if TYPE_CHECKING:
+    from jageocoder.tree import AddressTree
 
 logger = logging.getLogger(__name__)
 default_itaiji_converter = Converter()  # With default settings
@@ -167,7 +170,7 @@ class AddressNode(Base):
         return filtered_children
 
     def search_recursive(
-        self, index: str, tree: 'AddressTree',  # noqa
+        self, index: str, tree: AddressTree,  # noqa
         processed_nodes: Optional[List['AddressNode']] = None
     ) -> List[Result]:
         """
@@ -348,7 +351,7 @@ class AddressNode(Base):
     def _get_candidates_from_child(
             self, child: 'AddressNode',
             index: str, optional_prefix: str,
-            tree: 'AddressTree',  # noqa
+            tree: AddressTree,  # noqa
             processed_nodes: List['AddressNode']) -> list:
         """
         Get candidates from the child.
@@ -423,7 +426,7 @@ class AddressNode(Base):
     def get_omissible_index(
             self,
             index: str,
-            tree: 'AddressTree',  # noqa
+            tree: AddressTree,  # noqa
             processed_nodes: List['AddressNode']) -> str:
         """
         Obtains an optional leading substring from the search string index.
