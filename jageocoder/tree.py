@@ -8,7 +8,6 @@ import sys
 from typing import Any, Union, List, Optional, TextIO
 
 from deprecated import deprecated
-from sqlalchemy import Index
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.pool import NullPool
@@ -1018,10 +1017,10 @@ class AddressTree(object):
         self.session.commit()
 
         logger.debug("  Creating index on trienode.trie_id ...")
-        trienode_trie_id_index = Index(
-            'ix_trienode_trie_id', TrieNode.trie_id)
         try:
-            trienode_trie_id_index.create(self.engine)
+            sql = text(
+                "CREATE INDEX idx_trienode_trie_id ON trienode (trie_id)")
+            self.session.execute(sql)
         except OperationalError as e:
             logger.warning(e)
             logger.debug("  the index already exists. (ignored)")
@@ -1161,12 +1160,14 @@ class AddressTree(object):
         """
         self.__not_in_readonly_mode()
         logger.debug("Creating index on node.parent_id ...")
-        node_parent_id_index = Index(
-            'ix_node_parent_id', AddressNode.parent_id)
+        logger.debug("  Creating index on trienode.trie_id ...")
         try:
-            node_parent_id_index.create(self.engine)
-        except OperationalError:
-            logger.warning("  the index already exists. (ignored)")
+            sql = text(
+                "CREATE INDEX ix_node_parent_id ON address_node (parent_id)")
+            self.session.execute(sql)
+        except OperationalError as e:
+            logger.warning(e)
+            logger.debug("  the index already exists. (ignored)")
 
         logger.debug("  done.")
 
@@ -1501,11 +1502,12 @@ class AddressTree(object):
                 self.session.add(notenode)
 
         logger.debug("  Creating index on notenode.note ...")
-        notenode_note_index = Index(
-            'ix_notenode_note', NoteNode.note)
         try:
-            notenode_note_index.create(self.engine)
-        except OperationalError:
+            sql = text(
+                "CREATE INDEX ix_notenode_note ON notenode (note)")
+            self.session.execute(sql)
+        except OperationalError as e:
+            logger.warning(e)
             logger.debug("  the index already exists. (ignored)")
 
         self.session.commit()
