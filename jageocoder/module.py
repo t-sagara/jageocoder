@@ -1,10 +1,9 @@
 import logging
 import os
-import tempfile
+import shutil
 from typing import Optional, Union, List
 import urllib.request
 from urllib.error import URLError
-import zipfile
 
 import jageocoder
 from jageocoder.exceptions import JageocoderError
@@ -173,72 +172,43 @@ def download_dictionary(url: str) -> None:
 
 
 def install_dictionary(
-        path_or_url: os.PathLike,
+        path: os.PathLike,
         db_dir: Optional[os.PathLike] = None) -> None:
     """
-    Install address-dictionary from the specified path or url.
+    Install address-dictionary from the specified path.
 
     Parameters
     ----------
-    path_or_url: os.PathLike
-        The file path or url where the zipped address-dictionary file
-        is available.
+    path: os.PathLike
+        The file path where the zipped address-dictionary file exists.
 
     db_dir: os.PathLike, optional
-        The directory where the database files will be installed.
-        If omitted, it will be determined by `get_db_dir()`.
+        The directory directory where the database files will
+        be installed.
+
+        If omitted, use `get_db_dir()` to decide the directory.
     """
     # Set default value
     if db_dir is None:
         db_dir = get_db_dir(mode='w')
 
-    # Open a local file
-    tmppath = None
-
-    if os.path.exists(path_or_url):
-        path = path_or_url
+    if os.path.exists(path):
+        path = path
     else:
-        try:
-            # Try to download a file
-            fp, path = tempfile.mkstemp()
-            os.close(fp)
+        raise JageocoderError("Can't open file '{}'".format(path))
+
+    # Unzip the archive
+    shutil.rmtree(db_dir)
+    shutil.unpack_archive(
+        filename=str(path),
+        extract_dir=str(db_dir),
+    )
+    for readme_fname in ("README.txt", "README.md",):
+        readme_path = os.path.join(db_dir, readme_fname)
+        if os.path.exists(readme_path):
             logger.info(
-                'Downloading zipped dictionary from {}'.format(path_or_url))
-            urllib.request.urlretrieve(path_or_url, path)
-            logger.info('.. download complete.')
-            tmppath = path
-        except (URLError, ValueError,):
-            raise JageocoderError("Can't open file {}".format(path_or_url))
-
-    # Unzip the file
-    with zipfile.ZipFile(path) as zipf:
-        logger.info('Extracting {} to {}'.format(path, db_dir))
-        zipf.extract(member='address.db', path=db_dir)
-        try:
-            zipf.extract(member='README.txt', path=db_dir)
-            logger.info(
-                'Please check {} for terms and conditions of use.'.format(
-                    os.path.join(db_dir, 'README.txt')))
-        except KeyError:
-            pass
-
-    if tmppath:
-        os.remove(tmppath)
-
-    # Create trie-index
-    init(db_dir=db_dir, mode='a')
-    global _tree
-    if not _tree.is_version_compatible():
-        logger.warning(('Migrating the database file since'
-                        ' it is not compatible with the package.'))
-        _tree.update_name_index()
-
-    logger.info('Creating TRIE index at {}'.format(_tree.trie_path))
-    _tree.create_trie_index()
-
-    # Put metadata.txt
-    with open(os.path.join(db_dir, "metadata.txt"), "w") as f:
-        print(os.path.basename(path_or_url), file=f)
+                "Please read '{}' for terms and conditions of use.".format(
+                    readme_path))
 
     logger.info('Installation completed.')
 
@@ -419,15 +389,8 @@ def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
     Reverse geocoding.
 
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-    from jageocoder.rev import Reverse
-
-    global _tree
-    _reverse = Reverse(x=x, y=y, tree=_tree, max_level=level)
-    results = _reverse.search()
-
-    return results
+    raise JageocoderError(
+        "The 'reverse' method is not yet available in version 2.")
 
 
 def create_trie_index() -> None:

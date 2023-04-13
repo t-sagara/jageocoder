@@ -68,9 +68,12 @@ def get_db_dir(mode: str = 'r') -> Optional[Path]:
             continue
 
         try:
+            path = "__write_test__"
             os.makedirs(db_dir, mode=0o777, exist_ok=True)
-            fp = open(path, 'a')
-            fp.close()
+            with open(path, 'a') as fp:
+                fp.write("test")
+
+            os.remove(path)
             return db_dir
         except (FileNotFoundError, PermissionError):
             continue
