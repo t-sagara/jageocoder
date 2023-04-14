@@ -5,7 +5,7 @@
 layout: home
 ---
 
-[English Document](/about/)
+[English Document](/jageocoder/about/)
 
 **jageocoder** は日本の住所を解析し、経緯度や郵便番号などを取得する
 Python パッケージです。
