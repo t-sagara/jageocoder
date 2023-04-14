@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Released v2.0"
+title:  "新バージョンリリース: v2.0"
 date:   2023-04-14 01:43:24 +0000
 categories: Package update
 ---
@@ -17,5 +17,7 @@ v2 では住所データベースを SQLite3 から
 
 そのため、当面は v1 系の v2 系を並行してコードメンテナンスと
 データベースの更新を行います。
+
 v2 系に移行する場合は、 v2 系の住所データベースファイルを
-インストールしなおしてください。
+[こちら](https://www.info-proto.com/static/jageocoder/latest/v2/)から
+ダウンロードしてインストールしなおしてください。

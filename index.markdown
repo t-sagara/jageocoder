@@ -24,3 +24,11 @@ Python パッケージです。
     - v1 用は[こちら](https://www.info-proto.com/static/jageocoder/latest/v1/)から、
       v2 用は[こちら](https://www.info-proto.com/static/jageocoder/latest/v2/)から
       ダウンロードしてください。
+    - ファイル名は `<レベル>_<範囲>_<バージョン>.zip` というフォーマットです。
+    - レベルが `gaiku_` ならば街区レベル（番・番地まで）、`jukyo_` ならば
+      住居表示レベル（号・枝番まで）です。
+    - 範囲が `all` ならば全国です。数字の場合は
+      [都道府県コード](https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html)
+      です。
+    - バージョンは `v14` ならば v1.4、 `v20` ならば v2.0 です。
+      v14 のファイルは v1.3 でも利用できます。
