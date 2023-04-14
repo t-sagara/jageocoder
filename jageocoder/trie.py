@@ -2,44 +2,39 @@ from logging import getLogger
 import os
 
 import marisa_trie
-from sqlalchemy import Column, ForeignKey, Integer
-from sqlalchemy.orm import relationship
+from PortableTab import BaseTable
 
-from jageocoder.base import Base
 from jageocoder.exceptions import AddressTrieError
 
 logger = getLogger(__name__)
 
 
-class TrieNode(Base):
+class TrieNode(BaseTable):
     """
     The mapping-table of TRIE id and Node id. Stored in 'trienode' table.
 
     Attributes
     ----------
     id : int
-        The key identifier that is automatically sequentially numbered.
-    trie_id : int
-        TRIE id that corresponds one-to-one to a notation.
-    node_id : int
-        Node id that corresponds one-to-one to an AddressNode.
-    node : AddressNode
-        The node with node_id as its id.
+        The TRIE id.
+    nodes : List[int]
+        List of node id that corresponds to the TRIE id.
 
     Note
     ----
-    Some of the notations correspond to multiple address elements.
-    For example, "中央区中央" exists in either 千葉市 and 相模原市,
-    so TRIE id and Node id correspond one-to-many.
+    - Some of the notations correspond to multiple address elements.
+      For example, "中央区中央" exists in either 千葉市 and 相模原市,
+      so TRIE id and node id correspond one-to-many.
     """
 
     __tablename__ = 'trienode'
-
-    id = Column(Integer, primary_key=True)
-    trie_id = Column(Integer, nullable=False)
-    node_id = Column(Integer, ForeignKey('node.id'), nullable=False)
-
-    node = relationship("AddressNode")
+    __schema__ = """
+        struct TrieNode {
+            id @0 :UInt32;
+            nodes @1 :List(UInt32);
+        }
+        """
+    __record_type__ = "TrieNode"
 
 
 class AddressTrie(object):
@@ -71,7 +66,7 @@ class AddressTrie(object):
         words : dict (default : {})
             A dict whose key is the address notation to be registered.
         """
-        self.path = path
+        self.path = str(path)  # Marisa-trie uses string path
         self.trie = None
         self.words = words
 
@@ -146,7 +141,9 @@ class AddressTrie(object):
         A dict with a prefix string as key and a TRIE id as value.
         """
         if self.trie is None:
-            raise AddressTrieError('The trie-index is not created.')
+            raise AddressTrieError((
+                "The trie-index is not created."
+                "Try running 'jageocoder migrate-dictinary'"))
 
         results = {}
         for p in self.trie.iter_prefixes(query):

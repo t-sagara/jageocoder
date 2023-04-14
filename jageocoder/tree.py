@@ -2,34 +2,27 @@ from collections import OrderedDict
 import csv
 from logging import getLogger
 import os
+from pathlib import Path
 import re
 import site
 import sys
-from typing import Any, Union, NoReturn, List, Optional, TextIO
+from typing import Any, Union, List, NoReturn, Optional, TextIO
 
 from deprecated import deprecated
-from sqlalchemy import Index
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.pool import NullPool
-from sqlalchemy import create_engine
-from sqlalchemy.exc import OperationalError
-from sqlalchemy.sql import text
 
 import jageocoder
 from jageocoder.address import AddressLevel
-from jageocoder.base import Base
+from jageocoder.aza_master import AzaMaster
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import Converter
-from jageocoder.node import AddressNode
-from jageocoder.note import NoteNode
+from jageocoder.node import AddressNode, AddressNodeTable
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
 
 logger = getLogger(__name__)
 
 
-def get_db_dir(mode: str = 'r') -> os.PathLike:
+def get_db_dir(mode: str = 'r') -> Optional[Path]:
     """
     Get the database directory.
 
@@ -42,46 +35,55 @@ def get_db_dir(mode: str = 'r') -> os.PathLike:
 
     Return
     ------
-    The path to the database directory.
-    If no suitable directory is found, raise an AddressTreeException.
+    Path or None
+        The path to the database directory.
+        If no suitable directory is found, raise an AddressTreeException.
 
     Notes
     -----
     This method searches a directory in the following order of priority.
     - 'JAGEOCODER_DB_DIR' environment variable
-    - '(sys.prefix)/jageocoder/db/'
-    - '(site.USER_BASE)/jageocoder/db/'
+    - '(sys.prefix)/jageocoder/db2/'
+    - '(site.USER_BASE)/jageocoder/db2/'
     """
     if mode not in ('a', 'w', 'r'):
         raise AddressTreeException(
             'Invalid mode value. Specify one of "a", "w", or "r".')
 
-    db_dirs = []
-    if 'JAGEOCODER_DB_DIR' in os.environ:
-        db_dirs.append(os.environ['JAGEOCODER_DB_DIR'])
+    db_dirs: List[Path] = []
+    if 'JAGEOCODER_DB2_DIR' in os.environ:
+        db_dirs.append(Path(os.environ['JAGEOCODER_DB2_DIR']))
 
     db_dirs += [
-        os.path.join(sys.prefix, 'jageocoder/db/'),
-        os.path.join(site.USER_BASE, 'jageocoder/db/'),
+        Path(sys.prefix) / 'jageocoder/db2/',
+        Path(site.USER_BASE) / 'jageocoder/db2/',
     ]
 
     for db_dir in db_dirs:
-        path = os.path.join(db_dir, 'address.db')
-        if os.path.exists(path):
+        path = db_dir / 'address_node'
+        if path.exists():
             return db_dir
 
         if mode == 'r':
             continue
 
         try:
+            path = "__write_test__"
             os.makedirs(db_dir, mode=0o777, exist_ok=True)
-            fp = open(path, 'a')
-            fp.close()
+            with open(path, 'a') as fp:
+                fp.write("test")
+
+            os.remove(path)
             return db_dir
         except (FileNotFoundError, PermissionError):
             continue
 
-    return None
+    if mode in ('a', 'w',):
+        raise AddressTreeException(
+            "Cannot find a directory where the database can be created."
+        )
+
+    return None  # In case of read-only mode.
 
 
 class LRU(OrderedDict):
@@ -171,36 +173,27 @@ class AddressTree(object):
         if db_dir is None:
             db_dir = get_db_dir(mode)
         else:
-            db_dir = os.path.abspath(db_dir)
+            db_dir = Path(db_dir).absolute()
 
-        if not os.path.isdir(db_dir):
+        if db_dir is None or not db_dir.is_dir():
             msg = "Directory '{}' does not exist.".format(db_dir)
             raise AddressTreeException(msg)
 
-        self.db_path = os.path.join(db_dir, 'address.db')
-        self.dsn = 'sqlite:///' + self.db_path
-        self.trie_path = os.path.join(db_dir, 'address.trie')
+        self.db_dir = db_dir
+        self.address_nodes: AddressNodeTable = AddressNodeTable(
+            db_dir=self.db_dir)
+        self.aza_masters: AzaMaster = AzaMaster(db_dir=self.db_dir)
+        self.trie_nodes: TrieNode = self.get_trie_nodes()
+        self.trie_path = db_dir / 'address.trie'
 
         # Options
         self.debug = debug or bool(os.environ.get('JAGEOCODER_DEBUG', False))
 
-        # Clear database?
+        # Clear database when in write mode.
         if self.mode == 'w':
-            if os.path.exists(self.db_path):
-                os.remove(self.db_path)
-
+            self.address_nodes.delete()
             if os.path.exists(self.trie_path):
                 os.remove(self.trie_path)
-
-        # Database connection
-        self.engine = create_engine(
-            self.dsn, echo=self.debug,
-            connect_args={'check_same_thread': False},
-            poolclass=NullPool)
-        self.conn = self.engine.connect()
-        _session = sessionmaker()
-        _session.configure(bind=self.engine)
-        self.session = _session()
 
         self.root = None
         self.trie = AddressTrie(self.trie_path)
@@ -209,16 +202,6 @@ class AddressTree(object):
         self.re_float = re.compile(r'^\-?\d+\.?\d*$')
         self.re_int = re.compile(r'^\-?\d+$')
         self.re_address = re.compile(r'^(\d+);(.*)$')
-
-        # Check database version
-        if self.mode == 'w':
-            self.__create_db()
-
-        db_version = self.get_version()
-        if not self.is_version_compatible():
-            logger.warning((
-                "The database ({}) is not compatible with the module ({})."
-            ).format(db_version, jageocoder.dictionary_version()))
 
         # Set default settings
         self.config = {
@@ -241,13 +224,7 @@ class AddressTree(object):
         self.converter = Converter()
 
     def close(self) -> NoReturn:
-        if self.session:
-            self.session.close()
-
-        if self.engine:
-            self.engine.dispose()
-            del self.engine
-            self.engine = None
+        raise RuntimeError("Unnecessary function close was called.")
 
     def is_version_compatible(self) -> bool:
         """
@@ -265,7 +242,7 @@ class AddressTree(object):
 
         return True
 
-    def __not_in_readonly_mode(self) -> NoReturn:
+    def __not_in_readonly_mode(self) -> None:
         """
         Check if the dictionary is not opened in the read-only mode.
 
@@ -274,27 +251,6 @@ class AddressTree(object):
         if self.mode == 'r':
             raise AddressTreeException(
                 'This method is not available in read-only mode.')
-
-    def __create_db(self) -> NoReturn:
-        """
-        Create database and tables.
-        """
-        self.__not_in_readonly_mode()
-        Base.metadata.create_all(self.engine)
-        root = self.get_root()
-        root.save_recursive(self.session)
-        self.session.commit()
-
-    def get_session(self) -> Session:
-        """
-        Get the database session.
-
-        Returns
-        -------
-        sqlalchemy.orm.Session:
-            The current session object.
-        """
-        return self.session
 
     def get_root(self) -> AddressNode:
         """
@@ -306,18 +262,10 @@ class AddressTree(object):
         AddressNode:
             The root node object.
         """
-        if self.root:
-            return self.root
-
-        # Try to get root from the database
-        try:
-            self.root = self.session.query(
-                AddressNode).filter_by(id=-1).one()
-        except NoResultFound:
-            # Create a new root
-            self.root = AddressNode(
-                id=-1, name="_root_", parent_id=None,
-                note=jageocoder.dictionary_version())
+        if self.root is None:
+            self.root = AddressNode.get(
+                tree=self,
+                pos=AddressNode.ROOT_NODE_ID)
 
         return self.root
 
@@ -349,7 +297,7 @@ class AddressTree(object):
         ------
         AddressNode
         """
-        return self.session.get(AddressNode, node_id)
+        return self.address_nodes.get_record(node_id)
 
     def search_nodes_by_codes(
             self,
@@ -371,11 +319,10 @@ class AddressTree(object):
         -------
         List[AddressNode]
         """
+        nodes = []
         pattern = '{}:{}'.format(category, value)
-        node_id_list = self.session.query(NoteNode.node_id).filter(
-            NoteNode.note == pattern).all()
-        nodes = self.session.query(AddressNode).filter(
-            AddressNode.id.in_(x[0] for x in node_id_list)).all()
+        nodes = self.address_nodes.search_records_on(
+            attr="note", value=pattern)  # exact match
 
         return nodes
 
@@ -425,7 +372,7 @@ class AddressTree(object):
         for k, v in kwargs.items():
             self._set_config(k, v)
 
-    def validate_config(self, key: str, value: Any) -> NoReturn:
+    def validate_config(self, key: str, value: Any) -> None:
         """
         Validate configuration key and parameters.
 
@@ -449,10 +396,9 @@ class AddressTree(object):
             candidates = self.trie.common_prefixes(std)
             if std in candidates:
                 trie_node_id = candidates[std]
-                trie_nodes = self.session.query(TrieNode).filter_by(
-                    trie_id=trie_node_id).all()
-                for trie_node in trie_nodes:
-                    if trie_node.node.name == value:
+                for node_id in self.trie_nodes.get_record(pos=trie_node_id).nodes:
+                    node = self.address_nodes.get_record(pos=node_id)
+                    if node.name == value:
                         return
 
             msg = "'{}' is not a valid value for {}.".format(value, key)
@@ -866,7 +812,17 @@ class AddressTree(object):
 
         return diffs
 
-    def create_trie_index(self) -> NoReturn:
+    def get_trie_nodes(self) -> TrieNode:
+        """
+        Get the TRIE node table.
+
+        Notes
+        -----
+        - Todo: If the trie index is not created, create.
+        """
+        return TrieNode(db_dir=self.db_dir)
+
+    def create_trie_index(self) -> None:
         """
         Create the TRIE index from the tree.
         """
@@ -880,9 +836,13 @@ class AddressTree(object):
         self.trie = AddressTrie(self.trie_path, self.index_table)
         self.trie.save()
 
-        self._set_index_table()
+        records = self._set_index_table()
+        # Create and write TrieNode table
+        self.trie_nodes = TrieNode(db_dir=self.db_dir)
+        self.trie_nodes.create()
+        self.trie_nodes.append_records(records)
 
-    def _get_index_table(self) -> NoReturn:
+    def _get_index_table(self) -> None:
         """
         Collect the names of all address elements
         to be registered in the TRIE index.
@@ -896,11 +856,24 @@ class AddressTree(object):
         # Build temporary lookup table
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
-        for node in self.session.query(
-            AddressNode.id, AddressNode.name, AddressNode.name_index,
-            AddressNode.parent_id).filter(
-                AddressNode.level <= AddressLevel.OAZA):
-            tmp_id_name_table[node.id] = node
+        pos = AddressNode.ROOT_NODE_ID + 1
+        while pos < self.address_nodes.count_records():
+            node = self.address_nodes.get_record(pos=pos)
+            if node.level <= AddressLevel.OAZA:
+                tmp_id_name_table[node.id] = node
+                if node.level < AddressLevel.OAZA:
+                    pos += 1
+                else:
+                    pos = node.sibling_id
+
+            else:
+                parent = self.address_nodes.get_record(pos=node.parent_id)
+                if parent.level < AddressLevel.OAZA:
+                    pos += 1
+                else:
+                    pos = parent.sibling_id
+
+                continue
 
         logger.debug("  {} records found.".format(
             len(tmp_id_name_table)))
@@ -912,12 +885,10 @@ class AddressTree(object):
             cur_node = v
             while True:
                 node_prefixes.insert(0, cur_node.name)
-                if cur_node.parent_id < 0:
+                if cur_node.parent_id == AddressNode.ROOT_NODE_ID:
                     break
 
                 if cur_node.parent_id not in tmp_id_name_table:
-                    import pdb
-                    pdb.set_trace()
                     raise RuntimeError(
                         ('The parent_id:{} of node:{} is not'.format(
                             cur_node.parent_id, cur_node),
@@ -946,27 +917,30 @@ class AddressTree(object):
                 else:
                     self.index_table[candidate] = [v.id]
 
-        # self.session.commit()
-
-    def _extend_index_table(self) -> NoReturn:
+    def _extend_index_table(self) -> None:
         """
         Expand the index, including support for omission of county names.
         """
         # Build temporary lookup table
         logger.debug("Building temporary town and village table..")
         tmp_id_name_table = {}
-        for node in self.session.query(
-            AddressNode.id, AddressNode.name, AddressNode.name_index,
-            AddressNode.parent_id, AddressNode.level).filter(
-                AddressNode.level <= AddressLevel.CITY):
-            tmp_id_name_table[node.id] = node
+        pos = AddressNode.ROOT_NODE_ID + 1
+        while pos < self.address_nodes.count_records():
+            node = self.address_nodes.get_record(pos=pos)
+            if node.level <= AddressLevel.CITY:
+                tmp_id_name_table[node.id] = node
+                pos += 1
+            else:
+                parent = self.address_nodes.get_record(pos=node.parent_id)
+                pos = parent.sibling_id
+                continue
 
         logger.debug("  {} records found.".format(
             len(tmp_id_name_table)))
 
         # Extend index_table
         for k, v in tmp_id_name_table.items():
-            if v.parent_id == -1:
+            if v.parent_id == AddressNode.ROOT_NODE_ID:
                 continue
 
             parent_node = tmp_id_name_table[v.parent_id]
@@ -984,9 +958,7 @@ class AddressTree(object):
             else:
                 self.index_table[label_standardized] = [v.id]
 
-        # self.session.commit()
-
-    def _set_index_table(self) -> NoReturn:
+    def _set_index_table(self) -> list:
         """
         Map all the id of the TRIE index (TRIE id) to the node id.
 
@@ -997,36 +969,21 @@ class AddressTree(object):
         the TRIE id to the node id.
         """
         logger.debug("Creating mapping table from trie_id:node_id")
-        logger.debug("  Deleting old TrieNode table...")
-        self.session.query(TrieNode).delete()
-        logger.debug("  Dropping index...")
-        try:
-            self.session.execute(text("DROP INDEX ix_trienode_trie_id"))
-            self.session.commit()
-        except OperationalError as e:  # noqa: F841
-            logger.debug("    the index does not exist. (ignored)")
-
-        logger.debug("  Adding mapping records...")
+        trie_nodes = []
         for k, node_id_list in self.index_table.items():
             trie_id = self.trie.get_id(k)
-            for node_id in node_id_list:
-                tn = TrieNode(trie_id=trie_id, node_id=node_id)
-                self.session.add(tn)
+            if len(trie_nodes) <= trie_id:
+                trie_nodes += [None for _ in range(
+                    trie_id - len(trie_nodes) + 1)]
 
-        self.session.commit()
+            trie_nodes[trie_id] = {
+                "id": trie_id,
+                "nodes": node_id_list,
+            }
 
-        logger.debug("  Creating index on trienode.trie_id ...")
-        trienode_trie_id_index = Index(
-            'ix_trienode_trie_id', TrieNode.trie_id)
-        try:
-            trienode_trie_id_index.create(self.engine)
-        except OperationalError as e:
-            logger.warning(e)
-            logger.debug("  the index already exists. (ignored)")
+        return trie_nodes
 
-        logger.debug("  done.")
-
-    def save_all(self) -> NoReturn:
+    def save_all(self) -> None:
         """
         Save all AddressNode in the tree to the database.
         """
@@ -1037,7 +994,7 @@ class AddressTree(object):
         logger.debug("Finished save tree.")
 
     def read_file(self, path: os.PathLike,
-                  do_update: bool = False) -> NoReturn:
+                  do_update: bool = False) -> None:
         """
         Add AddressNodes from a text file.
         See 'data/test.txt' for the format of the text file.
@@ -1059,7 +1016,7 @@ class AddressTree(object):
             self.read_stream(f, do_update=do_update)
 
     def read_stream(self, fp: TextIO,
-                    do_update: bool = False) -> NoReturn:
+                    do_update: bool = False) -> None:
         """
         Add AddressNodes to the tree from a stream.
 
@@ -1141,33 +1098,6 @@ class AddressTree(object):
 
         logger.debug("Done.")
 
-    def drop_indexes(self) -> NoReturn:
-        """
-        Drop indexes to improve the speed of bulk insertion.
-        - ix_node_parent_id ON node (parent_id)
-        - ix_trienode_trie_id ON trienode (trie_id)
-        """
-        self.__not_in_readonly_mode()
-        logger.debug("Dropping indexes...")
-        self.session.execute("DROP INDEX ix_node_parent_id")
-        logger.debug("  done.")
-
-    def create_tree_index(self) -> NoReturn:
-        """
-        Add index later that were not initially defined.
-        - ix_node_parent_id ON node (parent_id)
-        """
-        self.__not_in_readonly_mode()
-        logger.debug("Creating index on node.parent_id ...")
-        node_parent_id_index = Index(
-            'ix_node_parent_id', AddressNode.parent_id)
-        try:
-            node_parent_id_index.create(self.engine)
-        except OperationalError:
-            logger.warning("  the index already exists. (ignored)")
-
-        logger.debug("  done.")
-
     def search_by_tree(self, address_names: List[str]) -> AddressNode:
         """
         Get the corresponding node id from the list of address element names,
@@ -1236,7 +1166,7 @@ class AddressTree(object):
         logger.debug("Trie: {}".format(','.join(keys)))
 
         min_key = ''
-        processed_nodes = []
+        processed_nodes: List[int] = []
 
         for k in keys:
             if len(k) < len(min_key):
@@ -1247,13 +1177,12 @@ class AddressTree(object):
             trie_id = candidates[k]
             logger.debug("Trie_id of key '{}' = {}".format(
                 k, trie_id))
-            trienodes = self.session.query(
-                TrieNode).filter_by(trie_id=trie_id).all()
+            trie_node = self.trie_nodes.get_record(pos=trie_id)
             offset = self.converter.match_len(index, k)
             key = index[0:offset]
             rest_index = index[offset:]
-            for trienode in trienodes:
-                node = trienode.node
+            for node_id in trie_node.nodes:
+                node = self.get_address_node(id=node_id)
 
                 if min_key == '' and node.level <= AddressLevel.WARD:
                     # To make the process quicker, once a node higher
@@ -1264,7 +1193,7 @@ class AddressTree(object):
                         "Set min_key to '{}'").format(k))
                     min_key = k
 
-                if node in processed_nodes:
+                if node_id in processed_nodes:
                     logger.debug("Node {}({}) already processed.".format(
                         node.name, node.id))
                     continue
@@ -1284,10 +1213,10 @@ class AddressTree(object):
                 logger.debug("Search '{}' under {}({})".format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
-                    index=rest_index,
                     tree=self,
+                    index=rest_index,
                     processed_nodes=processed_nodes)
-                processed_nodes.append(node)
+                processed_nodes.append(node_id)
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
 
@@ -1329,8 +1258,25 @@ class AddressTree(object):
                         else:
                             min_part = min(min_part, _part)
 
-        logger.debug(AddressNode.search_child_with_criteria.cache_info())
         return results
+
+    def get_address_node(self, id: int) -> AddressNode:
+        """
+        Get address node from the tree by its id.
+
+        Parameters
+        ----------
+        id: int
+            The node id.
+
+        Returns
+        -------
+        AddressNode
+            Node with the specified ID.
+        """
+        node = self.address_nodes.get_record(pos=id)
+        node.tree = self
+        return node
 
     @deprecated(('Renamed to `searchNode()` because it was confusing'
                  ' with jageocoder.search()'))
@@ -1451,59 +1397,15 @@ class AddressTree(object):
 
         return recovered
 
-    def create_reverse_index(self) -> NoReturn:
-        """
-        Create table and index for reverse geocoding.
-        """
-        self.__not_in_readonly_mode()
-        logger.info("Creating aza table for reverse geocoding...")
-        sql = ("DROP TABLE IF EXISTS node_aza")
-        self.session.execute(sql)
-
-        sql = ("CREATE TABLE node_aza AS"
-               " SELECT id, x, y, level FROM node"
-               " WHERE level IN (:oaza, :aza)")
-        self.session.execute(sql, {
-            "oaza": AddressLevel.OAZA,
-            "aza": AddressLevel.AZA,
-        })
-
-        sql = ("CREATE INDEX idx_node_aza_x ON node_aza (x)")
-        self.session.execute(sql)
-
-        sql = ("CREATE INDEX idx_node_aza_y ON node_aza (y)")
-        self.session.execute(sql)
-
-    def create_note_index_table(self) -> NoReturn:
+    def create_note_index_table(self) -> None:
         """
         Collect notes from all address elements and create
         search table with index.
         """
-        self.__not_in_readonly_mode()
-        logger.info("Creating note-node table...")
-        sql = ("DROP TABLE IF EXISTS {}".format(NoteNode.__table__))
-        self.session.execute(sql)
-        Base.metadata.create_all(
-            bind=self.engine,
-            tables=[NoteNode.__table__])
+        self.address_nodes.create_indexes()
 
-        # Create correspondence records between a note and a node id.
-        for node in self.session.query(
-            AddressNode.id, AddressNode.note).filter(
-                AddressNode.note.isnot(None)):
-            for note in node.note.split('/'):
-                if note == '':
-                    continue
-
-                notenode = NoteNode(node_id=node.id, note=note)
-                self.session.add(notenode)
-
-        logger.debug("  Creating index on notenode.note ...")
-        notenode_note_index = Index(
-            'ix_notenode_note', NoteNode.note)
-        try:
-            notenode_note_index.create(self.engine)
-        except OperationalError:
-            logger.debug("  the index already exists. (ignored)")
-
-        self.session.commit()
+    def get_cache_info(self) -> dict:
+        cache_info = {
+            "get_record": AddressNodeTable.get_record.cache_info(),
+        }
+        return cache_info

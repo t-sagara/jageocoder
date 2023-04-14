@@ -57,48 +57,7 @@
 逆ジオコーディング
 ------------------
 
-経度・緯度を指定し、その地点を囲む３点のレコードを検索し、
-そのレコードリストの情報を指定地点に近い順に返します。
-
-岬の突端や離島など、３点のレコードが存在しない場合は
-リストに含まれるレコード数が３より小さい場合もあります。
-
-住所辞書には「住所に対応する代表点」の座標しか含まれておらず、
-その住所が表す範囲（形状）の情報は利用できないため、
-「指定した地点に近い代表点」を検索していることに注意してください。
-
-コマンド
-   ``reverse``
-
-パラメータ
-   経度 緯度 （WGS1984 の十進度表記）
-
-オプション
-   ``-d`` デバッグ情報を表示します。
-
-   ``--level=<level>`` 指定した住所レベルまで検索します。
-   デフォルトは 6 (字レベル) です。
-   より大きなレベルを指定すると、検索に時間がかかります。
-
-   ``--db-dir=<dir>`` 住所辞書データベースを配置したディレクトリを
-   指定します。
-
-**実行例**
-
-.. code-block:: console
-
-   # 経度 139.6917, 緯度 35.6896 の地点付近の住所を検索します。
-   # 「東京都新宿区西新宿二丁目」、「東京都新宿区西新宿六丁目」、
-   # 「東京都新宿区西新宿四丁目」が返ります。
-   (.venv) $ jageocoder reverse 139.6917 35.6896
-   [{"candidate": {"id": 12977775, "name": "二丁目", "x": 139.691774, "y": 35.68945, "level": 6, "priority": 2, "note": "aza_id:0023002/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "二丁目"]}, "dist": 17.940303970792183}, {"candidate": {"id": 12978643, "name": "六丁目", "x": 139.690969, "y": 35.693426, "level": 6, "priority": 2, "note": "aza_id:0023006/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "六丁目"]}, "dist": 429.6327545403412}, {"candidate": {"id": 12978943, "name": "四丁目", "x": 139.68762, "y": 35.68754, "level": 6, "priority": 2, "note": "aza_id:0023004/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "四丁目"]}, "dist": 434.31591285255234}]
-
-   # 経度 139.6917, 緯度 35.6896 の地点付近の住所を
-   # 街区（○○番）レベルで検索します。
-   # 「東京都新宿区西新宿二丁目8番」、「東京都新宿区西新宿二丁目」、
-   # 「東京都新宿区西新宿四丁目15番」が返ります。
-   (.venv) $ jageocoder reverse 139.6917 35.6896 --level=7
-   [{"candidate": {"id": 12977785, "name": "8番", "x": 139.691778, "y": 35.689627, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "新宿区", "西新宿", "二丁目", "8番"]}, "dist": 7.669497303543382}, {"candidate": {"id": 12977775, "name": "二丁目", "x": 139.691774, "y": 35.68945, "level": 6, "priority": 2, "note": "aza_id:0023002/postcode:1600023", "fullname": ["東京都", "新宿区", "西新宿", "二丁目"]}, "dist": 17.940303970792183}, {"candidate": {"id": 12979033, "name": "15番", "x": 139.688172, "y": 35.689264, "level": 7, "priority": 3, "note": null, "fullname": ["東京都", "新宿区", "西新宿", "四丁目", "15番"]}, "dist": 321.50874020809823}]
+この機能は v2 では利用できません。
 
 .. _commandline-get-db-dir:
 
@@ -108,11 +67,11 @@
 実行中の Python 環境で、住所辞書データベースがインストールされている
 ディレクトリを取得します。
 
-辞書データベースは ``{sys.prefix}/jageocoder/db/`` の下に
+辞書データベースは ``{sys.prefix}/jageocoder/db2/`` の下に
 作成されますが、ユーザが書き込み権限を持っていない場合には
-``{site.USER_DATA}/jageocoder/db/`` に作成されます。
+``{site.USER_DATA}/jageocoder/db2/`` に作成されます。
 
-上記以外の任意の場所を指定したい場合、環境変数 ``JAGEOCODER_DB_DIR``
+上記以外の任意の場所を指定したい場合、環境変数 ``JAGEOCODER_DB2_DIR``
 でディレクトリを指定することができます。
 
 コマンド
@@ -129,39 +88,38 @@
 .. code-block:: console
 
    (.venv) $ jageocoder get-db-dir
-   /home/sagara/.local/share/virtualenvs/jageocoder-kWBL7Ve6/jageocoder/db/
+   /home/sagara/.local/share/virtualenvs/jageocoder-kWBL7Ve6/jageocoder/db2/
 
 .. _commandline-download-dictionary:
 
 住所辞書ファイルのダウンロード
 ------------------------------
 
-インストール済みの jageocoder と互換性のある
-住所辞書ファイルを、ウェブからダウンロードします。
+住所データベースファイルをウェブからダウンロードします。
+v2 より URL は省略不可になりました。
 
-特に理由が無い限り URL は省略してください。
-逆にダウンロードするべきファイルの URL が分かっている場合は
-``curl`` や ``wget`` コマンドでダウンロードしても構いません。
+`住所データベースファイル <https://www.info-proto.com/static/jageocoder/latest/v2/>`_
+のリストからダウンロードするファイルを選択し、その URL を指定してください。
+
+このコマンドは ``curl`` や ``wget`` コマンドなどが利用できない場合を
+想定して用意しているので、任意の方法でダウンロードして構いません。
+
 
 コマンド
    ``download-dictionary``
 
 パラメータ
-   ``<url>`` ダウンロードする URL を指定できます（省略可）。
+   ``<url>`` ダウンロードする URL を指定します（省略不可）。
 
 オプション
    ``-d`` デバッグ情報を表示します。
-
-   ``--gaiku`` より軽量な街区レベルまでの住所辞書ファイルを
-   ダウンロードします。
 
 **実行例**
 
 .. code-block:: console
 
-   # 街区レベルまでの住所辞書ファイルをダウンロードします
-   (.venv) $ jageocoder download-dictionary --gaiku
-   INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/gaiku-20220519.zip to ...
+   # 街区レベルまでの全国住所辞書ファイルをダウンロードします
+   (.venv) $ jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/latest/v2/gaiku_all_v20.zip
 
 .. _commandline-install-dictionary:
 
@@ -174,16 +132,10 @@
    ``install-dictionary``
 
 パラメータ
-   ``<url_or_path>`` インストールする住所辞書ファイルの URL または
-   パスを指定します（省略可）。省略した場合、互換性のあるファイルを
-   ダウンロードしてからインストールします。
+   ``<path>`` インストールする住所辞書ファイルのパスを指定します（省略不可）。
 
 オプション
    ``-d`` デバッグ情報を表示します。
-
-   ``--gaiku`` より軽量な街区レベルまでの住所辞書ファイルを
-   ダウンロード・インストールします。 ``<url_or_path>`` を
-   指定した場合にはこのオプションは意味がありません。
 
    ``--db-dir`` 住所辞書データベースを作るディレクトリを
    指定します。
@@ -193,7 +145,7 @@
 .. code-block:: console
 
    # ダウンロード済みの住所辞書ファイルをインストールします
-   (.venv) $ jageocoder install-dictionary gaiku-20220519.zip
+   (.venv) $ jageocoder install-dictionary gaiku_all_v20.zip
 
 .. _commandline-uninstall-dictionary:
 
@@ -227,29 +179,4 @@
 住所辞書ファイルのマイグレーション
 ----------------------------------
 
-``jageocoder`` のバージョンを上げた際に、インストール済みの
-住所辞書データベースが非互換になる場合、利用できるように変換します。
-この処理は全てのレコードのチェックを行なうため、
-インストールに比べても非常に長い時間がかかります。
-
-大きく仕様が変更された場合はマイグレーションできない場合もあります。
-特に理由が無い限り、バージョンアップした場合は辞書も新しいものを
-インストールしなおすことをお勧めします。
-
-コマンド
-   ``migrate-dictionary``
-
-パラメータ
-   （なし）
-
-オプション
-   ``-d`` デバッグ情報を表示します。
-
-   ``--db-dir=<dir>`` 住所辞書データベースのディレクトリを指定します。
-
-**実行例**
-
-.. code-block:: console
-
-   # 住所辞書データベースをマイグレートします
-   (.venv) $ jageocoder migrate-dictionary
+この機能は v2 で廃止になりました。

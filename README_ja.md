@@ -1,8 +1,9 @@
 # jageocoder - A Python Japanese geocoder
 
 `jageocoder` は日本の住所用ジオコーダです。
-東京大学空間情報科学研究所の [「CSV アドレスマッチングサービス」](https://geocode.csis.u-tokyo.ac.jp/home/csv-admatch/) および
-国土地理院の [「地理院地図」](https://maps.gsi.go.jp/) で利用している
+東京大学空間情報科学研究所の
+[「CSV アドレスマッチングサービス」](https://geocode.csis.u-tokyo.ac.jp/home/csv-admatch/)
+および国土地理院の [「地理院地図」](https://maps.gsi.go.jp/) で利用している
 C++ ジオコーダを Python に移植しました。
 
 # はじめに
@@ -23,29 +24,27 @@ python
 
 ## 事前準備
 
-Python 3.6 以降が必要です。
-
-jageocoder をインストールすると、以下のパッケージなども
-自動的にインストールされます。
-
-- [marisa-trie](https://pypi.org/project/marisa-trie/)
-    TRIE インデックスの作成と検索に利用します
-- [SQLAlchemy](https://pypi.org/project/SQLAlchemy/)
-    RDBMS (Sqlite3) のアクセスに利用します
+Python 3.7 以降が必要です。
 
 ## インストール手順
 
 - `pip install jageocoder` でパッケージをインストールします
-- `install-dictionary` コマンドで住所辞書をインストールします
 
-```sh
-pip install jageocoder
-jageocoder install-dictionary
-```
+    pip install jageocoder
 
-辞書データベースは `{sys.prefix}/jageocoder/db/` の下に
+- 利用する辞書データベースファイルを
+  [ここから](https://www.info-proto.com/static/jageocoder/latest/v2/)
+  ダウンロードします
+
+    wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v20.zip
+
+- 辞書データベースをインストールします
+    
+    jageocoder install-dictionary jukyo_all_v20.zip
+
+辞書データベースはデフォルトで `{sys.prefix}/jageocoder/db2/` の下に
 作成されますが、ユーザが書き込み権限を持っていない場合には
-`{site.USER_DATA}/jageocoder/db/` に作成します。
+`{site.USER_DATA}/jageocoder/db2/` に作成します。
 
 辞書データベースが作成されたディレクトリを知る必要がある場合、
 以下のように `get-db-dir` コマンドを実行するか、スクリプト内で
@@ -56,28 +55,11 @@ jageocoder get-db-dir
 ```
 
 上記以外の任意の場所に作成したい場合、住所辞書をインストールする前に
-環境変数 `JAGEOCODER_DB_DIR` でディレクトリを指定してください。
+環境変数 `JAGEOCODER_DB2_DIR` でディレクトリを指定してください。
 
 ```sh
-export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
-jageocoder install-dictionary
-```
-
-## 辞書のマイグレート
-
-`install-dictionary` コマンドを実行すると、その時点でインストール
-されている jageocoder パッケージと互換性のあるバージョンの
-住所辞書ファイルをダウンロードしてインストールします。
-
-住所辞書ファイルをインストールした後で jageocoder パッケージを
-バージョンアップした場合、住所辞書ファイルと互換性が無くなる場合があり、
-その場合は辞書を再インストールするかマイグレートする必要があります。
-
-辞書をマイグレートするには `migrate-dictionary` コマンドを実行します。
-この処理には長時間かかることがあります。
-
-```sh
-jageocoder migrate-dictionary
+export JAGEOCODER_DB2_DIR='/usr/local/share/jageocoder/db2'
+jageocoder install-dictionary <辞書ファイル>
 ```
 
 ## アンインストール手順
@@ -106,12 +88,6 @@ API を呼びだして利用することを想定していますが、テスト�
 
 ```sh
 jageocoder search 新宿区西新宿２－８－１
-```
-
-経緯度から住所を調べる場合は `reverse` を指定します。
-
-```sh
-jageocoder reverse 139.6917 35.6896
 ```
 
 利用可能なコマンド一覧は `--help` で確認してください。
@@ -163,78 +139,8 @@ jageocoder --help
 
 ### 経緯度から住所を調べる
 
-住所を調べたい経度緯度を `reverse()` で検索します（リバースジオコーディング）。
-指定した経緯度を持つ点を囲む3つの住所を返します
-（見やすくするために表示結果を整形しています）。
-
-`candidate` に住所ノード (AddressNode) の情報、
-`dist` に指定した地点から住所の代表点までの距離
-（測地線距離、単位はメートル）が入っています。
-
-```
->>> jageocoder.reverse(139.6917, 35.6896)
-[
-  {
-    'candidate': {
-      'id': 12299330, 'name': '二丁目',
-      'x': 139.691774, 'y': 35.68945, 'level': 6,
-      'note': 'postcode:1600023',
-      'fullname': ['東京都', '新宿区', '西新宿', '二丁目']
-    },
-    'dist': 17.940303970792183
-  }, {
-    'candidate': {
-      'id': 12300198, 'name': '六丁目',
-      'x': 139.690969, 'y': 35.693426, 'level': 6,
-      'note': 'postcode:1600023',
-      'fullname': ['東京都', '新宿区', '西新宿', '六丁目']
-    },
-    'dist': 429.6327545403412
-  }, {
-    'candidate': {
-      'id': 12300498, 'name': '四丁目',
-      'x': 139.68762, 'y': 35.68754, 'level': 6,
-      'note': 'postcode:1600023',
-      'fullname': ['東京都', '新宿区', '西新宿', '四丁目']
-    },
-    'dist': 434.31591285255234
-  }
-]
-```
-
-`level` オプションパラメータを指定すると、より詳細な住所を返します。
-ただし計算に時間がかかります。
-
-```
->>> jageocoder.reverse(139.6917, 35.6896, level=7)
-[
-  {
-    'candidate': {
-      'id': 12299340, 'name': '8番',
-      'x': 139.691778, 'y': 35.689627, 'level': 7,
-      'note': None,
-      'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']
-    },
-    'dist': 7.669497303543382
-  }, {
-    'candidate': {
-      'id': 12299330, 'name': '二丁目',
-      'x': 139.691774, 'y': 35.68945, 'level': 6,
-      'note': 'postcode:1600023',
-      'fullname': ['東京都', '新宿区', '西新宿', '二丁目']
-    },
-    'dist': 17.940303970792183
-  }, {
-    'candidate': {
-      'id': 12300588, 'name': '15番',
-      'x': 139.688172, 'y': 35.689264, 'level': 7,
-      'note': None,
-      'fullname': ['東京都', '新宿区', '西新宿', '四丁目', '15番']
-    },
-    'dist': 321.50874020809823
-  }
-]
-```
+Version 2.0 より、経緯度から住所を検索する機能（リバースジオコーディング）は
+廃止しました。この機能が必要な場合は 1.x をご利用ください。
 
 ### 住所の属性情報を調べる
 
@@ -330,10 +236,10 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 
 ## ユニットテスト
 
-ユニットテストは unittest で行ないます。
+ユニットテストは pytest で行ないます。
 
 ```sh
-python -m unittest
+pytest
 ```
 
 `tests.test_search` テストには特殊な住所表記の例が含まれています。
@@ -344,6 +250,8 @@ python -m unittest
 ## 独自の辞書を作成したい場合
 
 辞書コンバータ `jageocoder-converter` を利用してください。
+Version 2.0 系列の辞書を作成するには、 jageocoder-converter も
+2.0 以降を利用する必要があります。
 
 [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter)
 

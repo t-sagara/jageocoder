@@ -1,19 +1,18 @@
+from __future__ import annotations
 import datetime
 import json
 from logging import getLogger
 import re
-from typing import Union
 
-from sqlalchemy import Column, Boolean, Integer, String
+from PortableTab import BaseTable
 
 from jageocoder.address import AddressLevel
-from jageocoder.base import Base
 from jageocoder.itaiji import converter as itaiji_converter
 
 logger = getLogger(__name__)
 
 
-class AzaMaster(Base):
+class AzaMaster(BaseTable):
     """
     The mater table of Cho-Aza data from the address-base registry.
 
@@ -103,59 +102,31 @@ class AzaMaster(Base):
         備考
     """
 
-    __tablename__ = 'aza_master'
-
-    code = Column(String, primary_key=True)
-    names = Column(String, nullable=False)
-    names_index = Column(String, nullable=False)
-    aza_class = Column(Integer, nullable=True)
-    # pref = Column(String, nullable=False)
-    # pref_kana = Column(String)
-    # pref_eng = Column(String)
-    # county = Column(String)
-    # county_kana = Column(String)
-    # county_eng = Column(String)
-    # city = Column(String)
-    # city_kana = Column(String)
-    # city_eng = Column(String)
-    # ward = Column(String)
-    # ward_kana = Column(String)
-    # ward_eng = Column(String)
-    # oaza = Column(String)
-    # oaza_kana = Column(String)
-    # oaza_eng = Column(String)
-    # chome = Column(String)
-    # chome_kana = Column(String)
-    # chome_num = Column(Integer)
-    # koaza = Column(String)
-    # koaza_kana = Column(String)
-    # koaza_eng = Column(String)
-    is_jukyo = Column(Boolean)
-    # jukyo_code = Column(Integer)
-    # is_oaza_alias = Column(Boolean)
-    # is_koaza_alias = Column(Boolean)
-    # is_oaza_gaiji = Column(Boolean)
-    # is_koaza_gaiji = Column(Boolean)
-    # status = Column(Integer)
-    start_count_type = Column(Integer)
-    # valid_from = Column(Date)
-    # valid_to = Column(Date)
-    # reference_code = Column(Integer)
-    postcode = Column(String)
-    # note = Column(String)
+    __tablename__ = "aza_master"
+    __schema__ = """
+        struct AzaMaster {
+            code @0 :Text;
+            names @1 :Text;
+            namesIndex @2 :Text;
+            azaClass @3 :UInt8;
+            isJukyo @4 :Bool;
+            startCountType @5 :UInt8;
+            postcode @6 :Text;
+        }
+        """
+    __record_type__ = "AzaMaster"
 
     re_optional = re.compile(
         r'({})'.format(
             '|'.join(list('ケヶガツッノ') + ['字', '大字', '小字'])))
 
-    @classmethod
-    def from_csvrow(cls, row: dict) -> "AzaMaster":
-        names = cls.get_names_from_csvrow(row)
+    def from_csvrow(self, row: dict) -> dict:
+        names = self.get_names_from_csvrow(row)
         aza_master_row = {
             "code": row["全国地方公共団体コード"][0:5] + row["町字id"],
             "names": json.dumps(names, ensure_ascii=False),
-            "names_index": cls.standardize_aza_name(names),
-            "aza_class": row.get("町字区分コード"),
+            "namesIndex": self.__class__.standardize_aza_name(names),
+            "azaClass": row.get("町字区分コード"),
             # "pref": row["都道府県名"],
             # "pref_kana": row.get("都道府県名_カナ", ""),
             # "pref_eng": row.get("都道府県名_英字", ""),
@@ -177,26 +148,26 @@ class AzaMaster(Base):
             # "koaza": row.get("小字名", ""),
             # "koaza_kana": row.get("小字名_カナ", ""),
             # "koaza_eng": row.get("小字名_英字", ""),
-            "is_jukyo": row.get("住居表示フラグ", "") == "1",
+            "isJukyo": row.get("住居表示フラグ", "") == "1",
             # "jukyo_code": row.get("住居表示方式コード"),
             # "is_oaza_alias": row.get("大字・町_通称フラグ", "") == "1",
             # "is_koaza_alias": row.get("小字_通称フラグ", "") == "1",
             # "is_oaza_gaiji": row.get("大字・町_外字フラグ", "") == "1",
             # "is_koaza_gaiji": row.get("小字_外字フラグ", "") == "1",
             # "status": row.get("状態フラグ"),
-            "start_count_type": row.get("起番フラグ"),
+            "startCountType": row.get("起番フラグ"),
             # "valid_from": row.get("効力発生日"),
             # "valid_to": row.get("廃止日"),
             # "reference_code": row.get("原典資料コード"),
             "postcode": row.get("郵便番号"),
             # "note": row.get("備考"),
         }
-        for key in ("aza_class", "jukyo_code", "status",
-                    "start_count_type", "reference_code",):
+        for key in ("azaClass", "jukyoCode", "status",
+                    "startCountType", "referenceCode",):
             if aza_master_row.get(key) is not None:
                 aza_master_row[key] = int(aza_master_row[key])
 
-        for key in ("valid_from", "valid_to",):
+        for key in ("validFrom", "validTo",):
             if aza_master_row.get(key) is not None:
                 if aza_master_row[key] != "":
                     aza_master_row[key] = datetime.date.fromisoformat(
@@ -209,13 +180,13 @@ class AzaMaster(Base):
                 aza_master_row["postcode"] = json.dumps(
                     aza_master_row["postcode"].split(";"),
                     ensure_ascii=False)
-            else:
-                aza_master_row["postcode"] = None
 
-        return AzaMaster(**aza_master_row)
+        else:
+            aza_master_row["postcode"] = ""
 
-    @classmethod
-    def get_names_from_csvrow(cls, row: dict) -> list:
+        return aza_master_row
+
+    def get_names_from_csvrow(self, row: dict) -> list:
         code = row["全国地方公共団体コード"][0:5] + row["町字id"]
         names = []
         pref = row['都道府県名']
@@ -292,7 +263,7 @@ class AzaMaster(Base):
     @classmethod
     def standardize_aza_name(cls, names: list) -> str:
         """
-        Convert list of address element in [leve, name] format
+        Convert list of address element in [level, name] format
         into a string with typographical deviations removed.
         """
         converted = ''
@@ -311,11 +282,10 @@ class AzaMaster(Base):
 
         return converted
 
-    @classmethod
     def search_by_names(
-            cls,
-            elements: list,
-            session) -> Union["AzaMaster", None]:
+        self,
+        elements: list,
+    ):
         """
         Search AzaMaster record by a list of address elements.
 
@@ -326,28 +296,27 @@ class AzaMaster(Base):
 
         Return
         ------
-        AzaMaster, None
-            aza_master record or None.
-        """
-        st_name = cls.standardize_aza_name(elements)
-        aza_row = None
-        for aza_row in session.query(AzaMaster).filter(
-                AzaMaster.names_index == st_name):
-            break
+        Record, None
+            Aza_master record or None.
 
-        if aza_row is not None:
-            return aza_row
+        Notes
+        -----
+        - This method uses sequential search so it is very slow.
+        """
+        st_name = self.__class__.standardize_aza_name(elements)
+        for i in range(self.count_records):
+            record = self.get_record(pos=i)
+            if record.names_index == st_name:
+                return record
 
         logger.debug("'{}' is not in the aza_master table.".format(
             ''.join([x[1] for x in elements])))
-
         return None
 
-    @classmethod
     def search_by_code(
-            cls,
-            code: str,
-            session) -> Union["AzaMaster", None]:
+        self,
+        code: str,
+    ):
         """
         Search AzaMaster record by azacode.
 
@@ -358,23 +327,55 @@ class AzaMaster(Base):
 
         Return
         ------
-        AzaMaster, None
-            aza_master record or None.
+        Record, None
+            Aza_master record or None.
         """
-        aza_row = None
-
         if len(code) == 13:
             # lasdec(6digits) + aza_id(7digits)
             code = code[0:5] + code[6:]
 
-        for aza_row in session.query(AzaMaster).filter(
-                AzaMaster.code == code):
-            break
+        for record in self.search_records_on(attr="code", value=code):
+            if record.code == code:
+                return record
 
-        if aza_row is not None:
-            return aza_row
-
-        logger.debug("'{}' is not in the aza_master table.".format(
-            code))
-
+        logger.debug("'{}' is not in the aza_master table.".format(code))
         return None
+
+    def binary_search(self, code: str) -> int:
+        """
+        Searches for the record with a code equal to or smaller than
+        the specified string using the binary search method,
+        and returns its location.
+
+        Parameters
+        ----------
+        code: str
+            The target code.
+
+        Returns
+        -------
+        int
+            The position.
+
+        Notes
+        -----
+        - Returns -1 if the specified code is less than the code of
+          the first record in the table.
+        """
+        search_range = (0, self.count_records())
+        while search_range[0] < search_range[1]:
+            pos = int((search_range[0] + search_range[1]) / 2)
+            record = self.get_record(pos=pos)
+            if record.code == code:
+                return pos
+            elif record.code > code:
+                new_range = (search_range[0], pos)
+            elif record.code < code:
+                new_range = (pos, search_range[1])
+
+            if new_range == search_range:
+                return search_range[0]
+
+            search_range = new_range
+
+        return -1

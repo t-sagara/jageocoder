@@ -18,36 +18,32 @@
 
 .. code-block:: console
 
-   (.venv) $ pip install jageocoder==1.3.0
+   (.venv) $ pip install jageocoder==2.0.0
 
 
 .. _install-dictionary:
 
-住所辞書のインストール
-----------------------
+住所辞書データベースファイルのインストール
+------------------------------------------
 
 住所辞書は zip 形式でダウンロード可能です。
-住所辞書は jageocoder のバージョンによって少しずつ内容が異なるため、
-以下のコマンドで互換性のある辞書ファイルをダウンロードしてください。
+住所辞書は jageocoder のバージョンによってフォーマットが異なるため、
+ファイル名で対応するバージョンを確認してください。
+
+v2.0 に対応する住所辞書データベースファイルは末尾が `_v20.zip` です。
 
 .. code-block:: console
 
-   (.venv) $ jageocoder download-dictionary
-   INFO:jageocoder.module:157:Downloading zipped dictionary file from https://www.info-proto.com/static/jusho-20220519.zip to ...
+   (.venv) $ jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v20.zip
 
-
-**注意** 住所辞書ファイルは圧縮した状態で 836MB 程度と大きいため、
+**注意** 住所辞書ファイルは圧縮した状態でもファイルサイズが大きいため、
 ダウンロード・インストールには時間がかかります。
 
 次にダウンロードした zip ファイルをインストールします。
 
 .. code-block:: console
 
-   (.venv) $ jageocoder install-dictionary jusho-20220519.zip
-
-``jusho-20220519.zip`` はダウンロードしたファイル名に変更してください。
-
-
+   (.venv) $ jageocoder install-dictionary jukyo_all_v20.zip
 
 .. _uninstallation:
 
@@ -78,13 +74,13 @@ jageocoder をアンインストールする場合、先に辞書データベー
 
 このデータベースは数GBのサイズがあるため、複数の Python 環境で jageocoder
 を利用する際などには共用したいことがあります。そのような場合には、環境変数
-``JAGEOCODER_DB_DIR`` をセットすると、
+``JAGEOCODER_DB2_DIR`` をセットすると、
 住所辞書データベースのディレクトリを指定することができます。
 
 .. code-block:: console
 
-   (.venv) $ export JAGEOCODER_DB_DIR=$HOME/jageocoder/db
+   (.venv) $ export JAGEOCODER_DB2_DIR=$HOME/jageocoder/db2
    (.venv) $ jageocoder get-db-dir
-   /home/sagara/jageocoder/db
+   /home/sagara/jageocoder/db2
 
 ただし jageocoder のバージョンは住所辞書に合わせてください。

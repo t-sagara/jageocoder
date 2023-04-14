@@ -20,63 +20,43 @@ python
 
 ## Prerequisites
 
-Requires Python 3.6.x or later.
+Requires Python 3.7.x or later.
 
-The following packages will be installed automatically.
-
-- [marisa-trie](https://pypi.org/project/marisa-trie/)
-    for building and retrieving TRIE index
-- [SQLAlchemy](https://pypi.org/project/SQLAlchemy/)
-    for abstracting access to the RDBMS
+All other required packages will be installed automatically.
 
 ## Install instructions
 
 - Install the package with `pip install jageocoder`
+- Download an address database file compatible with that version from 
+  [here](https://www.info-proto.com/static/jageocoder/latest/v2/)
 - Install the dictionary with `install-dictionary` command
 
 ```sh
 pip install jageocoder
-jageocoder install-dictionary
+wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v20.zip
+jageocoder install-dictionary jukyo_all_v20.zip
 ```
 
-The dictionary database will be created under
-`{sys.prefix}/jageocoder/db/`, or if the user doesn't have 
-write permission there `{site.USER_DATA}/jageocoder/db/`
-by default.
+The dictionary database will be installed under
+`{sys.prefix}/jageocoder/db2/` by default,
+however if the user doesn't have write permission there,
+`{site.USER_DATA}/jageocoder/db2/` instead.
 
-If you need to know the location of the directory containing
-the dictionary database, perform `get-db-dir` command as follows,
-or call `jageocoder.get_db_dir()` in your script.
+If you need to know the location of the dictionary directory,
+perform `get-db-dir` command as follows. (Or call
+`jageocoder.get_db_dir()` in your script)
 
 ```sh
 jageocoder get-db-dir
 ```
 
 If you prefer to create it in another location, set the environment
-variable `JAGEOCODER_DB_DIR` before executing `install_dictionary()`
+variable `JAGEOCODER_DB2_DIR` before executing `install_dictionary()`
 to specify the directory.
 
 ```sh
-export JAGEOCODER_DB_DIR='/usr/local/share/jageocoder/db'
-install-dictionary
-```
-
-## Migrate dictinary
-
-The `install-dictionary` command will download and install
-a version of the address dictionary file that is compatible with
-the currently installed jageocoder package.
-
-If you upgrade the jageocoder package after installing
-the address dictionary file, it may no longer be compatible with
-the installed address dictionary file.
-In which case you will need to reinstall or migrate the dictionary.
-
-To migrate the dictionary, run the `migrate-dictionary` command.
-This process may take a long time.
-
-```sh
-jageocoder migrate-dictionary
+export JAGEOCODER_DB2_DIR='/usr/local/share/jageocoder/db2'
+install-dictionary <db-file>
 ```
 
 ## Uninstall instructions
@@ -104,13 +84,6 @@ you can check the geocoding results with the following command.
 
 ```sh
 jageocoder search 新宿区西新宿２－８－１
-```
-
-If you want to look up an address from longitude and latitude,
-specify `reverse` instead of `search`.
-
-```sh
-jageocoder reverse 139.6917 35.6896
 ```
 
 You can check the list of available commands with `--help`.
@@ -163,83 +136,7 @@ The meaning of the items is as follows
 
 ### Search for addresses by longitude and latitude
 
-Use `reverse()` to find addresses by longitude and latitude
-(so called 'reverse geocoding').
-
-The `reverse()` function returns the three addresses surrounding
-the specified longitude and latitude.
-(The results are formatted for better viewing)
-
-The `candidate` of each element contains information about
-the address node (AddressNode), and the `dist` contains
-the distance (geodesic distance, in meters)
-from the specified point to the representative point of the address.
-
-```
->>> jageocoder.reverse(139.6917, 35.6896)
-[
-  {
-    'candidate': {
-      'id': 12299330, 'name': '二丁目',
-      'x': 139.691774, 'y': 35.68945, 'level': 6,
-      'note': 'postcode:1600023',
-      'fullname': ['東京都', '新宿区', '西新宿', '二丁目']
-    },
-    'dist': 17.940303970792183
-  }, {
-    'candidate': {
-      'id': 12300198, 'name': '六丁目',
-      'x': 139.690969, 'y': 35.693426, 'level': 6,
-      'note': 'postcode:1600023',
-      'fullname': ['東京都', '新宿区', '西新宿', '六丁目']
-    },
-    'dist': 429.6327545403412
-  }, {
-    'candidate': {
-      'id': 12300498, 'name': '四丁目',
-      'x': 139.68762, 'y': 35.68754, 'level': 6,
-      'note': 'postcode:1600023',
-      'fullname': ['東京都', '新宿区', '西新宿', '四丁目']
-    },
-    'dist': 434.31591285255234
-  }
-]
-```
-
-If the `level` optional parameter is specified,
-it will return a more detailed address.
-However, it takes time to calculate.
-
-```
->>> jageocoder.reverse(139.6917, 35.6896, level=7)
-[
-  {
-    'candidate': {
-      'id': 12299340, 'name': '8番',
-      'x': 139.691778, 'y': 35.689627, 'level': 7,
-      'note': None,
-      'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']
-    },
-    'dist': 7.669497303543382
-  }, {
-    'candidate': {
-      'id': 12299330, 'name': '二丁目',
-      'x': 139.691774, 'y': 35.68945, 'level': 6,
-      'note': 'postcode:1600023',
-      'fullname': ['東京都', '新宿区', '西新宿', '二丁目']
-    },
-    'dist': 17.940303970792183
-  }, {
-    'candidate': {
-      'id': 12300588, 'name': '15番',
-      'x': 139.688172, 'y': 35.689264, 'level': 7,
-      'note': None,
-      'fullname': ['東京都', '新宿区', '西新宿', '四丁目', '15番']
-    },
-    'dist': 321.50874020809823
-  }
-]
-```
+Note: This method is not available in v2 series.
 
 ### Explore the attribute information of an address
 
@@ -334,36 +231,9 @@ the block number (○番) contained therein.
 ['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
 ```
 
-# For developers
-
-## Running the unittests
-
-```sh
-python -m unittest
-``` 
-
-`tests.test_search` tests for some special address notations.
-
-- Street address in Sapporo city such as '北3西1' for '北三条西一丁目'
-- Toorina in Kyoto city such as '下立売通新町西入薮ノ内町' for '薮ノ内町'
-
 ## Create your own dictionary
 
-Please use the dictionary coverter
-[jageocoder-converter](https://github.com/t-sagara/jageocoder-converter).
-
-## Sample Web Application
-
-A sample of a simple web app using Flask is available under
-`flask-demo`.
-
-Perform the following steps. Then, access port 5000.
-
-```
-cd flask-demo
-pip install flask flask-cors
-bash run.sh
-```
+Consider using [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter).
 
 ## ToDos
 
