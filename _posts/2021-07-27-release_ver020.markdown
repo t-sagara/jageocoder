@@ -1,0 +1,12 @@
+---
+layout: post
+title:  "新バージョンリリース: v0.2.0"
+date:   2021-07-27 12:00:00 +0000
+categories: Package update
+---
+
+*jageocoder v0.2.0* をリリースしました。
+
+- 辞書のインストール手順を簡略化しました。
+- Windows10 に対応しました。
+- 一部のLinuxでデフォルトとなっているPython 3.6.8で動作するように修正しました。

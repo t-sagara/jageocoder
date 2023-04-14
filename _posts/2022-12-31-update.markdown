@@ -1,0 +1,18 @@
+---
+layout: post
+title:  "辞書データ更新"
+date:   2022-12-31 12:00:00 +0000
+categories: Datafile update
+---
+
+住所データファイルを更新しました。
+
+- 位置参照情報（国土交通省）を令和3年度（2022-6-16）に更新しました。
+- 住居表示住所（国土地理院）を2022-11-16版に更新しました。
+- 郵便番号を2022-12版に更新しました。
+
+[住居表示住所レベル](https://www.info-proto.com/static/jusho-20221231.zip)
+または[街区レベル](https://www.info-proto.com/static/gaiku-20221231.zip) を
+ダウンロードし、以下のコマンドでインストールしてください。
+
+        python -m jageocoder install-dictionary jusho-20221231.zip

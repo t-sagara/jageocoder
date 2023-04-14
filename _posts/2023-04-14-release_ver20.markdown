@@ -1,11 +1,11 @@
 ---
 layout: post
-title:  "新バージョンリリース: v2.0"
-date:   2023-04-14 01:43:24 +0000
+title:  "新バージョンリリース: v2.0.0"
+date:   2023-04-14 15:00:00 +0000
 categories: Package update
 ---
 
-*jageocoder v2.0* をリリースしました。
+*jageocoder v2.0.0* をリリースしました。
 
 v2 では住所データベースを SQLite3 から
 [PortableTab](https://github.com/t-sagara/PortableTab) に変更することで、

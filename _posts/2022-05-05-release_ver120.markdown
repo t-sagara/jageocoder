@@ -1,0 +1,12 @@
+---
+layout: post
+title:  "新バージョンリリース: v1.2.0"
+date:   2022-05-05 12:00:00 +0000
+categories: Package update
+---
+
+*jageocoder v1.2.0* をリリースしました。
+
+- [アドレス・ベース・レジストリ](https://www.digital.go.jp/policies/base_registry_address/) に対応しました。
+- 字コードの取得や小字の判定に利用しています。
+

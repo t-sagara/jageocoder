@@ -1,0 +1,12 @@
+---
+layout: post
+title:  "新バージョンリリース: v1.0.0"
+date:   2021-12-09 12:00:00 +0000
+categories: Package update
+---
+
+最初の正式バージョン *jageocoder v1.0.0* をリリースしました。
+
+- [Geolonia住所データ](https://github.com/geolonia/japanese-addresses) に対応しました。
+- 小字の省略に対応しました。
+- 最適解だけを返す場合の処理を高速化しました。

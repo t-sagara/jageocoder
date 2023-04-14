@@ -1,0 +1,13 @@
+---
+layout: post
+title:  "新バージョンリリース: v1.3.0"
+date:   2022-05-23 12:00:00 +0000
+categories: Package update
+---
+
+*jageocoder v1.3.0* をリリースしました。
+
+- 住所データの出典情報をデータベースに格納しました。
+- 住所情報の出典を確認できるようになりました。
+- v1.2.2より[オンラインドキュメント](https://jageocoder.readthedocs.io/)を公開しました。
+
