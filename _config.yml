@@ -18,13 +18,14 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
+domain: t-sagara.github.io
 title: Jageocoder - A Python Japanese geocoder
 email: sagara@info-proto.com
 description: >- # this means to ignore newlines until "baseurl:"
   This is a Python port of the Japanese-address geocoder
   used in CSIS at the University of Tokyo's "Address Matching Service"
   and GSI Maps.
-baseurl: "" # the subpath of your site, e.g. /blog
+baseurl: "/jageocoder/" # the subpath of your site, e.g. /blog
 url: "https://t-sagara.github.io/jageocoder/" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username:
 github_username:  t-sagara
