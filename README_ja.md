@@ -32,11 +32,17 @@ Python 3.7 以降が必要です。
 
     pip install jageocoder
 
-- 利用する辞書ファイルをダウンロード・インストールします
-    
-    jageocoder install-dictionary
+- 利用する辞書データベースファイルを
+  [ここから](https://www.info-proto.com/static/jageocoder/latest/v2/)
+  ダウンロードします
 
-辞書データベースは `{sys.prefix}/jageocoder/db2/` の下に
+    wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v20.zip
+
+- 辞書データベースをインストールします
+    
+    jageocoder install-dictionary jukyo_all_v20.zip
+
+辞書データベースはデフォルトで `{sys.prefix}/jageocoder/db2/` の下に
 作成されますが、ユーザが書き込み権限を持っていない場合には
 `{site.USER_DATA}/jageocoder/db2/` に作成します。
 
@@ -53,7 +59,7 @@ jageocoder get-db-dir
 
 ```sh
 export JAGEOCODER_DB2_DIR='/usr/local/share/jageocoder/db2'
-jageocoder install-dictionary
+jageocoder install-dictionary <辞書ファイル>
 ```
 
 ## アンインストール手順
@@ -230,10 +236,10 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 
 ## ユニットテスト
 
-ユニットテストは unittest で行ないます。
+ユニットテストは pytest で行ないます。
 
 ```sh
-python -m unittest
+pytest
 ```
 
 `tests.test_search` テストには特殊な住所表記の例が含まれています。
