@@ -1,0 +1,162 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Flask",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "flask-demo/app.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "jinja": true,
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Module",
+            "type": "python",
+            "request": "launch",
+            "module": "enter-your-module-name",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Test search",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "tests/test_search.py",
+                "--pdb"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "バージョン表示",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "-v",
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "通常の住所検索",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "札幌市中央区北1西5-4-4"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "字スキップ",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--debug",
+                "長野県千曲市礒部字下河原１１３７"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "大字以下しかない住所の検索",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--debug",
+                "落合１－１５－２"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "脱落地",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--debug",
+                "--db-dir=../jageocoder-converter/db_fukushima",
+                "福島県いわき市平上高久塚田97乙"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "A番",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--debug",
+                "--db-dir=../jageocoder-converter/db_osaka",
+                "大阪府大阪市中央区上町a-6"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Out of bounce error",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--debug",
+                "沖縄県八重山郡与那国町与那国４２４６－２"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "字が省略できない",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--debug",
+                "山口県防府市大字江泊字塩入６６５－１"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "街区９番が取得できない",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--debug",
+                "徳島県小松島市横須町９－２８"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "辞書インストール",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "install-dictionary",
+                "../jageocoder-converter/db_20230411/jukyo_13_v20.zip"
+            ],
+            "justMyCode": true
+        }
+    ]
+}
