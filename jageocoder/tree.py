@@ -1163,7 +1163,7 @@ class AddressTree(object):
         logger.debug("  Creating index on trienode.trie_id ...")
         try:
             sql = text(
-                "CREATE INDEX ix_node_parent_id ON address_node (parent_id)")
+                "CREATE INDEX ix_node_parent_id ON node (parent_id)")
             self.session.execute(sql)
         except OperationalError as e:
             logger.warning(e)
