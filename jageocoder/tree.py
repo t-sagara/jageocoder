@@ -1,7 +1,9 @@
 from collections import OrderedDict
 import csv
+import json
 from logging import getLogger
 import os
+from pathlib import Path
 import re
 import site
 import sys
@@ -966,24 +968,40 @@ class AddressTree(object):
             len(tmp_id_name_table)))
 
         # Extend index_table
+        with open(Path(__file__).parent / "aliases.json") as f:
+            aliases = json.load(f)
+
         for k, v in tmp_id_name_table.items():
             if v.parent_id == -1:
                 continue
 
+            alternatives = []
             parent_node = tmp_id_name_table[v.parent_id]
             if parent_node.level == AddressLevel.PREF:
-                continue
-
-            pref_node = tmp_id_name_table[parent_node.parent_id]
-
-            logger.debug("Extend index by adding '{}/{}'".format(
-                pref_node.name, v.name))
-            label = pref_node.name + v.name
-            label_standardized = self.converter.standardize(label)
-            if label_standardized in self.index_table:
-                self.index_table[label_standardized].append(v.id)
+                parents = [parent_node.name]
             else:
-                self.index_table[label_standardized] = [v.id]
+                pref_node = tmp_id_name_table[parent_node.parent_id]
+                parents = [pref_node.name, parent_node.name]
+
+            if v.name in aliases:
+                for candidate in aliases[v.name]:
+                    alternatives.append(parents[:] + [candidate])
+
+            if len(parents) > 1:
+                alternatives.append([parents[0], v.name])
+                if v.name in aliases:
+                    for candidate in aliases[v.name]:
+                        alternatives.append([parents[0], candidate])
+
+            for alternative in alternatives:
+                logger.debug("Extend index by adding '{}'".format(
+                    '/'.join(alternative)))
+                label = "".join(alternative)
+                label_standardized = self.converter.standardize(label)
+                if label_standardized in self.index_table:
+                    self.index_table[label_standardized].append(v.id)
+                else:
+                    self.index_table[label_standardized] = [v.id]
 
         # self.session.commit()
 

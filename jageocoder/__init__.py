@@ -19,7 +19,7 @@ running the following steps.
     >>> jageocoder.searchNode('<Japanese-address>')
 """
 
-__version__ = '1.4.1'  # The package version
+__version__ = '1.4.2dev1'  # The package version
 __dictionary_version__ = '20220519'  # Compatible dictionary version
 __author__ = 'Takeshi Sagara <sagara@info-proto.com>'
 

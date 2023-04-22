@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jageocoder"
-version = "1.4.1"
+version = "1.4.2dev1"
 description = "A Japanese-address geocoder for Python."
 authors = ["Takeshi Sagara <sagara@info-proto.com>"]
 repository = "https://github.com/t-sagara/jageocoder/"
@@ -17,7 +17,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
 ]
-include = ["itaiji_dic.json"]
+include = ["itaiji_dic.json", "islands.json"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
