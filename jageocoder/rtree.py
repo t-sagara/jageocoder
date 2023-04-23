@@ -1,26 +1,63 @@
+from logging import getLogger
 import os
-from typing import Iterable, Optional
+from typing import Iterable, List, Optional
 
 from geographiclib.geodesic import Geodesic
 from rtree import index
+from rtree.exceptions import RTreeError
 from tqdm import tqdm
 
 from jageocoder.tree import AddressTree
 from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode, AddressNodeTable
 
+logger = getLogger(__name__)
+
 
 class Index(object):
+    """
+    The RTree index class for reverse geocoding.
+
+    Parameters
+    ----------
+    tree: AddressTree
+        The address tree to build rtree.
+
+    Attributes
+    ----------
+    idx: rtree.index
+        The rtree index class.
+    geod: geographiclib.geodesic.Geodesic
+        The WGS84 geodecis instance for calculating distances between
+        2 points represented by (lon, lat).
+    """
 
     geod = Geodesic.WGS84
 
     def __init__(self, tree: AddressTree):
         self._tree = tree
+        self.idx = None
 
         treepath = os.path.join(tree.db_dir, "rtree")
-        if os.path.exists(treepath + ".dat") and os.path.exists(treepath + ".idx"):
-            self.idx = self.load_rtree(treepath)
-        else:
+        if os.path.exists(treepath + ".dat") and \
+                os.path.exists(treepath + ".idx"):
+            try:
+                self.idx = self.load_rtree(treepath)
+                if self.test_rtree() is False:
+                    logger.warning((
+                        "RTree datafile exists but it does not match "
+                        "the registered address data."
+                    ))
+                    os.unlink(treepath + ".dat")
+                    os.unlink(treepath + ".idx")
+                    self.idx = None
+
+            except RTreeError as e:
+                logger.warning("Can't load the RTree datafile.({})".format(e))
+                os.unlink(treepath + ".dat")
+                os.unlink(treepath + ".idx")
+
+        if self.idx is None:
             self.idx = self.create_rtree(treepath)
 
     def distance(
@@ -38,6 +75,7 @@ class Index(object):
             Longitude and latitude of the point p0.
         lon1, lat1: float
             Longitude and latitude of the point p1.
+
         Return
         ------
         float
@@ -46,14 +84,27 @@ class Index(object):
         g = self.geod.Inverse(lat0, lon0, lat1, lon1)
         return g['s12']
 
-    def create_rtree(self, treepath: os.PathLike):
-        node_table: AddressNodeTable = self._tree.address_nodes
+    def create_rtree(self, treepath: os.PathLike) -> index.Rtree:
+        """
+        Create RTree from the nodes in the address tree.
+
+        Parameters
+        ----------
+        treepath: os.PathLike
+            The base filename of the rtree data files.
+            RTree data files consist of ".dat" and ".idx".
+
+        Returns
+        -------
+        index.Rtree
+            Created rtree index.
+        """
         file_idx = index.Rtree(str(treepath))
+        node_table: AddressNodeTable = self._tree.address_nodes
+
         max_id = node_table.count_records()
         id = AddressNode.ROOT_NODE_ID
-
-        nrecords = node_table.count_records()
-        with tqdm(total=nrecords, mininterval=0.5) as pbar:
+        with tqdm(total=max_id, mininterval=0.5) as pbar:
             prev_id = 0
             while id < max_id:
                 pbar.update(id - prev_id)
@@ -72,16 +123,66 @@ class Index(object):
 
         return file_idx
 
-    def load_rtree(self, treepath: os.PathLike):
+    def load_rtree(self, treepath: os.PathLike) -> index.Rtree:
+        """
+        Load RTree from the data files.
+
+        Parameters
+        ----------
+        treepath: os.PathLike
+            The base filename of the rtree data files.
+
+        Returns
+        -------
+        index.Rtree
+            Loaded rtree index.
+        """
         file_idx = index.Rtree(str(treepath))
         return file_idx
+
+    def test_rtree(self) -> bool:
+        """
+        Test the created/loaded Rtree index.
+
+        Returns
+        -------
+        bool
+            If the index passes the test, return True.
+            Otherwise return False.
+        """
+        node_table = self._tree.address_nodes
+        node = node_table.get_record(pos=node_table.count_records() // 2)
+        while node.level < AddressLevel.OAZA:
+            node = node_table.get_record(pos=node.id + 1)
+
+        while node.level > AddressLevel.AZA:
+            node = node.parent
+
+        return node.id in self.idx.nearest((node.x, node.y, node.x, node.y), 2)
 
     def _sort_by_dist(
                 self,
                 lon: float,
                 lat: float,
                 id_list: Iterable[int]
-            ) -> list:
+            ) -> List[AddressNode]:
+        """
+        Sort nodes by real(projected) distance from the target point.
+
+        Paramters
+        ---------
+        lon: float
+            The longitude of the target point.
+        lat: float
+            The latitude of the target point.
+        id_list: Iterable[int]
+            The list of node-id.
+
+        Returns
+        -------
+        List[AddressNode]
+            The sorted list of address nodes.
+        """
         results = []
         for node_id in id_list:
             node = self._tree.get_address_node(id=node_id)
@@ -95,8 +196,27 @@ class Index(object):
                 self,
                 x: float,
                 y: float,
-                level: Optional[int] = AddressLevel.AZA
+                level: Optional[int] = None
             ):
+        """
+        Search nearest nodes of the target point.
+
+        Parameters
+        ----------
+        x: float
+            The longitude of the target point.
+        y: float
+            The latitude of the target point.
+        level: int, optional
+            The level of the address ndoes to be retrieved as a result.
+            If omitted, search down to the AZA level.
+
+        Returns
+        -------
+        [{"candidate":AddressNode, "dist":float}]
+            Returns the results of retrieval up to 3 nodes.
+        """
+        level = level or AddressLevel.AZA
         # Search nodes by Rtree Index
         node_by_level = {}
         for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
