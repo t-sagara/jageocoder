@@ -13,6 +13,7 @@ Usage:
   {p} -h
   {p} -v
   {p} search [-d] [--area=<area>] [--db-dir=<dir>] [--force-aza-skip|--disable-aza-skip] <address>
+  {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] <url>
   {p} install-dictionary [-d] [--db-dir=<dir>] <path>
@@ -25,6 +26,7 @@ Options:
   --area=<area>       Specify the target area by jiscode or names.
   --force-aza-skip    Skip aza-names whenever possible.
   --disable-aza-skip  Do not skip aza-names.
+  --level=<level>     Max address level to search.
   --db-dir=<dir>      Specify dictionary directory.
 
 Examples:
@@ -110,6 +112,16 @@ def main():
                 "An error occurred during the search: {}".format(e),
                 file=sys.stderr)
             exit(1)
+
+    elif args['reverse']:
+        from jageocoder.address import AddressLevel
+        jageocoder.init(db_dir=args['--db-dir'], mode='r')
+        print(json.dumps(
+            jageocoder.reverse(
+                x=float(args['<longitude>']),
+                y=float(args['<latitude>']),
+                level=int(args['--level'] or AddressLevel.AZA)),
+            ensure_ascii=False))
 
     elif args['download-dictionary']:
         url = args['<url>']
