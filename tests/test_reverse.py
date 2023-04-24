@@ -36,8 +36,9 @@ class TestReverseMethods(unittest.TestCase):
         candidate_names = [x['candidate']['fullname'] for x in results]
 
         self.assertEqual(len(candidate_names), 3)
-        self.assertTrue([
-            "東京都", "多摩市", "落合", "一丁目", "15番地"] in candidate_names)
+        self.assertTrue(
+            ["東京都", "多摩市", "落合", "一丁目", "15番地"] in candidate_names
+        )
 
     def test_edge_case(self):
         """
@@ -45,12 +46,15 @@ class TestReverseMethods(unittest.TestCase):
         the land and cannot form a Delaunay triangle.
         """
         results = jageocoder.reverse(
-            y=35.720882, x=140.869360, level=AddressLevel.BLOCK)
+            y=35.720882, x=140.869360, level=AddressLevel.AZA)
         candidate_names = [x['candidate']['fullname'] for x in results]
-        self.assertEqual(len(candidate_names), 3)
-        self.assertEqual(candidate_names[0], ["千葉県", "銚子市", "海鹿島町"])
-        self.assertEqual(candidate_names[1], ["千葉県", "銚子市", "君ケ浜"])
-        self.assertEqual(candidate_names[2], ["千葉県", "銚子市", "小畑新町"])
+        self.assertTrue(len(candidate_names) >= 2)
+        self.assertEqual(
+            ["千葉県", "銚子市", "海鹿島町"], candidate_names[0]
+        )
+        self.assertEqual(
+            ["千葉県", "銚子市", "君ケ浜"], candidate_names[1]
+        )
 
     def test_edge_block_level(self):
         """
@@ -60,10 +64,13 @@ class TestReverseMethods(unittest.TestCase):
         results = jageocoder.reverse(
             y=35.720882, x=140.869360, level=AddressLevel.BLOCK)
         candidate_names = [x['candidate']['fullname'] for x in results]
-        self.assertEqual(len(candidate_names), 3)
-        self.assertEqual(candidate_names[0], ["千葉県", "銚子市", "海鹿島町", "5245番地"])
-        self.assertEqual(candidate_names[1], ["千葉県", "銚子市", "海鹿島町", "5244番地"])
-        self.assertEqual(candidate_names[2], ["千葉県", "銚子市", "海鹿島町", "5246番地"])
+        self.assertTrue(len(candidate_names) >= 2)
+        self.assertTrue(
+            ["千葉県", "銚子市", "海鹿島町", "5245番地"] in candidate_names
+        )
+        self.assertTrue(
+            ["千葉県", "銚子市", "海鹿島町", "5244番地"] in candidate_names
+        )
 
     def test_island(self):
         """
@@ -73,4 +80,6 @@ class TestReverseMethods(unittest.TestCase):
         results = jageocoder.reverse(x=142.155764, y=26.660128)
         candidate_names = [x['candidate']['fullname'] for x in results]
         self.assertTrue(len(candidate_names) >= 1)
-        self.assertEqual(candidate_names[0], ["東京都", "小笠原村", "西浦"])
+        self.assertTrue(
+            ["東京都", "小笠原村", "母島"] in candidate_names
+        )

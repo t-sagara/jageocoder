@@ -1,6 +1,7 @@
+from abc import ABC
 from logging import getLogger
 import os
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 from geographiclib.geodesic import Geodesic
 from rtree import index
@@ -12,6 +13,198 @@ from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode, AddressNodeTable
 
 logger = getLogger(__name__)
+
+
+class DelaunayTriangle(ABC):
+
+    @classmethod
+    def p_contained_triangle(
+        cls,
+        p: Tuple[float, float],
+        p0: Tuple[float, float],
+        p1: Tuple[float, float],
+        p2: Tuple[float, float]
+    ) -> bool:
+        """
+        Determine if the point p is inside the triangle (p0, p1, p2).
+
+        Parameters
+        ----------
+        p: (float, float)
+            x and y coordinates of point p.
+        p0, p1, p2: (float, float)
+            x and y coordinates of vertices p0, p1, p2 of the triangle.
+
+        Return
+        ------
+        bool
+            If the point p is inside the triangle, return True.
+        """
+        area = (-p1[1] * p2[0] + p0[1] * (-p1[0] + p2[0]) +
+                p0[0] * (p1[1] - p2[1]) + p1[0] * p2[1])
+        s = (p0[1] * p2[0] - p0[0] * p2[1] + (p2[1] - p0[1])
+             * p[0] + (p0[0] - p2[0]) * p[1])
+        t = (p0[0] * p1[1] - p0[1] * p1[0] + (p0[1] - p1[1])
+             * p[0] + (p1[0] - p0[0]) * p[1])
+
+        if area < 0.0:
+            area = -area
+            s = -s
+            t = -t
+
+        if 0 < s < area and 0 < t < area and 0 < area - s - t < area:
+            return True
+
+        return False
+
+    @classmethod
+    def get_circumcircle(
+        cls,
+        p0: Tuple[float, float],
+        p1: Tuple[float, float],
+        p2: Tuple[float, float]
+    ) -> Tuple[float, float, float]:
+        """
+        Calculate the coordinates and radius of the circumcircle
+        of the triangle (p0, p1, p2).
+
+        Parameters
+        ----------
+        p0, p1, p2: (float, float)
+            x and y coordinates of vertices p0, p1, p2 of the triangle.
+
+        Return
+        ------
+        (float, float, float)
+            x,y coordinates of the circumcenter, and
+            the square of the radius.
+        """
+        xt = (p2[1] - p0[1]) * (p1[0] * p1[0] - p0[0] * p0[0] +
+                                p1[1] * p1[1] - p0[1] * p0[1]) + \
+            (p0[1] - p1[1]) * (p2[0] * p2[0] - p0[0] * p0[0] +
+                               p2[1] * p2[1] - p0[1] * p0[1])
+        yt = (p0[0] - p2[0]) * (p1[0] * p1[0] - p0[0] * p0[0] +
+                                p1[1] * p1[1] - p0[1] * p0[1]) + \
+            (p1[0] - p0[0]) * (p2[0] * p2[0] - p0[0] * p0[0] +
+                               p2[1] * p2[1] - p0[1] * p0[1])
+        c = 2 * ((p1[0] - p0[0]) * (p2[1] - p0[1]) -
+                 (p1[1] - p0[1]) * (p2[0] - p0[0]))
+
+        x = xt / c
+        y = yt / c
+        r2 = (x - p0[0]) * (x - p0[0]) + (y - p0[1]) * (y - p0[1])
+        return (x, y, r2)
+
+    @classmethod
+    def p_contained_circumcircle(
+        cls,
+        p: Tuple[float, float],
+        p0: Tuple[float, float],
+        p1: Tuple[float, float],
+        p2: Tuple[float, float]
+    ) -> bool:
+        """
+        Determine if the point p is inside the circumcircle of
+        triangle (p0, p1, p2).
+
+        Parameters
+        ----------
+        p: (float, float)
+            x and y coordinates of point p.
+        p0, p1, p2: (float, float)
+            x and y coordinates of vertices p0, p1, p2 of the triangle.
+
+        Return
+        ------
+        bool
+            If the point p is inside the circumcircle, return True.
+        """
+        cx, cy, r2 = cls.get_circumcircle(p0, p1, p2)
+        pr2 = (p[0] - cx) * (p[0] - cx) + (p[1] - cy) * (p[1] - cy)
+        if pr2 < r2:
+            return True
+
+        return False
+
+    @classmethod
+    def select(
+        cls,
+        x: float,
+        y: float,
+        nodes: List[AddressNode]
+    ) -> List[AddressNode]:
+        """
+        Select the 3 nodes that make the smallest triangle
+        surrounding the target point.
+
+        Parameters
+        ----------
+        x: float
+            The longitude of the target point.
+        y: float
+            The latitude of the target point.
+        nodes: List[AddressNode]
+            The candidate nodes.
+
+        Returns
+        -------
+        List[AddressNode]
+            Up to 3 nodes surrounding the target point.
+        """
+        triangle = None
+        for p0 in range(len(nodes) - 2):
+            for p1 in range(p0 + 1, len(nodes) - 1):
+                for p2 in range(p1 + 1, len(nodes)):
+                    if cls.p_contained_triangle(
+                        (x, y),
+                        (nodes[p0].x, nodes[p0].y),
+                        (nodes[p1].x, nodes[p1].y),
+                        (nodes[p2].x, nodes[p2].y)
+                    ):
+                        triangle = [p0, p1, p2]
+                        break
+
+                if triangle is not None:
+                    break
+
+            if triangle is not None:
+                break
+
+        if triangle is None:
+            # If the triangle containing the target cannot
+            # be constructed, the two nearest points are returned.
+            return nodes[:2]
+
+        i = 0
+        while i < len(nodes):
+            if i in triangle:
+                i += 1
+                continue
+
+            if cls.p_contained_circumcircle(
+                (nodes[i].x, nodes[i].y),
+                (nodes[triangle[0]].x, nodes[triangle[0]].y),
+                (nodes[triangle[1]].x, nodes[triangle[1]].y),
+                (nodes[triangle[2]].x, nodes[triangle[2]].y)
+            ):
+                for j in range(3):
+                    new_triangle = triangle[:]
+                    new_triangle[j] = i
+                    if cls.p_contained_triangle(
+                        (x, y),
+                        (nodes[new_triangle[0]].x, nodes[new_triangle[0]].y),
+                        (nodes[new_triangle[1]].x, nodes[new_triangle[1]].y),
+                        (nodes[new_triangle[2]].x, nodes[new_triangle[2]].y)
+                    ):
+                        break
+
+                triangle = new_triangle
+                i = 0
+                continue
+
+            i += 1
+
+        return [nodes[i] for i in triangle]
 
 
 class Index(object):
@@ -61,10 +254,10 @@ class Index(object):
             self.idx = self.create_rtree(treepath)
 
     def distance(
-                self,
-                lon0: float, lat0: float,
-                lon1: float, lat1: float
-            ) -> float:
+        self,
+        lon0: float, lat0: float,
+        lon1: float, lat1: float
+    ) -> float:
         """
         Calculates the geodesic distance between two points (p0, p1)
         given in longitude and latitude.
@@ -114,6 +307,9 @@ class Index(object):
                 if node.level > AddressLevel.AZA:
                     id = node.sibling_id
                     continue
+                elif node.level < AddressLevel.OAZA:
+                    id += 1
+                    continue
 
                 file_idx.insert(
                     id=id,
@@ -161,11 +357,11 @@ class Index(object):
         return node.id in self.idx.nearest((node.x, node.y, node.x, node.y), 2)
 
     def _sort_by_dist(
-                self,
-                lon: float,
-                lat: float,
-                id_list: Iterable[int]
-            ) -> List[AddressNode]:
+        self,
+        lon: float,
+        lat: float,
+        id_list: Iterable[int]
+    ) -> List[AddressNode]:
         """
         Sort nodes by real(projected) distance from the target point.
 
@@ -193,11 +389,11 @@ class Index(object):
         return [x[0] for x in results]
 
     def nearest(
-                self,
-                x: float,
-                y: float,
-                level: Optional[int] = None
-            ):
+        self,
+        x: float,
+        y: float,
+        level: Optional[int] = None
+    ):
         """
         Search nearest nodes of the target point.
 
@@ -217,31 +413,42 @@ class Index(object):
             Returns the results of retrieval up to 3 nodes.
         """
         level = level or AddressLevel.AZA
-        # Search nodes by Rtree Index
-        node_by_level = {}
-        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
-            if node.level not in node_by_level:
-                node_by_level[node.level] = [node]
-            else:
-                node_by_level[node.level].append(node)
 
-        # Select 3-nearest points to the target from the highest level.
-        max_level = max(node_by_level.keys())
-        nodes = node_by_level[max_level][0:3]
+        # Search nodes by Rtree Index
+        nodes = []
+        ancestors = set()
+        max_level = 0
+        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
+            if node.id in ancestors:
+                continue
+
+            nodes.append(node)
+            max_level = max(max_level, node.level)
+            # Ancestor nodes of registering node are excluded.
+            cur = node.parent
+            while cur is not None:
+                nodes = [node for node in nodes if node.id != cur.id]
+                ancestors.add(cur.id)
+                cur = cur.parent
 
         if level > max_level:
             # Search points in the higher levels
             local_idx = index.Rtree()  # Create local rtree on memory
             for node in nodes:
-                for child_id in range(node.id + 1, node.sibling_id):
+                child_id = node.id
+                while child_id < node.sibling_id:
                     child_node = self._tree.get_address_node(id=child_id)
+                    if child_node.level > level:
+                        child_id = child_node.parent.sibling_id
+                        continue
+
                     local_idx.insert(
-                        id=child_node.id,
+                        id=child_id,
                         coordinates=(
                             child_node.x, child_node.y,
                             child_node.x, child_node.y))
+                    child_id += 1
 
-            # Select 3-nearest points using the local rtree
             nodes = []
             ancestors = set()
             for node in self._sort_by_dist(
@@ -250,14 +457,16 @@ class Index(object):
                     continue
 
                 nodes.append(node)
-                if len(nodes) == 3:
-                    break
-
                 # Ancestor nodes of registering node are excluded.
                 cur = node.parent
                 while cur is not None:
+                    nodes = [node for node in nodes if node.id != cur.id]
                     ancestors.add(cur.id)
                     cur = cur.parent
+
+        # Select the 3 nodes that make the smallest triangle
+        # surrounding the target point
+        nodes = DelaunayTriangle.select(x, y, nodes)
 
         # Convert nodes to the dict format.
         results = []
