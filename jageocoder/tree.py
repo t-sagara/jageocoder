@@ -985,7 +985,8 @@ class AddressTree(object):
 
             if v.name in aliases:
                 for candidate in aliases[v.name]:
-                    alternatives.append(parents[:] + [candidate])
+                    for i in range(len(parents) + 1):
+                        alternatives.append(parents[i:] + [candidate])
 
             if len(parents) > 1:
                 alternatives.append([parents[0], v.name])
