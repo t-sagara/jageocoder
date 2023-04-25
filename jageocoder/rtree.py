@@ -151,6 +151,10 @@ class DelaunayTriangle(ABC):
         List[AddressNode]
             Up to 3 nodes surrounding the target point.
         """
+        def kval(t: Tuple[int, int, int]) -> int:
+            sval = sorted(t)
+            return sval[0] * 100 + sval[1] * 10 + sval[2]
+
         triangle = None
         for p0 in range(len(nodes) - 2):
             for p1 in range(p0 + 1, len(nodes) - 1):
@@ -176,6 +180,7 @@ class DelaunayTriangle(ABC):
             return nodes[:2]
 
         i = 0
+        processed_triangles = set({kval(triangle), })
         while i < len(nodes):
             if i in triangle:
                 i += 1
@@ -187,20 +192,28 @@ class DelaunayTriangle(ABC):
                 (nodes[triangle[1]].x, nodes[triangle[1]].y),
                 (nodes[triangle[2]].x, nodes[triangle[2]].y)
             ):
+                new_triangle = None
                 for j in range(3):
-                    new_triangle = triangle[:]
-                    new_triangle[j] = i
+                    tt = triangle[:]
+                    tt[j] = i
+                    k = kval(tt)
+                    if k in processed_triangles:
+                        continue
+
                     if cls.p_contained_triangle(
                         (x, y),
-                        (nodes[new_triangle[0]].x, nodes[new_triangle[0]].y),
-                        (nodes[new_triangle[1]].x, nodes[new_triangle[1]].y),
-                        (nodes[new_triangle[2]].x, nodes[new_triangle[2]].y)
+                        (nodes[tt[0]].x, nodes[tt[0]].y),
+                        (nodes[tt[1]].x, nodes[tt[1]].y),
+                        (nodes[tt[2]].x, nodes[tt[2]].y)
                     ):
+                        new_triangle = tt
                         break
 
-                triangle = new_triangle
-                i = 0
-                continue
+                if new_triangle:
+                    triangle = new_triangle
+                    processed_triangles.add(kval(triangle))
+                    i = 0
+                    continue
 
             i += 1
 

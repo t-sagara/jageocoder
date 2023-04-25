@@ -13,6 +13,14 @@
   <input type="radio" name="skip_aza" value="off" {% if skip_aza=='off' %}checked="checked" {% endif %} />省略しない&nbsp;
 </form>
 
+<div id="map"></div>
+<div class="row">
+  <div class="col" id="address">
+    「<a href="{{ url_for('show_node', id=node.id) }}">
+    {{ node.get_fullname(' ') }}</a>」付近
+  </div>
+</div>
+
 <h2>ノード属性</h2>
 <ul id="attributes">
   <li>表記： {{ node.name }}</li>
@@ -85,4 +93,60 @@
     {% endif %}
   </li>
 </ul>
+{% endblock %}
+
+{% block script %}
+<script>
+  var map = new maplibregl.Map({
+    container: 'map',
+    style:
+      'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
+    center: [{{ node.x }}, {{ node.y }} ],
+  zoom: 7 + {{ node.level }},
+    minZoom: 3,
+    maxZoom: 17
+  });
+
+  var marker = new maplibregl.Marker({
+    draggable: true
+  })
+    .setLngLat([{{ node.x }}, {{ node.y }}])
+    .addTo(map);
+
+  function onDragEnd() {
+    var lnglat = marker.getLngLat();
+    var zoomlevel = map.getZoom();
+    console.debug(`lat: ${lnglat.lat}, lng: ${lnglat.lng}, zoom: ${zoomlevel}`);
+    reverseGeocoding(lnglat.lat, lnglat.lng, zoomlevel);
+  }
+
+  function reverseGeocoding(lat, lng, zoom) {
+    var level = parseInt(zoom, 10) - 7;
+    if (level < 1) {
+      level = 1
+    }
+    var formData = new FormData()
+    formData.append("lat", lat)
+    formData.append("lon", lng)
+    formData.append("level", level)
+
+    let response = fetch('{{ url_for('reverse_geocode') }}', {
+      method: 'POST',
+      body: formData
+    }).then(res => res.json()
+    ).then(data => {
+      let div = document.getElementById('address')
+      let link = "{{ url_for('show_node', id='0') }}"
+      if (data.length > 0) {
+        let nearest = data[0].candidate
+        div.innerHTML = '「<a href="' + link.replace("0", nearest.id)
+        + '">' + `${data[0].candidate.fullname.join(' ')}`
+        + '</a>」付近'
+      }
+    })
+
+  }
+
+  marker.on('dragend', onDragEnd);
+</script>
 {% endblock %}

@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import shutil
@@ -277,11 +278,15 @@ def installed_dictionary_version(db_dir: Optional[os.PathLike] = None) -> str:
         db_dir = get_db_dir(mode='a')
 
     metadata_path = os.path.join(db_dir, "metadata.txt")
-    if not os.path.exists(metadata_path):
-        return "(no version information)"
+    if os.path.exists(metadata_path):
+        with open(metadata_path, "r") as f:
+            version = f.readline().rstrip()
 
-    with open(metadata_path, "r") as f:
-        version = f.readline().rstrip()
+    else:
+        readme_path = os.path.join(db_dir, "README.md")
+        stats = os.stat(readme_path)
+        version = datetime.date.fromtimestamp(stats.st_mtime).strftime(
+            '%Y%m%d')
 
     return version
 
