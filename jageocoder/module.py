@@ -309,7 +309,7 @@ def installed_dictionary_readme(db_dir: Optional[os.PathLike] = None) -> str:
     if db_dir is None:
         db_dir = get_db_dir(mode='a')
 
-    readme_path = os.path.join(db_dir, "README.txt")
+    readme_path = os.path.join(db_dir, "README.md")
     if not os.path.exists(readme_path):
         return "(no README information)"
 
