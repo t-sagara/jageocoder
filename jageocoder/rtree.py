@@ -498,4 +498,7 @@ class Index(object):
             })
             registered.add(node.id)
 
+        # Sort by distance
+        results = sorted(results, key=lambda r: r['dist'])
+
         return results

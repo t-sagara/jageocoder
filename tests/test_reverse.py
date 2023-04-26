@@ -83,3 +83,16 @@ class TestReverseMethods(unittest.TestCase):
         self.assertTrue(
             ["東京都", "小笠原村", "母島"] in candidate_names
         )
+
+    def test_hachijo(self):
+        """
+        Test for the case where there are not a sufficient number of
+        address nodes around, such as on an island.
+        """
+        results = jageocoder.reverse(
+            x=139.79204562036716, y=33.113018869587904)
+        candidate_names = [x['candidate']['fullname'] for x in results]
+        self.assertTrue(len(candidate_names) >= 1)
+        self.assertEqual(
+            ["東京都", "八丈町", "中道"], candidate_names[0]
+        )
