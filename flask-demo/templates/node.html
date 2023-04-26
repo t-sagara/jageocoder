@@ -93,8 +93,31 @@
   let jsonLayers = [];
   let map = new maplibregl.Map({
     container: 'map',
+    /*  Use GSI Vector tile
     style:
-      'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
+      // 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
+    */
+    style: {
+      version: 8,
+      sources: {
+        t_pale: {
+          type: 'raster',
+          tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution:
+            '<a href="http://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank">地理院タイル</a>',
+          },
+        },
+      layers: [
+        {
+          id: 't_pale',
+          type: 'raster',
+          source: 't_pale',
+          minzoom: 0,
+          maxzoom: 18,
+        },
+      ],
+    },
     center: [{{ node.x }}, {{ node.y }} ],
   zoom: 7 + {{ node.level }},
     minZoom: 3,
