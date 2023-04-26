@@ -432,7 +432,7 @@ class Index(object):
         ancestors = set()
         max_level = 0
         for node in self._sort_by_dist(
-                x, y, self.idx.nearest((x, y, x, y), 20)):
+                x, y, self.idx.nearest((x, y, x, y), 10)):
             if node.id in ancestors:
                 continue
 
