@@ -3,18 +3,10 @@
 {% block title %}トップ | Jageocoder{% endblock %}
 
 {% block content %}
-<form action="{{ url_for('search', q='', skip_aza='auto') }}" method="GET">
-  <input id="query" value="{{ q }}" name="q" placeholder="検索したい住所を入力" />
-  <input id="area" value="{{ area }}" name="area" placeholder="検索対象（都道府県・市区町村）" />
-  <input type="submit" value="検索" /><br />
-  小字の省略：
-  <input type="radio" name="skip_aza" value="auto" {% if skip_aza=='auto' %}checked="checked" {% endif %} />自動判定&nbsp;
-  <input type="radio" name="skip_aza" value="on" {% if skip_aza=='on' %}checked="checked" {% endif %} />省略する&nbsp;
-  <input type="radio" name="skip_aza" value="off" {% if skip_aza=='off' %}checked="checked" {% endif %} />省略しない&nbsp;
-</form>
+{% include "addressform.html" %}
 
 {% if results %}
-<p>結果一覧</p>
+<h1>結果一覧</h1>
 <ul id="results">
   {% for result in results %}
   <li class="node">
@@ -34,10 +26,14 @@
   </li>
   {% endfor %}
 </ul>
-<p>JSON表現</p>
-<textarea id="result_text" rows="5">{{ results }}</textarea>
+<h1>JSON表現</h1>
+<div class="row">
+  <div class="col">
+    <textarea class="form-control col-sm-12" id="result_text" rows="5">{{ results }}</textarea>
+  </div>
+</div>
 {% else %}
-<p>住所の例</p>
+<h1>住所の例</h1>
 <ul>
   <li>
     <dl>

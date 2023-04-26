@@ -397,7 +397,8 @@ class AddressTree(object):
             candidates = self.trie.common_prefixes(std)
             if std in candidates:
                 trie_node_id = candidates[std]
-                for node_id in self.trie_nodes.get_record(pos=trie_node_id).nodes:
+                for node_id in self.trie_nodes.get_record(
+                        pos=trie_node_id).nodes:
                     node = self.address_nodes.get_record(pos=node_id)
                     if node.name == value:
                         return

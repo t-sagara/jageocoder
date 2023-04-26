@@ -3,7 +3,9 @@
 {% block title %}ノード一覧 | Jageocoder{% endblock %}
 
 {% block content %}
-<h2>ノードリスト</h2>
+{% include "addressform.html" %}
+
+<h1>ノードリスト</h1>
 <ul id="attributes">
   {% if nodes|length > 0%}
   {% for node in nodes %}

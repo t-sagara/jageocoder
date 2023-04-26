@@ -3,16 +3,9 @@
 {% block title %}ノード情報 | Jageocoder{% endblock %}
 
 {% block content %}
-<form action="{{ url_for('search') }}" method="GET">
-  <input id="query" value="{{ q }}" name="q" placeholder="検索したい住所を入力" />
-  <input id="area" value="{{ area }}" name="area" placeholder="検索対象（都道府県・市区町村）" />
-  <input type="submit" value="検索" /><br />
-  小字の省略：
-  <input type="radio" name="skip_aza" value="auto" {% if skip_aza=='auto' %}checked="checked" {% endif %} />自動判定&nbsp;
-  <input type="radio" name="skip_aza" value="on" {% if skip_aza=='on' %}checked="checked" {% endif %} />省略する&nbsp;
-  <input type="radio" name="skip_aza" value="off" {% if skip_aza=='off' %}checked="checked" {% endif %} />省略しない&nbsp;
-</form>
+{% include "addressform.html" %}
 
+<h1>ノード情報 (id: {{ node.id }})</h1>
 <div id="map"></div>
 <div class="row">
   <div class="col" id="address">
@@ -97,7 +90,8 @@
 
 {% block script %}
 <script>
-  var map = new maplibregl.Map({
+  let jsonLayers = [];
+  let map = new maplibregl.Map({
     container: 'map',
     style:
       'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
@@ -107,44 +101,121 @@
     maxZoom: 17
   });
 
-  var marker = new maplibregl.Marker({
+  let marker = new maplibregl.Marker({
     draggable: true
-  })
-    .setLngLat([{{ node.x }}, {{ node.y }}])
-    .addTo(map);
+  }).setLngLat(
+    [{{ node.x }}, {{ node.y }}]
+  ).addTo(map);
 
   function onDragEnd() {
-    var lnglat = marker.getLngLat();
-    var zoomlevel = map.getZoom();
-    console.debug(`lat: ${lnglat.lat}, lng: ${lnglat.lng}, zoom: ${zoomlevel}`);
+    let lnglat = marker.getLngLat();
+    let zoomlevel = map.getZoom();
     reverseGeocoding(lnglat.lat, lnglat.lng, zoomlevel);
   }
 
   function reverseGeocoding(lat, lng, zoom) {
-    var level = parseInt(zoom, 10) - 7;
+    let level = parseInt(zoom, 10) - 7;
     if (level < 1) {
-      level = 1
+      level = 1;
     }
-    var formData = new FormData()
-    formData.append("lat", lat)
-    formData.append("lon", lng)
-    formData.append("level", level)
+    let formData = new FormData();
+    formData.append("lat", lat);
+    formData.append("lon", lng);
+    formData.append("level", level);
 
     let response = fetch('{{ url_for('reverse_geocode') }}', {
       method: 'POST',
       body: formData
     }).then(res => res.json()
     ).then(data => {
-      let div = document.getElementById('address')
-      let link = "{{ url_for('show_node', id='0') }}"
+      let div = document.getElementById('address');
+      let showNodeLink = "{{ url_for('show_node', id='0') }}";
       if (data.length > 0) {
-        let nearest = data[0].candidate
-        div.innerHTML = '「<a href="' + link.replace("0", nearest.id)
+        let nearest = data[0].candidate;
+        div.innerHTML = '「<a href="' + showNodeLink.replace("0", nearest.id)
         + '">' + `${data[0].candidate.fullname.join(' ')}`
-        + '</a>」付近'
+        + '</a>」付近';
       }
-    })
 
+      if (jsonLayers.length > 0) {
+        for (const layer of jsonLayers) {
+          map.off('click', layer.id);
+          map.removeLayer(layer.id);
+        }
+        map.removeSource('triangle');
+        jsonLayers = [];
+      }
+
+      let points = [];
+      let nodes = {};
+      for (const i in data) {
+        const vertice = data[i];
+        const node = vertice['candidate'];
+        nodes[node.id] = node.fullname;
+        let merged = false;
+        for (let j = 0; j < i; j++) {
+          if (points[j].geometry.coordinates[0] == node.x
+              && points[j].geometry.coordinates[1] == node.y) {
+            points[j].properties.names += ', ' + node.fullname.join('');
+            merged = true;
+            break;
+          }
+        }
+        if (!merged) {
+          points.push({
+            'type': 'Feature',
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [node.x, node.y]
+            },
+            'properties': {
+              'id': node.id,
+              'names': node.fullname.join('')
+            }
+          });
+        }
+      }
+      source = {
+        'type': 'geojson',
+        'data': {
+          'type': 'FeatureCollection',
+          'features': points
+        }
+      };
+      map.addSource('triangle', source);
+
+      jsonLayers.push({
+        'id': 'nodes',
+        'source': 'triangle',
+        'type': 'circle',
+        'paint': {
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 2,
+          'circle-stroke-opacity': 1,
+          'circle-radius': 8,
+          'circle-color': '#1e50a2',
+          'circle-opacity': 0.5
+        },
+        'filter': ['==', '$type', 'Point']
+      });
+      for (const layer of jsonLayers) {
+        map.addLayer(layer);
+        map.on('click', layer.id, function (e) {
+          const coordinates = e.features[0].geometry.coordinates.slice();
+          let names = e.features[0].properties.names.toString();
+          new maplibregl.Popup()
+          .setLngLat(coordinates)
+          .setHTML(names)
+          .addTo(map);
+        });
+        map.on('mouseenter', layer.id, function () {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', layer.id, function () {
+          map.getCanvas().style.cursor = '';
+        });
+      }
+    });
   }
 
   marker.on('dragend', onDragEnd);

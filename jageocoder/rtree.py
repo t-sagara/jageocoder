@@ -153,7 +153,7 @@ class DelaunayTriangle(ABC):
         """
         def kval(t: Tuple[int, int, int]) -> int:
             sval = sorted(t)
-            return sval[0] * 100 + sval[1] * 10 + sval[2]
+            return sval[0] * 10000 + sval[1] * 100 + sval[2]
 
         triangle = None
         for p0 in range(len(nodes) - 2):
@@ -431,7 +431,8 @@ class Index(object):
         nodes = []
         ancestors = set()
         max_level = 0
-        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
+        for node in self._sort_by_dist(
+                x, y, self.idx.nearest((x, y, x, y), 20)):
             if node.id in ancestors:
                 continue
 
@@ -465,7 +466,7 @@ class Index(object):
             nodes = []
             ancestors = set()
             for node in self._sort_by_dist(
-                    x, y, local_idx.nearest((x, y, x, y), 10)):
+                    x, y, local_idx.nearest((x, y, x, y), 20)):
                 if node.id in ancestors:
                     continue
 
