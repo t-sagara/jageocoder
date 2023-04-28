@@ -25,8 +25,8 @@ description: >- # this means to ignore newlines until "baseurl:"
   This is a Python port of the Japanese-address geocoder
   used in CSIS at the University of Tokyo's "Address Matching Service"
   and GSI Maps.
-baseurl: "/jageocoder/" # the subpath of your site, e.g. /blog
-url: "https://t-sagara.github.io/jageocoder/" # the base hostname & protocol for your site, e.g. http://example.com
+baseurl: "/jageocoder" # the subpath of your site, e.g. /blog
+url: "https://t-sagara.github.io/jageocoder" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username:
 github_username:  t-sagara
 

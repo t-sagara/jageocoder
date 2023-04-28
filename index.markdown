@@ -5,6 +5,11 @@
 layout: home
 ---
 
+<div>
+  <video src="/jageocoder/assets/jageocoder_v201.mp4" height="400"
+  controls autoplay muted loop style="border: 1px solid #000;" />
+</div>
+
 [English Document](/jageocoder/about/)
 
 **jageocoder** は日本の住所を解析し、経緯度や郵便番号などを取得する
