@@ -16,46 +16,46 @@
 
 <h2>ノード属性</h2>
 <ul id="attributes">
-  <li>表記： {{ node.name }}</li>
-  <li>経度： {{ node.x }}, 緯度： {{ node.y }}</li>
-  <li>レベル： {{ node.level }}</li>
-  <li>優先度： {{ node.priority }}</li>
-  <li>データセット： <a href="{{ node.dataset.url }}" target="_blank">
+  <li>表記: {{ node.name }}</li>
+  <li>経度: {{ node.x }}, 緯度: {{ node.y }}</li>
+  <li>レベル: {{ node.level }}</li>
+  <li>優先度: {{ node.priority }}</li>
+  <li>データセット: <a href="{{ node.dataset.url }}" target="_blank">
       {{ node.dataset.title }}</a></li>
-  <li>メモ： {{ node.note }}</li>
+  <li>メモ: {{ node.note }}</li>
 </ul>
 
 <h2>メソッド</h2>
 <ul id="methods">
-  <li>都道府県からの表記 (get_fullname)： {{ node.get_fullname() }}</li>
-  <li>地理院地図リンク (get_gsimap_link)：
+  <li>都道府県からの表記 (get_fullname): {{ node.get_fullname() }}</li>
+  <li>地理院地図リンク (get_gsimap_link):
     <a href="{{ node.get_gsimap_link() }}" target="_gsimap">{{ node.get_gsimap_link() }}</a>
   </li>
-  <li>Google地図リンク (get_googlemap_link)：
+  <li>Google地図リンク (get_googlemap_link):
     <a href="{{ node.get_googlemap_link() }}" target="_googlemap">{{ node.get_googlemap_link() }}</a>
   </li>
-  <li>都道府県名 (get_pref_name)： {{ node.get_pref_name() }}</li>
-  <li>都道府県コード (get_pref_jiscode)：
+  <li>都道府県名 (get_pref_name): {{ node.get_pref_name() }}</li>
+  <li>都道府県コード (get_pref_jiscode):
     <a href="{{ url_for('search_jisx0401', code=node.get_pref_jiscode()) }}">
       {{ node.get_pref_jiscode() }}</a>
   </li>
-  <li>都道府県団体コード (get_pref_local_authority_code)： {{ node.get_pref_local_authority_code() }}</li>
-  <li>市区町村名 (get_city_name)： {{ node.get_city_name() }}</li>
-  <li>市区町村コード (get_city_jiscode)：
+  <li>都道府県団体コード (get_pref_local_authority_code): {{ node.get_pref_local_authority_code() }}</li>
+  <li>市区町村名 (get_city_name): {{ node.get_city_name() }}</li>
+  <li>市区町村コード (get_city_jiscode):
     <a href="{{ url_for('search_jisx0402', code=node.get_city_jiscode()) }}">
       {{ node.get_city_jiscode() }}</a>
   </li>
-  <li>市区町村団体コード (get_city_local_authority_code)： {{ node.get_city_local_authority_code() }}</li>
-  <li>アドレス・ベース・レジストリ 字ID (get_aza_id)：
+  <li>市区町村団体コード (get_city_local_authority_code): {{ node.get_city_local_authority_code() }}</li>
+  <li>アドレス・ベース・レジストリ 字ID (get_aza_id):
     <a href="{{ url_for('search_aza_id', aza_id=node.get_aza_id()) }}">
       {{ node.get_aza_id() }}</a>
   </li>
-  <li>字コード（市区町村コード+字ID） (get_aza_code)：
+  <li>字コード（市区町村コード+字ID） (get_aza_code):
     <a href="{{ url_for('get_aza', code=node.get_aza_code()) }}">
       {{ node.get_aza_code() }}</a>
   </li>
-  <li>字表記 (get_aza_names)： {{ node.get_aza_names(tree) }}</li>
-  <li>郵便番号 (get_postcode)：
+  <li>字表記 (get_aza_names): {{ node.get_aza_names(tree) }}</li>
+  <li>郵便番号 (get_postcode):
     <a href="{{ url_for('search_postcode', code=node.get_postcode()) }}">
       {{ node.get_postcode() }}</a>
   </li>
@@ -63,7 +63,7 @@
 
 <h2>関係</h2>
 <ul id="relations">
-  <li>親ノード：
+  <li>親ノード:
     {% if node.id == -1 %}
     無し
     {% else %}
@@ -73,7 +73,7 @@
     </a>
     {% endif %}
   </li>
-  <li>子ノード：
+  <li>子ノード:
     {% if node.children|length > 0 %}
     {% for child in node.children %}
     <a href="{{ url_for('show_node',
@@ -93,10 +93,12 @@
   let jsonLayers = [];
   let map = new maplibregl.Map({
     container: 'map',
-    /*  Use GSI Vector tile
+    /*  Use GSI Vector tile */
     style:
       // 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
-    */
+      // 'https://gsi-cyberjapan.github.io/optimal_bvmap/style/std.json',
+      '{{ url_for("static", filename="styles/gsi_optimal_std.json") }}',
+    /*
     style: {
       version: 8,
       sources: {
@@ -118,6 +120,7 @@
         },
       ],
     },
+    */
     center: [{{ node.x }}, {{ node.y }} ],
   zoom: 7 + {{ node.level }},
     minZoom: 3,
