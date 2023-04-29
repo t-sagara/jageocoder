@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import shutil
@@ -277,11 +278,15 @@ def installed_dictionary_version(db_dir: Optional[os.PathLike] = None) -> str:
         db_dir = get_db_dir(mode='a')
 
     metadata_path = os.path.join(db_dir, "metadata.txt")
-    if not os.path.exists(metadata_path):
-        return "(no version information)"
+    if os.path.exists(metadata_path):
+        with open(metadata_path, "r") as f:
+            version = f.readline().rstrip()
 
-    with open(metadata_path, "r") as f:
-        version = f.readline().rstrip()
+    else:
+        readme_path = os.path.join(db_dir, "README.md")
+        stats = os.stat(readme_path)
+        version = datetime.date.fromtimestamp(stats.st_mtime).strftime(
+            '%Y%m%d')
 
     return version
 
@@ -304,7 +309,7 @@ def installed_dictionary_readme(db_dir: Optional[os.PathLike] = None) -> str:
     if db_dir is None:
         db_dir = get_db_dir(mode='a')
 
-    readme_path = os.path.join(db_dir, "README.txt")
+    readme_path = os.path.join(db_dir, "README.md")
     if not os.path.exists(readme_path):
         return "(no README information)"
 
@@ -387,10 +392,14 @@ def searchNode(query: str) -> List[Result]:
 def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
     """
     Reverse geocoding.
-
     """
-    raise JageocoderError(
-        "The 'reverse' method is not yet available in version 2.")
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+    from jageocoder.rtree import Index
+
+    global _tree
+    idx = Index(tree=_tree)
+    return idx.nearest(x=x, y=y, level=level)
 
 
 def create_trie_index() -> None:

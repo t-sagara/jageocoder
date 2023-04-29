@@ -801,16 +801,28 @@ class AddressNode(object):
             }
         }
 
-    def get_fullname(self):
+    def get_fullname(
+        self,
+        delimiter: Optional[str] = None,
+    ):
         """
         Returns a complete address notation starting with the name of
         the prefecture.
+
+        Parameters
+        ----------
+        delimiter: str, optional
+            Specifies the delimiter character for the address element;
+            If None is specified, returns a list of elements.
         """
         names = []
         cur_node = self
         while cur_node is not None:
             names.insert(0, cur_node.name)
             cur_node = cur_node.get_parent()
+
+        if isinstance(delimiter, str):
+            return delimiter.join(names)
 
         return names
 
@@ -869,11 +881,11 @@ class AddressNode(object):
         the this node or one of its upper nodes.
         """
         cur_node = self
-        while cur_node.id is not None and \
+        while cur_node is not None and \
                 cur_node.level not in target_levels:
             cur_node = cur_node.get_parent()
 
-        if cur_node.level in target_levels:
+        if cur_node is not None and cur_node.level in target_levels:
             return cur_node
 
         return None

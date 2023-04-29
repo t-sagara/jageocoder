@@ -115,7 +115,39 @@
 経緯度から住所を調べる
 ----------------------
 
-この機能は v2 では利用できません。
+地点の経緯度を指定し、その地点の住所を調べます（リバースジオコーディング）。
+
+より厳密には、指定した地点を囲む３点（ドロネー三角形の頂点）を
+構成する住所の情報を取得し、一番目の点（最も指定した座標に近い点）の
+住所表記を返します。
+
+.. code-block:: python
+
+   >>> import jageocoder
+   >>> jageocoder.init()
+   >>> triangle = jageocoder.reverse(139.6917, 35.6896)
+   >>> if len(triangle) > 0:
+   ...     print(triangle[0]['candidate']['fullname'])
+   ...
+   ['東京都', '新宿区', '西新宿', '二丁目']
+
+:py:meth:`jageocoder.reverse` に ``level`` オプションパラメータを
+指定すると、検索する住所のレベルを変更できます。
+
+.. code-block:: python
+
+   >>> triangle = jageocoder.reverse(139.6917, 35.6896, level=7)
+   >>> if len(triangle) > 0:
+   ...     print(triangle[0]['candidate']['fullname'])
+   ...
+   ['東京都', '新宿区', '西新宿', '二丁目', '8番']
+
+.. note::
+
+   リバースジオコーディング用のインデックスは、初めてリバース
+   ジオコーディングを実行した時に自動的に作成されます。
+   インデックスを削除したい場合は、辞書ディレクトリにある
+   ``rtree.dat`` ``rtree.idx`` という 2 つのファイルを削除してください。
 
 .. _sample-node-methods:
 

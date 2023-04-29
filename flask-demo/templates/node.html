@@ -3,58 +3,59 @@
 {% block title %}ノード情報 | Jageocoder{% endblock %}
 
 {% block content %}
-<form action="{{ url_for('search') }}" method="GET">
-  <input id="query" value="{{ q }}" name="q" placeholder="検索したい住所を入力" />
-  <input id="area" value="{{ area }}" name="area" placeholder="検索対象（都道府県・市区町村）" />
-  <input type="submit" value="検索" /><br />
-  小字の省略：
-  <input type="radio" name="skip_aza" value="auto" {% if skip_aza=='auto' %}checked="checked" {% endif %} />自動判定&nbsp;
-  <input type="radio" name="skip_aza" value="on" {% if skip_aza=='on' %}checked="checked" {% endif %} />省略する&nbsp;
-  <input type="radio" name="skip_aza" value="off" {% if skip_aza=='off' %}checked="checked" {% endif %} />省略しない&nbsp;
-</form>
+{% include "addressform.html" %}
+
+<h1>ノード情報 (id: {{ node.id }})</h1>
+<div id="map"></div>
+<div class="row">
+  <div class="col" id="address">
+    「<a href="{{ url_for('show_node', id=node.id) }}">
+    {{ node.get_fullname(' ') }}</a>」付近
+  </div>
+</div>
 
 <h2>ノード属性</h2>
 <ul id="attributes">
-  <li>表記： {{ node.name }}</li>
-  <li>経度： {{ node.x }}, 緯度： {{ node.y }}</li>
-  <li>レベル： {{ node.level }}</li>
-  <li>優先度： {{ node.priority }}</li>
-  <li>データセット： <a href="{{ node.dataset.url }}" target="_blank">
+  <li>表記: {{ node.name }}</li>
+  <li>経度: {{ node.x }}, 緯度: {{ node.y }}</li>
+  <li>レベル: {{ node.level }}</li>
+  <li>優先度: {{ node.priority }}</li>
+  <li>データセット: <a href="{{ node.dataset.url }}" target="_blank">
       {{ node.dataset.title }}</a></li>
-  <li>メモ： {{ node.note }}</li>
+  <li>メモ: {{ node.note }}</li>
 </ul>
 
 <h2>メソッド</h2>
 <ul id="methods">
-  <li>都道府県からの表記 (get_fullname)： {{ node.get_fullname() }}</li>
-  <li>地理院地図リンク (get_gsimap_link)：
+  <li>都道府県からの表記 (get_fullname): {{ node.get_fullname() }}</li>
+  <li>地理院地図リンク (get_gsimap_link):
     <a href="{{ node.get_gsimap_link() }}" target="_gsimap">{{ node.get_gsimap_link() }}</a>
   </li>
-  <li>Google地図リンク (get_googlemap_link)：
+  <li>Google地図リンク (get_googlemap_link):
     <a href="{{ node.get_googlemap_link() }}" target="_googlemap">{{ node.get_googlemap_link() }}</a>
   </li>
-  <li>都道府県名 (get_pref_name)： {{ node.get_pref_name() }}</li>
-  <li>都道府県コード (get_pref_jiscode)：
+  <li>都道府県名 (get_pref_name): {{ node.get_pref_name() }}</li>
+  <li>都道府県コード (get_pref_jiscode):
     <a href="{{ url_for('search_jisx0401', code=node.get_pref_jiscode()) }}">
       {{ node.get_pref_jiscode() }}</a>
   </li>
-  <li>都道府県団体コード (get_pref_local_authority_code)： {{ node.get_pref_local_authority_code() }}</li>
-  <li>市区町村名 (get_city_name)： {{ node.get_city_name() }}</li>
-  <li>市区町村コード (get_city_jiscode)：
+  <li>都道府県団体コード (get_pref_local_authority_code): {{ node.get_pref_local_authority_code() }}</li>
+  <li>市区町村名 (get_city_name): {{ node.get_city_name() }}</li>
+  <li>市区町村コード (get_city_jiscode):
     <a href="{{ url_for('search_jisx0402', code=node.get_city_jiscode()) }}">
       {{ node.get_city_jiscode() }}</a>
   </li>
-  <li>市区町村団体コード (get_city_local_authority_code)： {{ node.get_city_local_authority_code() }}</li>
-  <li>アドレス・ベース・レジストリ 字ID (get_aza_id)：
+  <li>市区町村団体コード (get_city_local_authority_code): {{ node.get_city_local_authority_code() }}</li>
+  <li>アドレス・ベース・レジストリ 字ID (get_aza_id):
     <a href="{{ url_for('search_aza_id', aza_id=node.get_aza_id()) }}">
       {{ node.get_aza_id() }}</a>
   </li>
-  <li>字コード（市区町村コード+字ID） (get_aza_code)：
+  <li>字コード（市区町村コード+字ID） (get_aza_code):
     <a href="{{ url_for('get_aza', code=node.get_aza_code()) }}">
       {{ node.get_aza_code() }}</a>
   </li>
-  <li>字表記 (get_aza_names)： {{ node.get_aza_names(tree) }}</li>
-  <li>郵便番号 (get_postcode)：
+  <li>字表記 (get_aza_names): {{ node.get_aza_names(tree) }}</li>
+  <li>郵便番号 (get_postcode):
     <a href="{{ url_for('search_postcode', code=node.get_postcode()) }}">
       {{ node.get_postcode() }}</a>
   </li>
@@ -62,7 +63,7 @@
 
 <h2>関係</h2>
 <ul id="relations">
-  <li>親ノード：
+  <li>親ノード:
     {% if node.id == -1 %}
     無し
     {% else %}
@@ -72,7 +73,7 @@
     </a>
     {% endif %}
   </li>
-  <li>子ノード：
+  <li>子ノード:
     {% if node.children|length > 0 %}
     {% for child in node.children %}
     <a href="{{ url_for('show_node',
@@ -85,4 +86,164 @@
     {% endif %}
   </li>
 </ul>
+{% endblock %}
+
+{% block script %}
+<script>
+  let jsonLayers = [];
+  let map = new maplibregl.Map({
+    container: 'map',
+    /*  Use GSI Vector tile */
+    style:
+      // 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json',
+      // 'https://gsi-cyberjapan.github.io/optimal_bvmap/style/std.json',
+      '{{ url_for("static", filename="styles/gsi_optimal_std.json") }}',
+    /*
+    style: {
+      version: 8,
+      sources: {
+        t_pale: {
+          type: 'raster',
+          tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution:
+            '<a href="http://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html" target="_blank">地理院タイル</a>',
+          },
+        },
+      layers: [
+        {
+          id: 't_pale',
+          type: 'raster',
+          source: 't_pale',
+          minzoom: 0,
+          maxzoom: 18,
+        },
+      ],
+    },
+    */
+    center: [{{ node.x }}, {{ node.y }} ],
+  zoom: 7 + {{ node.level }},
+    minZoom: 3,
+    maxZoom: 17
+  });
+
+  let marker = new maplibregl.Marker({
+    draggable: true
+  }).setLngLat(
+    [{{ node.x }}, {{ node.y }}]
+  ).addTo(map);
+
+  function onDragEnd() {
+    let lnglat = marker.getLngLat();
+    let zoomlevel = map.getZoom();
+    reverseGeocoding(lnglat.lat, lnglat.lng, zoomlevel);
+  }
+
+  function reverseGeocoding(lat, lng, zoom) {
+    let level = parseInt(zoom, 10) - 7;
+    if (level < 1) {
+      level = 1;
+    }
+    let formData = new FormData();
+    formData.append("lat", lat);
+    formData.append("lon", lng);
+    formData.append("level", level);
+
+    let response = fetch('{{ url_for('reverse_geocode') }}', {
+      method: 'POST',
+      body: formData
+    }).then(res => res.json()
+    ).then(data => {
+      let div = document.getElementById('address');
+      let showNodeLink = "{{ url_for('show_node', id='0') }}";
+      if (data.length > 0) {
+        let nearest = data[0].candidate;
+        div.innerHTML = '「<a href="' + showNodeLink.replace("0", nearest.id)
+        + '">' + `${data[0].candidate.fullname.join(' ')}`
+        + '</a>」付近';
+      }
+
+      if (jsonLayers.length > 0) {
+        for (const layer of jsonLayers) {
+          map.off('click', layer.id);
+          map.removeLayer(layer.id);
+        }
+        map.removeSource('triangle');
+        jsonLayers = [];
+      }
+
+      let points = [];
+      let nodes = {};
+      for (const i in data) {
+        const vertice = data[i];
+        const node = vertice['candidate'];
+        nodes[node.id] = node.fullname;
+        let merged = false;
+        for (let j = 0; j < i; j++) {
+          if (points[j].geometry.coordinates[0] == node.x
+              && points[j].geometry.coordinates[1] == node.y) {
+            points[j].properties.names += ', ' + node.fullname.join('');
+            merged = true;
+            break;
+          }
+        }
+        if (!merged) {
+          points.push({
+            'type': 'Feature',
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [node.x, node.y]
+            },
+            'properties': {
+              'id': node.id,
+              'names': node.fullname.join('')
+            }
+          });
+        }
+      }
+      source = {
+        'type': 'geojson',
+        'data': {
+          'type': 'FeatureCollection',
+          'features': points
+        }
+      };
+      map.addSource('triangle', source);
+
+      jsonLayers.push({
+        'id': 'nodes',
+        'source': 'triangle',
+        'type': 'circle',
+        'paint': {
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 2,
+          'circle-stroke-opacity': 1,
+          'circle-radius': 8,
+          'circle-color': '#1e50a2',
+          'circle-opacity': 0.5
+        },
+        'filter': ['==', '$type', 'Point']
+      });
+      for (const layer of jsonLayers) {
+        map.addLayer(layer);
+        map.on('click', layer.id, function (e) {
+          const coordinates = e.features[0].geometry.coordinates.slice();
+          let names = e.features[0].properties.names.toString();
+          new maplibregl.Popup()
+          .setLngLat(coordinates)
+          .setHTML(names)
+          .addTo(map);
+        });
+        map.on('mouseenter', layer.id, function () {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', layer.id, function () {
+          map.getCanvas().style.cursor = '';
+        });
+      }
+    });
+  }
+
+  marker.on('dragend', onDragEnd);
+</script>
 {% endblock %}

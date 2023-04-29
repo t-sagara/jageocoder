@@ -1,0 +1,30 @@
+<form id="address_form" action="{{ url_for('search') }}" method="GET">
+  <div class="row mb-3">
+    <div class="col-sm-6">
+      <input class="form-control" id="query" value="{{ q }}" name="q" placeholder="検索したい住所を入力">
+    </div>
+    <div class="col-sm-3">
+      <input class="form-control" id="area" value="{{ area }}" name="area" placeholder="検索対象（都道府県・市区町村）">
+    </div>
+    <div class="col-sm-3">
+      <button type="submit" class="btn btn-primary">検索</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-auto">
+      小字の省略
+    </div>
+    <div class="form-check col-auto">
+      <input class="form-check-input" type="radio" id="aza_auto" name="skip_aza" value="auto" {% if skip_aza=='auto' %}checked="checked" {% endif %} />
+      <label class="form-check-label" for="aza_auto">自動判定</label>
+    </div>
+    <div class="form-check col-auto">
+      <input class="form-check-input" type="radio" id="aza_skip_on" name="skip_aza" value="on" {% if skip_aza=='on' %}checked="checked" {% endif %} />
+      <label class="form-check-label" for="aza_skip_on">省略する</label>
+    </div>
+    <div class="form-check col-auto">
+      <input class="form-check-input" type="radio" id="aza_skip_off" name="skip_aza" value="off" {% if skip_aza=='off' %}checked="checked" {% endif %} />
+      <label class="form-check-label" for="aza_skip_off">省略しない</label>
+    </div>
+  </div>
+</form>

@@ -6,6 +6,7 @@ from flask_cors import cross_origin
 from flask import Flask, request, render_template, jsonify
 
 import jageocoder
+from jageocoder.address import AddressLevel
 
 jageocoder.init()
 module_version = jageocoder.__version__
@@ -227,7 +228,6 @@ def geocode():
     return jsonify([x.as_dict() for x in results]), 200
 
 
-"""
 @app.route("/rgeocode", methods=['POST', 'GET'])
 @cross_origin()
 def reverse_geocode():
@@ -249,4 +249,3 @@ def reverse_geocode():
         return "'lat' and 'lon' are required.", 400
 
     return jsonify(results), 200
-"""
