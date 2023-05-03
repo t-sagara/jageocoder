@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jageocoder"
-version = "2.0.1"
+version = "2.0.2rc1"
 description = "A Japanese-address geocoder for Python."
 authors = ["Takeshi Sagara <sagara@info-proto.com>"]
 repository = "https://github.com/t-sagara/jageocoder/"
@@ -27,7 +27,7 @@ docopt = "^0.6.2"
 deprecated = "^1.2.13"
 Werkzeug = ">=2.2.3"
 pycapnp = "^1.3.0"
-portabletab = "0.3.1"
+portabletab = ">=0.3.2"
 tqdm = "^4.00.0"
 rtree = "^1.0.0"
 geographiclib = "^2.0"
@@ -36,10 +36,10 @@ geographiclib = "^2.0"
 pytest = "^7.2.1"
 flake8 = "^5.0.0"
 twine = "^4.0.2"
-flask = "^2.2.3"
 flask-cors = "^3.0.10"
 sphinx = "<6.0.0"
 sphinx-rtd-theme = "^1.2.0"
+flask = "^2.2.5"
 
 [build-system]
 requires = ["poetry-core"]

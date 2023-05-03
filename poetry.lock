@@ -389,14 +389,14 @@ pyflakes = ">=2.5.0,<2.6.0"
 
 [[package]]
 name = "flask"
-version = "2.2.3"
+version = "2.2.5"
 description = "A simple framework for building complex web applications."
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "Flask-2.2.3-py3-none-any.whl", hash = "sha256:c0bec9477df1cb867e5a67c9e1ab758de9cb4a3e52dd70681f59fa40a62b3f2d"},
-    {file = "Flask-2.2.3.tar.gz", hash = "sha256:7eb373984bf1c770023fce9db164ed0c3353cd0b53f130f4693da0ca756a2e6d"},
+    {file = "Flask-2.2.5-py3-none-any.whl", hash = "sha256:58107ed83443e86067e41eff4631b058178191a355886f8e479e347fa1285fdf"},
+    {file = "Flask-2.2.5.tar.gz", hash = "sha256:edee9b0a7ff26621bd5a8c10ff484ae28737a2410d99b0bb9a6850c7fb977aa0"},
 ]
 
 [package.dependencies]
@@ -842,14 +842,14 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "portabletab"
-version = "0.3.1"
+version = "0.3.2"
 description = "Python package for serializing tables in portable format with Capnp."
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "portabletab-0.3.1-py3-none-any.whl", hash = "sha256:59d6671e24ad31dbc3c681d8cbdc66959bcc4ed1d4aba5ec7c6664d489402651"},
-    {file = "portabletab-0.3.1.tar.gz", hash = "sha256:0fb444d1d1d7e295c3cb01d9b66cca9dcdcfd4558fabd259295b816642fab3e0"},
+    {file = "portabletab-0.3.2-py3-none-any.whl", hash = "sha256:597730aaef6280d4c5482f04666a8c83d7632eadb1d2ae6fb1a1f6caff6eba70"},
+    {file = "portabletab-0.3.2.tar.gz", hash = "sha256:e23fb3690f24245c976e71b24252c0d65b595017311c008a8b0673c6af0733ff"},
 ]
 
 [package.dependencies]
@@ -1579,4 +1579,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "3b956e606164f333b198837de3eac004b21bc4a84a9fc8012ab0ce937fd415ee"
+content-hash = "a342746ba7d78ab01a3870e1d379e7f182310d4f3fdd1b1c608cad25c20b722e"
