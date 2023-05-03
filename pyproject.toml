@@ -36,10 +36,10 @@ geographiclib = "^2.0"
 pytest = "^7.2.1"
 flake8 = "^5.0.0"
 twine = "^4.0.2"
-flask = "^2.2.3"
 flask-cors = "^3.0.10"
 sphinx = "<6.0.0"
 sphinx-rtd-theme = "^1.2.0"
+flask = "^2.2.5"
 
 [build-system]
 requires = ["poetry-core"]
