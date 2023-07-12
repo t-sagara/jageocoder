@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Install dictionary",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "install-dictionary",
+                "jukyo_all_v20.zip",
+                "-y"
+            ]
+        },
+        {
             "name": "Python: Reverse test",
             "type": "python",
             "request": "launch",

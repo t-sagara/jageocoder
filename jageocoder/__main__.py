@@ -16,7 +16,7 @@ Usage:
   {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] <url>
-  {p} install-dictionary [-d] [--db-dir=<dir>] <path>
+  {p} install-dictionary [-d] [-y] [--db-dir=<dir>] <path>
   {p} uninstall-dictionary [-d] [--db-dir=<dir>]
 
 Options:
@@ -138,11 +138,12 @@ def main():
         try:
             jageocoder.install_dictionary(
                 path=path,
-                db_dir=args['--db-dir']
+                db_dir=args['--db-dir'],
+                skip_confirmation=(args['-y'] is True),
             )
         except JageocoderError:
             logging.warning((
-                "Could not find the dictionary at '{}'.".format(path)
+                "辞書データファイルが '{}' にありません。".format(path)
             ))
             exit(1)
 

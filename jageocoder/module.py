@@ -174,7 +174,8 @@ def download_dictionary(url: str) -> None:
 
 def install_dictionary(
         path: os.PathLike,
-        db_dir: Optional[os.PathLike] = None) -> None:
+        db_dir: Optional[os.PathLike] = None,
+        skip_confirmation: bool = False) -> None:
     """
     Install address-dictionary from the specified path.
 
@@ -192,6 +193,12 @@ def install_dictionary(
     # Set default value
     if db_dir is None:
         db_dir = get_db_dir(mode='w')
+
+    if skip_confirmation is not True and (db_dir / 'address_node').exists():
+        # Dictionary had been installed.
+        r = input("他の辞書がインストール済みです。上書きしますか？(Y/n) ")
+        if r.lower()[0] != 'y':
+            return
 
     if os.path.exists(path):
         path = path
@@ -233,30 +240,6 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     import shutil
     shutil.rmtree(db_dir)
     logger.info('Dictionary has been uninstalled.')
-
-
-def migrate_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
-    """
-    Migrate address-dictionary.
-
-    Parameters
-    ----------
-    db_dir: os.PathLike, optional
-        The directory where the database files has been installed.
-        If omitted, it will be determined by `get_db_dir()`.
-    """
-    # Set default value
-    if db_dir is None:
-        db_dir = get_db_dir(mode='a')
-
-    # Update the name and trie index
-    init(db_dir=db_dir, mode='a')
-    global _tree
-    # logger.info('Updating name index')
-    # _tree.update_name_index()
-    logger.info('Updating TRIE index {}'.format(_tree.trie_path))
-    _tree.create_trie_index()
-    logger.info('The dictionary is successfully migrated.')
 
 
 def installed_dictionary_version(db_dir: Optional[os.PathLike] = None) -> str:
