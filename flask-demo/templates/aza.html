@@ -1,80 +1,44 @@
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width-device-width, initial-scale=1.0">
-    <title>Jageocoder Demonstration</title>
-    <style type="text/css">
-      body {
-          margin: 1em;
-      }
-      input#query {
-          width: 50%;
-      }
-      textarea#result_text {
-          width: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>
-      <a href="https://github.com/t-sagara/jageocoder/blob/main/README_ja.md">Jageocoder</a>
-      のデモンストレーション</h1>
-    <form action="{{ url_for('search') }}" method="GET">
-      <input id="query" value="{{ q }}" name="q" placeholder="検索したい住所を入力" />
-      <input id="area" value="{{ area }}" name="area"
-      placeholder="検索対象（都道府県・市区町村）" />
-      <input type="submit" value="検索" /><br />
-      小字の省略：
-      <input type="radio" name="skip_aza" value="auto"
-        {% if skip_aza == 'auto' %}checked="checked"{% endif %}
-        />自動判定&nbsp;
-      <input type="radio" name="skip_aza" value="on"
-        {% if skip_aza == 'on' %}checked="checked"{% endif %}
-        />省略する&nbsp;
-      <input type="radio" name="skip_aza" value="off"
-        {% if skip_aza == 'off' %}checked="checked"{% endif %}
-        />省略しない&nbsp;
-    </form>
+{% extends 'base.html' %}
 
-    <p><a href="{{ url_for('index', q=q, skip_aza=skip_aza) }}">
-    住所の例に戻る</a></p>
+{% block title %}ノード一覧 | Jageocoder{% endblock %}
 
-    <h2>アドレス・ベース・レジストリ マスター属性</h2>
+{% block content %}
+{% include "addressform.html" %}
 
-    {% if aza is none %}
-    （条件に該当するレコードが見つかりません）
-    {% else %}
-    <ul id="attributes">
-      <li>表記
-        <table>
-          <thead>
-            <tr>
-              <th>レベル</th><th>漢字</th><th>カナ</th><th>英字</th>
-            </tr>
-          </thead>
-          <tbody>
-          {% for name in names %}
-          <tr>
-            <td align="right">{{ name[0] }}</td>
-            <td>{{ name[1] }}</td>
-            <td>{{ name[2] }}</td>
-            <td>{{ name[3] }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <li>字コード： <a href="{{ url_for('search_aza_id', aza_id=aza.code) }}">
-        {{ aza.code }}</a></li>
-      <li>町字区分コード： {{ aza.aza_class }}
-      (1:大字・町, 2:丁目, 3:小字)</li>
-      <li>住居表示フラグ： {{ aza.is_jukyo }}
-      (True: 住居表示, False: 非住居表示)</li>
-      <li>起番フラグ： {{ aza.start_count_type }}
-      (1:起番, 2:非起番, 0:登記情報に存在しない)</li>
-      <li>郵便番号： {{ aza.postcode }}</li>
-    </ul>
-    {% endif %}
+<h1>アドレス・ベース・レジストリ マスター属性</h1>
 
-  </body>
-</html>
+{% if aza is none %}
+（条件に該当するレコードが見つかりません）
+{% else %}
+<ul id="attributes">
+  <li>表記
+    <table>
+      <thead>
+        <tr>
+          <th>レベル</th><th>漢字</th><th>カナ</th><th>英字</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for name in names %}
+      <tr>
+        <td align="right">{{ name[0] }}</td>
+        <td>{{ name[1] }}</td>
+        <td>{{ name[2] }}</td>
+        <td>{{ name[3] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <li>字コード： <a href="{{ url_for('search_aza_id', aza_id=aza.code) }}">
+    {{ aza.code }}</a></li>
+  <li>町字区分コード： {{ aza.aza_class }}
+  (1:大字・町, 2:丁目, 3:小字)</li>
+  <li>住居表示フラグ： {{ aza.is_jukyo }}
+  (True: 住居表示, False: 非住居表示)</li>
+  <li>起番フラグ： {{ aza.start_count_type }}
+  (1:起番, 2:非起番, 0:登記情報に存在しない)</li>
+  <li>郵便番号： {{ aza.postcode }}</li>
+</ul>
+{% endif %}
+
+{% endblock %}
