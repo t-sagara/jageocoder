@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 
 import jageocoder
@@ -7,7 +8,7 @@ from jageocoder.exceptions import JageocoderError
 from docopt import docopt
 
 HELP = """
-'jageocoder' is a Python package of Japanese-address geocoder.
+'jageocoder' は日本の住所ジオコーダを実装した Python パッケージです。
 
 Usage:
   {p} -h
@@ -20,38 +21,49 @@ Usage:
   {p} uninstall-dictionary [-d] [--db-dir=<dir>]
 
 Options:
-  -h --help           Show this help.
-  -v --version        Show version number.
-  -d --debug          Show debug messages.
-  --area=<area>       Specify the target area by jiscode or names.
-  --force-aza-skip    Skip aza-names whenever possible.
-  --disable-aza-skip  Do not skip aza-names.
-  --level=<level>     Max address level to search.
-  --db-dir=<dir>      Specify dictionary directory.
+  -h --help           このヘルプメッセージを表示します.
+  -v --version        バージョン番号を表示します.
+  -d --debug          実行時にデバッグメッセージを表示します.
+  -y --yes            確認メッセージに対して自動的に y と答えます。
+  --area=<area>       検索対象地域の都道府県・市区町村名を指定します。
+  --force-aza-skip    「字」を常にスキップします。
+  --disable-aza-skip  「字」を常にスキップしません。
+  --level=<level>     検索する住所レベルを指定します。
+  --db-dir=<dir>      住所データベースのディレクトリを指定します。
 
 Examples:
 
-- Search address
+- 住所を検索します。
 
   {p} search 多摩市落合1-15
   {p} search --area=14152 中央1-1
   {p} search --area=東京都 落合1-15
+  {p} search --area=町田市,八王子市 中町１－１
 
-- Show dictionary directory
+  環境変数で検索オプションを指定できます（[]内がデフォルト）。
+  - JAGEOCODER_OPT_AZA_SKIP (on,off,[auto])
+    「字」のスキップ処理を指定します。
+  - JAGEOCODER_OPT_BEST_ONLY ([true],false)
+    最適解のみ表示するかどうかを指定します。
+  - JAGEOCODER_OPT_REQUIRE_COORDINATES ([true],false)
+    座標が登録されている住所のみ検索対象とするかどうかを指定します。
+    座標が登録されていない場合、経緯度 ≒ 999.9 と表示されます。
+
+- 住所データベースのディレクトリを表示します。
 
   {p} get-db-dir
 
-- Install dictionary
+- 住所データベースをインストールします。
 
-  (Download from web)
+  (ウェブから最新の全国住居表示レベルデータファイルをダウンロードします)
   {p} download-dictionary https://www.info-proto.com/static/jageocoder/latest/jukyo_all_v20.zip
 
-  (Install from the file)
+  (ダウンロードしたファイルをインストールします)
   {p} install-dictionary jukyo_all_v20.zip
 
-- Uninstall dictionary in '/home/foo/jageocoder_db/'
+- 住所データベースをアンインストールします。
 
-  {p} uninstall-dictionary --db-dir=/home/foo/jageocoder_db
+  {p} uninstall-dictionary
 """.format(p='jageocoder')  # noqa: E501
 
 
@@ -82,26 +94,35 @@ def main():
 
     if args['search']:
         jageocoder.init(db_dir=args['--db-dir'], mode='r')
-        skip_aza = 'auto'
+        search_options = {}
+        target_area = None
         if args.get('--area'):
             target_area = args['--area'].split(',')
-        else:
-            target_area = None
 
         if args['--disable-aza-skip']:
-            skip_aza = 'off'
+            search_options['aza_skip'] = False
         elif args['--force-aza-skip']:
-            skip_aza = 'on'
+            search_options['aza_skip'] = True
+        else:
+            aza_skip = os.environ.get(
+                'JAGEOCODER_OPT_AZA_SKIP', 'auto')
+            search_options['aza_skip'] = aza_skip
+
+        search_options['best_only'] = os.environ.get(
+            'JAGEOCODER_OPT_BEST_ONLY', 'true')
+        search_options['require_coordinates'] = os.environ.get(
+            'JAGEOCODER_OPT_REQUIRE_COORDINATES', 'true')
 
         try:
-            jageocoder.set_search_config(
-                aza_skip=skip_aza, target_area=target_area)
+            jageocoder.set_search_config(target_area=target_area)
         except RuntimeError:
             print((
                 "'{}' is incorrect as a parameter for "
                 "the --area option.").format(args['--area']),
                 file=sys.stderr)
             exit(1)
+
+        jageocoder.set_search_config(**search_options)
 
         try:
             print(json.dumps(

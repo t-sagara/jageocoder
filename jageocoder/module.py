@@ -194,7 +194,8 @@ def install_dictionary(
     if db_dir is None:
         db_dir = get_db_dir(mode='w')
 
-    if skip_confirmation is not True and (db_dir / 'address_node').exists():
+    if skip_confirmation is not True and os.path.exists(
+            os.path.join(db_dir, 'address_node')):
         # Dictionary had been installed.
         r = input("他の辞書がインストール済みです。上書きしますか？(Y/n) ")
         if r.lower()[0] != 'y':
@@ -325,16 +326,32 @@ def search(query: str) -> dict:
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    set_search_config(best_only=True)
+    # set_search_config(best_only=True)
     results = _tree.searchNode(query)
 
-    if len(results) == 0:
-        return {'matched': '', 'candidates': []}
+    if _tree.get_config('best_only'):
+        if len(results) == 0:
+            return {'matched': '', 'candidates': []}
 
-    return {
-        'matched': results[0][1],
-        'candidates': [x[0].as_dict() for x in results],
-    }
+        return {
+            'matched': results[0][1],
+            'candidates': [x[0].as_dict() for x in results],
+        }
+
+    result_by_matched = {}
+    for result in results:
+        if result.matched not in result_by_matched:
+            result_by_matched[result.matched] = []
+
+        result_by_matched[result.matched].append(result.node.as_dict())
+
+    return [
+        {"matched": r[0], "candidates": r[1]} for r in sorted(
+            result_by_matched.items(),
+            key=lambda x: len(x[0]),
+            reverse=True
+        )
+    ]
 
 
 def searchNode(query: str) -> List[Result]:

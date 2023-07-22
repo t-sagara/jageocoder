@@ -1,4 +1,5 @@
 from __future__ import annotations
+import copy
 from functools import lru_cache
 import json
 import logging
@@ -299,6 +300,24 @@ class AddressNode(object):
 
         return children
 
+    def add_dummy_coordinates(self) -> AddressNode:
+        """
+        Add dummy coordinate values to the node.
+        """
+        children = self.children
+        new_node = copy.copy(self)
+        for child in children:
+            if child.y <= 90.0:
+                new_node.x, new_node.y = child.x, child.y
+                logger.debug((
+                    "Node {}({}) has no coordinates. "
+                    "Use the coordinates of the child {}({}) instead."
+                ).format(
+                    self.name, self.id, child.name, child.id))
+                break
+
+        return new_node
+
     def search_child_with_criteria(
             self,
             pattern: str,
@@ -377,9 +396,13 @@ class AddressNode(object):
                 break
 
             if re_pattern.match(candidate.name_index) and \
-                    (max_level is None or candidate.level <= max_level) and \
-                    (require_coordinates is False or candidate.y <= 90.0):
-                children.append(candidate)
+                    (max_level is None or candidate.level <= max_level):
+                if require_coordinates is False or candidate.y <= 90.0:
+                    children.append(candidate)
+                else:
+                    candidate = candidate.add_dummy_coordinates()
+                    if candidate.y <= 90.0:
+                        children.append(candidate)
 
             next_pos = candidate.sibling_id
 

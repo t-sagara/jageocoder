@@ -323,7 +323,7 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="宮城県仙台市太白区秋保湯元字寺田",
-            fullname=["宮城県", "仙台市", "太白区", "秋保町湯元", "寺田"])
+            fullname=["宮城県", "仙台市", "太白区", "秋保町湯元", "字寺田"])
 
     def test_delete_cho(self):
         """
@@ -524,15 +524,15 @@ class TestSearchMethods(unittest.TestCase):
         # can be resolved to "八戸市一番町"
         self._check(
             query="青森県八戸市鮫町骨沢１",
-            fullname=["青森県", "八戸市", "大字鮫町", "骨沢", "1番地"])
+            fullname=["青森県", "八戸市", "大字鮫町", "字骨沢", "1番地"])
 
         self._check(
             query="岩手県盛岡市東中野字立石８－１０",
-            fullname=["岩手県", "盛岡市", "東中野", "立石", "8番地"])
+            fullname=["岩手県", "盛岡市", "東中野", "字立石", "8番地"])
 
         self._check(
             query="宮城県石巻市渡波字転石山１－６",
-            fullname=["宮城県", "石巻市", "渡波", "転石山"])
+            fullname=["宮城県", "石巻市", "渡波", "字転石山"])
 
         # If "字新得基線" will be skipped, "新得町１"
         # can be resolved to "字新得1番地"

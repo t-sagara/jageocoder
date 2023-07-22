@@ -392,6 +392,9 @@ class AddressTree(object):
             if value in (None, []):
                 return
 
+            if re.match(r'\d{2}', value) or re.match(r'\d{5}', value):
+                return
+
             # Check if the value is a name of node in the database.
             std = self.converter.standardize(value)
             candidates = self.trie.common_prefixes(std)
@@ -440,9 +443,9 @@ class AddressTree(object):
                 else:
                     value = True
             elif isinstance(value, str):
-                if value.lower() in ('on', 'enable', 'true'):
+                if value.lower() in ('on', 'enable', 'true', 'yes'):
                     value = True
-                elif value.lower() in ('off', 'disable', 'false'):
+                elif value.lower() in ('off', 'disable', 'false', 'no'):
                     value = False
                 elif value.lower() in ('auto', 'none', ''):
                     value = None
@@ -1202,6 +1205,13 @@ class AddressTree(object):
             rest_index = index[offset:]
             for node_id in trie_node.nodes:
                 node = self.get_address_node(id=node_id)
+
+                if node.y > 90.0 and self.get_config('require_coordinates'):
+                    node = node.add_dummy_coordinates()
+                    if node.y > 90.0:
+                        logger.debug("Node {}({}) has no coordinates.".format(
+                            node.name, node.id))
+                        continue
 
                 if min_key == '' and node.level <= AddressLevel.WARD:
                     # To make the process quicker, once a node higher
