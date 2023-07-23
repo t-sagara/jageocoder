@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Iterator
 import copy
 from functools import lru_cache
 import json
@@ -279,6 +280,24 @@ class AddressNode(object):
     def children(self) -> List[AddressNode]:
         return self.get_children()
 
+    def iter_children(self) -> Iterator[AddressNode]:
+        """
+        Iterate children of the node.
+
+        Returns
+        -------
+        Iterator[AddressNode]
+        """
+        pos: int = self.id + 1
+        while pos < self.sibling_id:
+            node = self.table.get_record(pos=pos)
+            if node.parent_id == self.id:
+                yield node
+                pos = node.sibling_id
+            else:
+                parent = self.table.get_record(pos=node.parent_id)
+                pos = parent.sibling_id
+
     def get_children(self) -> List[AddressNode]:
         """
         Get all children of the node.
@@ -287,26 +306,14 @@ class AddressNode(object):
         -------
         List[AddressNode]
         """
-        children = []
-        pos: int = self.id + 1
-        while pos < self.sibling_id:
-            node = self.table.get_record(pos=pos)
-            if node.parent_id == self.id:
-                children.append(node)
-                pos = node.sibling_id
-            else:
-                parent = self.table.get_record(pos=node.parent_id)
-                pos = parent.sibling_id
-
-        return children
+        return list(self.iter_children())
 
     def add_dummy_coordinates(self) -> AddressNode:
         """
         Add dummy coordinate values to the node.
         """
-        children = self.children
         new_node = copy.copy(self)
-        for child in children:
+        for child in self.iter_children():
             if child.y <= 90.0:
                 new_node.x, new_node.y = child.x, child.y
                 logger.debug((
