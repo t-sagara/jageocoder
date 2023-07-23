@@ -1356,8 +1356,10 @@ class AddressTree(object):
 
             results.append(Result(v[0], matched))
 
-        # Sort the results in acending order by node.priority.
-        results.sort(key=lambda r: r.node.priority)
+        # Sort the result list in descending order of the length of the match
+        # and ascending order of the node priority.
+        results.sort(
+            key=lambda r: len(r.matched) * -100 + r.node.priority)
 
         return results
 
