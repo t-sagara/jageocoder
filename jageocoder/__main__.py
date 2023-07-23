@@ -160,7 +160,7 @@ def main():
             jageocoder.install_dictionary(
                 path=path,
                 db_dir=args['--db-dir'],
-                skip_confirmation=(args['-y'] is True),
+                skip_confirmation=(args['--yes'] is True),
             )
         except JageocoderError:
             logging.warning((
