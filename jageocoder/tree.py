@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 import site
 import sys
-from typing import Any, Union, List, NoReturn, Optional, TextIO
+from typing import Any, Union, List, Set, NoReturn, Optional, TextIO
 
 from deprecated import deprecated
 
@@ -1189,6 +1189,7 @@ class AddressTree(object):
 
         min_key = ''
         processed_nodes: List[int] = []
+        resolved_node_ids: Set[int] = set()
 
         for k in keys:
             if len(k) < len(min_key):
@@ -1280,6 +1281,14 @@ class AddressTree(object):
                             min_part = _part
 
                     else:
+                        if cand.node.id in resolved_node_ids:
+                            continue
+
+                        cur = cand.node.parent
+                        while cur is not None:
+                            resolved_node_ids.add(cur.id)
+                            cur = cur.parent
+
                         results[cand.node.id] = [cand.node, key + cand[1]]
                         max_len = max(_len, max_len)
                         if min_part is None:

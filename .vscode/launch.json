@@ -16,6 +16,21 @@
             ]
         },
         {
+            "name": "Search all results",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "多摩市落合１－１５－２",
+                "--area=13"
+            ],
+            "env": {
+                "JAGEOCODER_OPT_BEST_ONLY": "off"
+            },
+            "justMyCode": true
+        },
+        {
             "name": "Python: Reverse test",
             "type": "python",
             "request": "launch",
