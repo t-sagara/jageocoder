@@ -1,4 +1,6 @@
 from __future__ import annotations
+from collections.abc import Iterator
+import copy
 from functools import lru_cache
 import json
 import logging
@@ -278,6 +280,24 @@ class AddressNode(object):
     def children(self) -> List[AddressNode]:
         return self.get_children()
 
+    def iter_children(self) -> Iterator[AddressNode]:
+        """
+        Iterate children of the node.
+
+        Returns
+        -------
+        Iterator[AddressNode]
+        """
+        pos: int = self.id + 1
+        while pos < self.sibling_id:
+            node = self.table.get_record(pos=pos)
+            if node.parent_id == self.id:
+                yield node
+                pos = node.sibling_id
+            else:
+                parent = self.table.get_record(pos=node.parent_id)
+                pos = parent.sibling_id
+
     def get_children(self) -> List[AddressNode]:
         """
         Get all children of the node.
@@ -286,18 +306,24 @@ class AddressNode(object):
         -------
         List[AddressNode]
         """
-        children = []
-        pos: int = self.id + 1
-        while pos < self.sibling_id:
-            node = self.table.get_record(pos=pos)
-            if node.parent_id == self.id:
-                children.append(node)
-                pos = node.sibling_id
-            else:
-                parent = self.table.get_record(pos=node.parent_id)
-                pos = parent.sibling_id
+        return list(self.iter_children())
 
-        return children
+    def add_dummy_coordinates(self) -> AddressNode:
+        """
+        Add dummy coordinate values to the node.
+        """
+        new_node = copy.copy(self)
+        for child in self.iter_children():
+            if child.y <= 90.0:
+                new_node.x, new_node.y = child.x, child.y
+                logger.debug((
+                    "Node {}({}) has no coordinates. "
+                    "Use the coordinates of the child {}({}) instead."
+                ).format(
+                    self.name, self.id, child.name, child.id))
+                break
+
+        return new_node
 
     def search_child_with_criteria(
             self,
@@ -377,9 +403,13 @@ class AddressNode(object):
                 break
 
             if re_pattern.match(candidate.name_index) and \
-                    (max_level is None or candidate.level <= max_level) and \
-                    (require_coordinates is False or candidate.y <= 90.0):
-                children.append(candidate)
+                    (max_level is None or candidate.level <= max_level):
+                if require_coordinates is False or candidate.y <= 90.0:
+                    children.append(candidate)
+                else:
+                    candidate = candidate.add_dummy_coordinates()
+                    if candidate.y <= 90.0:
+                        children.append(candidate)
 
             next_pos = candidate.sibling_id
 

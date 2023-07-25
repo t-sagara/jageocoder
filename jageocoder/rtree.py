@@ -310,7 +310,7 @@ class Index(object):
 
         max_id = node_table.count_records()
         id = AddressNode.ROOT_NODE_ID
-        with tqdm(total=max_id, mininterval=0.5) as pbar:
+        with tqdm(total=max_id, mininterval=0.5, ascii=True) as pbar:
             prev_id = 0
             while id < max_id:
                 pbar.update(id - prev_id)

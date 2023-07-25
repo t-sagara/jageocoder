@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 import site
 import sys
-from typing import Any, Union, List, NoReturn, Optional, TextIO
+from typing import Any, Union, List, Set, NoReturn, Optional, TextIO
 
 from deprecated import deprecated
 
@@ -392,6 +392,9 @@ class AddressTree(object):
             if value in (None, []):
                 return
 
+            if re.match(r'\d{2}', value) or re.match(r'\d{5}', value):
+                return
+
             # Check if the value is a name of node in the database.
             std = self.converter.standardize(value)
             candidates = self.trie.common_prefixes(std)
@@ -440,9 +443,9 @@ class AddressTree(object):
                 else:
                     value = True
             elif isinstance(value, str):
-                if value.lower() in ('on', 'enable', 'true'):
+                if value.lower() in ('on', 'enable', 'true', 'yes'):
                     value = True
-                elif value.lower() in ('off', 'disable', 'false'):
+                elif value.lower() in ('off', 'disable', 'false', 'no'):
                     value = False
                 elif value.lower() in ('auto', 'none', ''):
                     value = None
@@ -1186,6 +1189,7 @@ class AddressTree(object):
 
         min_key = ''
         processed_nodes: List[int] = []
+        resolved_node_ids: Set[int] = set()
 
         for k in keys:
             if len(k) < len(min_key):
@@ -1202,6 +1206,13 @@ class AddressTree(object):
             rest_index = index[offset:]
             for node_id in trie_node.nodes:
                 node = self.get_address_node(id=node_id)
+
+                if node.y > 90.0 and self.get_config('require_coordinates'):
+                    node = node.add_dummy_coordinates()
+                    if node.y > 90.0:
+                        logger.debug("Node {}({}) has no coordinates.".format(
+                            node.name, node.id))
+                        continue
 
                 if min_key == '' and node.level <= AddressLevel.WARD:
                     # To make the process quicker, once a node higher
@@ -1270,6 +1281,14 @@ class AddressTree(object):
                             min_part = _part
 
                     else:
+                        if cand.node.id in resolved_node_ids:
+                            continue
+
+                        cur = cand.node.parent
+                        while cur is not None:
+                            resolved_node_ids.add(cur.id)
+                            cur = cur.parent
+
                         results[cand.node.id] = [cand.node, key + cand[1]]
                         max_len = max(_len, max_len)
                         if min_part is None:
@@ -1346,8 +1365,10 @@ class AddressTree(object):
 
             results.append(Result(v[0], matched))
 
-        # Sort the results in acending order by node.priority.
-        results.sort(key=lambda r: r.node.priority)
+        # Sort the result list in descending order of the length of the match
+        # and ascending order of the node priority.
+        results.sort(
+            key=lambda r: len(r.matched) * -100 + r.node.priority)
 
         return results
 

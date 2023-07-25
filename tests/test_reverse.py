@@ -93,6 +93,8 @@ class TestReverseMethods(unittest.TestCase):
             x=139.79204562036716, y=33.113018869587904)
         candidate_names = [x['candidate']['fullname'] for x in results]
         self.assertTrue(len(candidate_names) >= 1)
-        self.assertEqual(
-            ["東京都", "八丈町", "宮ノ平"], candidate_names[0]
+        self.assertIn(
+            candidate_names[0], (
+                ["東京都", "八丈町", "宮ノ平"],
+                ["東京都", "八丈町", "中道"]),
         )
