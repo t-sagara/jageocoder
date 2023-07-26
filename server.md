@@ -37,6 +37,10 @@ Google Maps API 等のウェブサービスと比較すると、次のような�
 例として、 Windows PC に Docker Desktop を利用して
 jageocoder-server を立ち上げる手順を説明します。
 
+<div>
+  <video src="/jageocoder/assets/jageocoder-server-windows-install.m4v" height="400" controls muted style="border: 1px solid #000;" />
+</div>
+
 <u>Docker Desktop のインストール</u>
 
 - [Docker 公式ドキュメント](https://docs.docker.jp/docker-for-windows/install.html) に従い、 Windows 用の Docker Desktop をインストールしてください。
