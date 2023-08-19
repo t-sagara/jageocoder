@@ -642,6 +642,7 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_datsurakuchi(self):
         """
+        Check to see if you can correctly determine "脱落地".
         """
         self._check(
             query="福島県いわき市平上高久塚田97乙",

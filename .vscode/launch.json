@@ -62,6 +62,22 @@
             "justMyCode": true
         },
         {
+            "name": "Search moved address",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--db-dir=/home/sagara/jageocoder/db_tokyo",
+                "南多摩郡多摩町永山１"
+            ],
+            "env": {
+                "JAGEOCODER_OPT_BEST_ONLY": "off",
+                "JAGEOCODER_OPT_REQUIRE_COORDINATES": "off"
+            },
+            "justMyCode": true
+        },
+        {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",

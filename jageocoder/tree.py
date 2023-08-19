@@ -1250,6 +1250,25 @@ class AddressTree(object):
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
 
+                _results_by_node = results_by_node[:]
+                results_by_node.clear()
+                for cand in _results_by_node:
+                    if re.search(r'moveto:.', cand.node.note):
+                        for alias in re.findall(
+                                r'moveto:([^/]+)', cand.node.note):
+                            # replaced = key + cand.matched
+                            new_key = alias + rest_index[len(cand.matched):]
+                            aliased_results = self.search_by_trie(new_key)
+                            for node_id, val in aliased_results.items():
+                                node, matched = val
+                                matched = matched[len(alias):]
+                                results_by_node.append(
+                                    Result(node, matched=matched)
+                                )
+
+                    else:
+                        results_by_node.append(cand)
+
                 for cand in results_by_node:
                     if len(target_area) > 0:
                         for area in target_area:
