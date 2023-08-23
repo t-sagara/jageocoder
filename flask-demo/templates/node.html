@@ -16,7 +16,7 @@
 
 <h2>ノード属性</h2>
 <ul id="attributes">
-  <li>表記: {{ node.name }}</li>
+  <li>表記: {{ node.get_name('(空)') }}</li>
   <li>経度: {{ node.x }}, 緯度: {{ node.y }}</li>
   <li>レベル: {{ node.level }}</li>
   <li>優先度: {{ node.priority }}</li>
@@ -69,7 +69,7 @@
     {% else %}
     <a href="{{ url_for('show_node',
        id=node.parent_id, q=q, skip_aza=skip_aza, area=area) }}">
-      {{ node.parent.name }}
+      {{ node.parent.get_name('(空)') }}
     </a>
     {% endif %}
   </li>
@@ -78,7 +78,7 @@
     {% for child in node.children %}
     <a href="{{ url_for('show_node',
         id=child.id, q=q, skip_aza=skip_aza, area=area) }}">
-      {{ child.name }}
+      {{ child.get_name('(空)') }}
     </a>&nbsp;
     {% endfor %}
     {% else %}

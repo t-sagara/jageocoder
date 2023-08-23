@@ -153,6 +153,20 @@ class AddressNode(object):
         # Set relations
         self.table = None
 
+    def get_name(self, alt: Optional[str] = ''):
+        """
+        Name of node.
+
+        Parameters
+        ----------
+        alt: str, optional
+            String to be used instead if the node name is empty.
+        """
+        if self.name == 'NONAME':
+            return alt
+
+        return self.name
+
     @property
     def dataset(self):
         """
@@ -261,18 +275,17 @@ class AddressNode(object):
         """
         address_node = self.table.get_record(pos=self.id)
         next_pos = self.id + 1
-        while next_pos < address_node.siblingId:
+        while next_pos < address_node.sibling_id:
             candidate = self.table.get_record(pos=next_pos)
-            if candidate.parentId != self.id:
+            if candidate.parent_id != self.id:
                 next_pos += 1
                 continue
 
             if candidate.name == target_name or \
                     candidate.name_index == target_name:
-                child = AddressNode.from_record(candidate)
-                return child
+                return candidate
 
-            next_pos = candidate.siblingId
+            next_pos = candidate.sibling_id
 
         return None
 
@@ -525,6 +538,20 @@ class AddressNode(object):
 
             if len(new_candidates) > 0:
                 candidates += new_candidates
+
+        if self.level in (AddressLevel.CITY, AddressLevel.WARD):
+            noname_child = self.get_child('NONAME')
+            if noname_child:
+                if processed_nodes is None or noname_child.id in processed_nodes:
+                    msg = "-> Skip {}({}) (already processed)."
+                    logger.debug(msg.format(noname_child.name, noname_child.id))
+                else:
+                    logger.debug("-> comparing with <NONAME>")
+                    new_candidates = noname_child.search_recursive(
+                        tree=tree,
+                        index=index,
+                        processed_nodes=processed_nodes)
+                    candidates += new_candidates
 
         parent_node = self.get_parent()
         if self.level == AddressLevel.WARD and parent_node.name == '京都市':
@@ -802,7 +829,7 @@ class AddressNode(object):
         """
         return {
             "id": self.id,
-            "name": self.name,
+            "name": self.get_name(),
             "x": self.x,
             "y": self.y,
             "level": self.level,
@@ -823,7 +850,7 @@ class AddressNode(object):
             },
             "properties": {
                 "id": self.id,
-                "name": self.name,
+                "name": self.get_name(),
                 "level": self.level,
                 "priority": self.priority,
                 "note": self.note,
@@ -834,6 +861,7 @@ class AddressNode(object):
     def get_fullname(
         self,
         delimiter: Optional[str] = None,
+        alt: Optional[str] = '',
     ):
         """
         Returns a complete address notation starting with the name of
@@ -844,11 +872,13 @@ class AddressNode(object):
         delimiter: str, optional
             Specifies the delimiter character for the address element;
             If None is specified, returns a list of elements.
+        alt: str, optional
+            String to be used instead if the node name is empty.
         """
         names = []
         cur_node = self
         while cur_node is not None:
-            names.insert(0, cur_node.name)
+            names.insert(0, cur_node.get_name(alt))
             cur_node = cur_node.get_parent()
 
         if isinstance(delimiter, str):
@@ -894,7 +924,7 @@ class AddressNode(object):
 
     def __str__(self):
         return '[{}:{}({},{}){}({})]'.format(
-            self.id, self.name, self.x, self.y, self.level, str(self.note))
+            self.id, self.get_name(), self.x, self.y, self.level, str(self.note))
 
     def __repr__(self):
         r = []

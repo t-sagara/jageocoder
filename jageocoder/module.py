@@ -268,9 +268,12 @@ def installed_dictionary_version(db_dir: Optional[os.PathLike] = None) -> str:
 
     else:
         readme_path = os.path.join(db_dir, "README.md")
-        stats = os.stat(readme_path)
-        version = datetime.date.fromtimestamp(stats.st_mtime).strftime(
-            '%Y%m%d')
+        if os.path.exists(readme_path):
+            stats = os.stat(readme_path)
+            version = datetime.date.fromtimestamp(stats.st_mtime).strftime(
+                '%Y%m%d')
+        else:
+            version = '(Unknown)'
 
     return version
 

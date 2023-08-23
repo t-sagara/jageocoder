@@ -129,6 +129,16 @@ class TestSearchMethods(unittest.TestCase):
                 ["東京都", "西多摩郡", "瑞穂町", "大字箱根ケ崎", "2335番地"]],
             level=7)
 
+    def test_noname_oaza(self):
+        """
+        Test oaza which has no name.
+        """
+        self._check(
+            query="竜ヶ崎市3751番地",
+            match="竜ヶ崎市3751番地",
+            fullname=[["茨城県", "龍ケ崎市", "", "3751番地"]],
+            level=7)
+
     def test_oaza_not_in_dictionary(self):
         """
         Test notation with "大字" which is not included in the dictionary.
