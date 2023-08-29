@@ -211,6 +211,7 @@ class AddressTree(object):
             'best_only': True,
             'target_area': [],
             'require_coordinates': True,
+            'auto_redirect': True,
         }
         self.set_config(**{
             'debug': self.debug,
@@ -219,6 +220,8 @@ class AddressTree(object):
             'target_area': os.environ.get('JAGEOCODER_TARGET_AREA', None),
             'require_coordinates': os.environ.get(
                 'JAGEOCODER_REQUIRE_COORDINATES', True),
+            'auto_redirect': os.environ.get(
+                'JAGEOCODER_AUTO_REDIRECT', True),
         })
 
         # Itaiji converter
@@ -369,6 +372,11 @@ class AddressTree(object):
             Specify the areas to be searched.
             The area can be specified by the list of name of the node
             (such as prefecture name or city name), or JIS code.
+
+        - auto_redirect: bool (default = True)
+            When this option is set and the retrieved node has a
+            new address recorded in the "moveto" attribute,
+            the new address is retrieved automatically.
         """
         for k, v in kwargs.items():
             self._set_config(k, v)
@@ -1253,7 +1261,8 @@ class AddressTree(object):
                 _results_by_node = results_by_node[:]
                 results_by_node.clear()
                 for cand in _results_by_node:
-                    if re.search(r'moveto:.', cand.node.note):
+                    if re.search(r'moveto:.', cand.node.note) and \
+                            self.get_config('auto_redirect'):
                         for alias in re.findall(
                                 r'moveto:([^/]+)', cand.node.note):
                             # replaced = key + cand.matched

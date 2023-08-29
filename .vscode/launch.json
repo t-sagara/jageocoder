@@ -73,7 +73,8 @@
             ],
             "env": {
                 "JAGEOCODER_OPT_BEST_ONLY": "off",
-                "JAGEOCODER_OPT_REQUIRE_COORDINATES": "off"
+                "JAGEOCODER_OPT_REQUIRE_COORDINATES": "off",
+                "JAGEOCODER_OPT_AUTO_REDIRECT": "true",
             },
             "justMyCode": true
         },

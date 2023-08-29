@@ -48,6 +48,9 @@ Examples:
   - JAGEOCODER_OPT_REQUIRE_COORDINATES ([true],false)
     座標が登録されている住所のみ検索対象とするかどうかを指定します。
     座標が登録されていない場合、経緯度 ≒ 999.9 と表示されます。
+  - JAGEOCODER_OPT_AUTO_REDIRECT ([true],false)
+    検索したノードの moveto に新しい住所が記載されている場合に、
+    自動的に新しい住所を検索するかどうかを指定します。
 
 - 住所データベースのディレクトリを表示します。
 
@@ -112,6 +115,8 @@ def main():
             'JAGEOCODER_OPT_BEST_ONLY', 'true')
         search_options['require_coordinates'] = os.environ.get(
             'JAGEOCODER_OPT_REQUIRE_COORDINATES', 'true')
+        search_options['auto_redirect'] = os.environ.get(
+            'JAGEOCODER_OPT_AUTO_REDIRECT', 'true')
 
         try:
             jageocoder.set_search_config(target_area=target_area)

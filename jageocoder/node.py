@@ -544,13 +544,15 @@ class AddressNode(object):
             if noname_child:
                 if processed_nodes is None or noname_child.id in processed_nodes:
                     msg = "-> Skip {}({}) (already processed)."
-                    logger.debug(msg.format(noname_child.name, noname_child.id))
+                    logger.debug(msg.format(
+                        noname_child.name, noname_child.id))
                 else:
                     logger.debug("-> comparing with <NONAME>")
                     new_candidates = noname_child.search_recursive(
                         tree=tree,
-                        index=index,
+                        index=optional_prefix + index,
                         processed_nodes=processed_nodes)
+
                     candidates += new_candidates
 
         parent_node = self.get_parent()
