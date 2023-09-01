@@ -90,6 +90,11 @@ def set_search_config(**kwargs):
         Specify the areas to be searched.
         The area can be specified by the list of name of the node
         (such as prefecture name or city name), or JIS code.
+
+    - auto_redirect: bool (default = True)
+        When this option is set and the retrieved node has a
+        new address recorded in the "moveto" attribute,
+        the new address is retrieved automatically.
     """
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")

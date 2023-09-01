@@ -1013,16 +1013,6 @@ class AddressTree(object):
 
         return trie_nodes
 
-    def save_all(self) -> None:
-        """
-        Save all AddressNode in the tree to the database.
-        """
-        self.__not_in_readonly_mode()
-        logger.debug("Starting save full tree (recursive)...")
-        self.get_root().save_recursive(self.session)
-        self.session.commit()
-        logger.debug("Finished save tree.")
-
     def read_file(self, path: os.PathLike,
                   do_update: bool = False) -> None:
         """
@@ -1261,22 +1251,24 @@ class AddressTree(object):
                 _results_by_node = results_by_node[:]
                 results_by_node.clear()
                 for cand in _results_by_node:
-                    if re.search(r'moveto:.', cand.node.note) and \
-                            self.get_config('auto_redirect'):
-                        for alias in re.findall(
-                                r'moveto:([^/]+)', cand.node.note):
-                            # replaced = key + cand.matched
-                            new_key = alias + rest_index[len(cand.matched):]
-                            aliased_results = self.search_by_trie(new_key)
-                            for node_id, val in aliased_results.items():
-                                node, matched = val
-                                matched = matched[len(alias):]
-                                results_by_node.append(
-                                    Result(node, matched=matched)
-                                )
-
-                    else:
+                    if re.search(r'moveto:.', cand.node.note) is None or \
+                            not self.get_config('auto_redirect'):
                         results_by_node.append(cand)
+                        continue
+
+                    for k, v in cand.node.get_notes():
+                        if k != "moveto":
+                            continue
+
+                        logger.debug(f"Redirect '{cand.node.name}' to '{v}'")
+                        new_key = v + rest_index[len(cand.matched):]
+                        aliased_results = self.search_by_trie(new_key)
+                        for node_id, val in aliased_results.items():
+                            node, matched = val
+                            matched = matched[len(v):]
+                            results_by_node.append(
+                                Result(node, matched=matched)
+                            )
 
                 for cand in results_by_node:
                     if len(target_area) > 0:

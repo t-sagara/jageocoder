@@ -1,0 +1,602 @@
+DEBUG:jageocoder.tree:1186:Trie: 竜ガ崎市,竜ガ崎,
+DEBUG:jageocoder.tree:1199:Trie_id of key '竜ガ崎市' = 110077
+DEBUG:jageocoder.itaiji:268:Searching 竜ガ崎市 in 竜ガ崎市3710番地
+DEBUG:jageocoder.itaiji:292:Comparing '竜'(0) with '竜'(0)
+DEBUG:jageocoder.itaiji:292:Comparing 'ガ'(1) with 'ガ'(1)
+DEBUG:jageocoder.itaiji:292:Comparing '崎'(2) with '崎'(2)
+DEBUG:jageocoder.itaiji:292:Comparing '市'(3) with '市'(3)
+DEBUG:jageocoder.tree:1219:A node with ward or higher levels found. Set min_key to '竜ガ崎市'
+DEBUG:jageocoder.tree:1241:Search '3710番地' under 龍ケ崎市(37269940)
+DEBUG:jageocoder.node:589:node:[37269940:龍ケ崎市(140.18226623535156,35.91159439086914)3(geoshape_city_id:08208A1968/jisx0402:08208/postcode:3010000)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '龍ケ崎市'(37269940)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 千秋,六ッ谷,六斗蒔,八代町,NONAME,上八代,上大徳新町,上佐沼,上泉,上町,上米,上羽原,上貝原塚,下八代,下泉,下町,下羽原,下貝原塚,中八代,中坪,中島,中曽根,中根台,中谷原,中郷,中里,久保台,久夫,光順田,入地町,出し山町,別所町,前新田,北方町,北河原,半田町,南が丘,南中島町,古城,向原,向陽台,城ノ内,野原,野原町,野颪,堤外新田,塗戸町,大塚町,大徳町,大字大房,大留町,大羽谷津,奈戸岡,大字奥山,女化,姫宮,姫宮町,宮前,宮渕町,富士ノ下,富士見,寺後,小屋,小山丁,小柴,小通幸谷町,小関,川余郷,川原代町,川崎町,佐沼町,佐貫,佐貫町,平台,庄兵衛新田町,愛戸町,戸張,新町,松ケ丘,松葉,板橋町,根町,梶内,横町,水門,永山前,沖花丸,泉町,深堀,田町,白羽,直鮒,知手,砂波,砂町,稗柄町,稲荷新田町,米町,緑町,羽原町,羽根野,羽黒町,花丸,芳黄,若柴町,薄倉町,藤ケ丘,西道内,豊田町,貝原塚町,道仙田,長山,長峰町,長沖新田町,長沖町,門倉新田町,関,須藤堀本田,須藤堀町,馴柴町,馴馬町,高作町,高砂,高須町
+DEBUG:jageocoder.node:680:-> comparing with <NONAME>
+DEBUG:jageocoder.node:589:node:[37272236:(140.18414306640625,35.89972686767578)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under 'NONAME'(37272236)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 1番地,2番地,2398番地,2938番地,2943番地,2944番地,2957番地,2994番地,2995番地,3番地,3106番地,3107番地,3108番地,3131番地,3197番地,3198番地,3218番地,3219番地,3220番地,3221番地,3222番地,3223番地,3224番地,3225番地,3226番地,3227番地,3229番地,3230番地,3236番地,3237番地,3680番地,3751番地,3753番地,385番地,4274番地,4308番地,4309番地,4311番地,4312番地,4314番地,4316番地,4320番地,4321番地,4324番地,4325番地,4328番地,4331番地,4332番地,4333番地,4345番地,4349番地,4354番地,4356番地,4357番地,4358番地,4622番地,4624番地,4655番地,4659番地,4661番地,4662番地,4663番地,4664番地,4675番地,4698番地,4701番地,4703番地,4706番地,4708番地,4709番地,4710番地,4711番地,4712番地,4715番地,4719番地,4720番地,4721番地,4722番地,4723番地,4726番地,4731番地,4732番地,4733番地,4734番地,4746番地,4769番地,4770番地,4771番地,4772番地,4774番地,4775番地,4776番地,4777番地,4778番地,4779番地,4781番地,4785番地,4786番地,4787番地,4788番地,4790番地,4799番地,4803番地,4807番地,4827番地,4828番地,4829番地,4831番地,4856番地,4862番地,5174番地,5189番地,5316W1番地,5316W2番地,5367番地,5368番地,5370番地,5372番地,5373番地,5374番地,5375番地,5376番地,5377番地,5378番地,5379番地,5380番地,5381番地,5382番地,5383番地,5386番地,5388番地,5389番地,5390番地,5391番地,5392番地,5398番地,5399番地,5403番地,5404番地,5405番地,5406番地,5407番地,5408番地,5409番地,5410番地,5411番地,5412番地,5413番地,5495番地,5496番地,5497番地,5498番地,5499番地,5500番地,5501番地,5503番地,5509番地,5510番地,5511番地,5517番地,5519番地,5533番地,5550番地,5555番地,5581番地,5582番地,5583番地,5584番地,5585番地,5586番地,5587番地,5588番地,5589番地,5590番地,5591番地,5592番地,5593番地,5594番地,5595番地,5596番地,5597番地,5598番地,5599番地,5600番地,5601番地,5602番地,5603番地,5604番地,5605番地,5606番地,5607番地,5608番地,5609番地,5610番地,5611番地,5612番地,5613番地,5614番地,5615番地,5616番地,5617番地,5618番地,5619番地,5620番地,5621番地,5622番地,5623番地,5625番地,5626番地,5628番地,5629番地,5630番地,5631番地,5632番地,5633番地,5634番地,5635番地,5636番地,5652番地,5653番地,5654番地,5655番地,5656番地,5657番地,5658番地,5659番地,5660番地,5661番地,5662番地,5663番地,5664番地,5665番地,5666番地,5667番地,5668番地,5669番地,5670番地,5671番地,5672番地,5673番地,5674番地,5675番地,5678番地,5679番地,5680番地,5681番地,5682番地,5683番地,5684番地,5685番地,5686番地,5688番地,5689番地,5690番地,5691番地,5692番地,5693番地,5694番地,5698番地,5699番地,5700番地,5701番地,5702番地,5703番地,5704番地,5705番地,5706番地,5707番地,5708番地,5741番地,5774番地,581番地,582番地,5826番地,5827番地,583番地,584番地,5842番地,5843番地,5845番地,5848番地,585番地,5852番地,5854番地,5856番地,5857番地,5858番地,5859番地,586番地,5860番地,5861番地,5862番地,5863番地,5864番地,5865番地,5866番地,5867番地,5868番地,5869番地,5870番地,5873番地,5874番地,5875番地,5876番地,5877番地,5878番地,5880番地,5881番地,5882番地,5901番地,5902番地,5909番地,5951番地,5952番地,5953番地,5954番地,5955番地,5956番地,5957番地,5958番地,5959番地,5960番地,5961番地,5962番地,5963番地,5964番地,5965番地,5966番地,5967番地,5968番地,5969番地,5970番地,5971番地,5972番地,5973番地,5974番地,5975番地,5976番地,5977番地,5979番地,5980番地,5981番地,5982番地,5983番地,5985番地,5986番地,5987番地,5998番地,5999番地,6000番地,6001番地,6002番地,6003番地,6004番地,6005番地,6006番地,6007番地,6008番地,6009番地,6010番地,6011番地,6012番地,6013番地,6014番地,6015番地,6016番地,6017番地,6018番地,6019番地,6020番地,6021番地,6022番地,6023番地,6025番地,6026番地,6028番地,6029番地,6030番地,6031番地,6032番地,6033番地,6034番地,6035番地,6036番地,6037番地,6038番地,6039番地,6040番地,6042番地,6043番地,6044番地,6045番地,6046番地,6047番地,6048番地,6049番地,6051番地,6052番地,6054番地,6055番地,6056番地,6059番地,6061番地,6080番地,6081番地,6082番地,6084番地,6102番地,6103番地,6112番地,6113番地,6114番地,6117番地,6118番地,6119番地,6120番地,6121番地,6122番地,6123番地,6124番地,6125番地,6126番地,6127番地,6128番地,6129番地,6130番地,6131番地,6132番地,6133番地,6135番地,6136番地,6137番地,6138番地,6139番地,6140番地,6141番地,6142番地,6143番地,6144番地,6145番地,6146番地,6147番地,6148番地,6151番地,6152番地,6153番地,6154番地,6155番地,6156番地,6157番地,6158番地,6159番地,6160番地,6161番地,6162番地,6163番地,6164番地,6165番地,6167番地,6168番地,6169番地,6170番地,6171番地,6172番地,6173番地,6175番地,6176番地,6185番地,619番地,6190番地,6191番地,6192番地,620番地,6208番地,6209番地,6210番地,6211番地,6212番地,6213番地,6214番地,6215番地,6216番地,6217番地,6218番地,6220番地,6221番地,6222番地,6223番地,6224番地,6225番地,6229番地,6231番地,6232番地,6233番地,6234番地,6235番地,6236番地,6237番地,6239番地,6240番地,6304番地,6305番地,6306番地,6307番地,6308番地,6309番地,6313番地,6314番地,6315番地,6316番地,6317番地,6318番地,6319番地,6320番地,6321番地,6322番地,6323番地,6324番地,6325番地,6326番地,6327番地,6328番地,6329番地,6330番地,6331番地,6332番地,6334番地,6335番地,6336番地,6337番地,6338番地,6346番地,6348番地,6349番地,6350番地,6351番地,6352番地,6353番地,6354番地,6355番地,6357番地,6358番地,6359番地,6360番地,6361番地,6362番地,6363番地,6364番地,6365番地,6366番地,6367番地,6368番地,6370番地,6371番地,6372番地,6373番地,6374番地,6375番地,6376番地,6377番地,6378番地,6379番地,6381番地,6388番地,6389番地,6390番地,6392番地,6394番地,6396番地,6397番地,6399番地,6400番地,6401番地,6402番地,6403番地,6404番地,6405番地,6406番地,6408番地,6409番地,6410番地,6411番地,6412番地,6413番地,6414番地,6415番地,6416番地,6417番地,6418番地,6419番地,6420番地,6421番地,691番地,695番地,696番地,697番地,700番地,706番地,7064番地,7065番地,7066番地,7067番地,7068番地,7069番地,707番地,7070番地,7071番地,7072番地,7073番地,7074番地,7075番地,7077番地,7080番地,7081番地,7082番地,7083番地,7084番地,7085番地,7086番地,7087番地,7088番地,7089番地,7090番地,7091番地,7092番地,7093番地,7094番地,7095番地,7096番地,7097番地,7102番地,7103番地,7118番地,7119番地,7153番地,7156番地,7157番地,7159番地,7167番地,7169番地,7170番地,7171番地,7172番地,7173番地,7174番地,7175番地,7176番地,7177番地,7178番地,7179番地,7180番地,7181番地,7182番地,7183番地,7184番地,7185番地,7186番地,7187番地,7188番地,7189番地,7190番地,7191番地,7192番地,7193番地,7194番地,7195番地,7196番地,7234番地,7235番地,7236番地,7237番地,7238番地,7239番地,7240番地,7242番地,7243番地,7244番地,7245番地,7247番地,7248番地,7249番地,7250番地,7251番地,7252番地,7253番地,7254番地,7255番地,7256番地,7257番地,7258番地,7259番地,7260番地,7261番地,7262番地,7263番地,7318番地,7319番地,7320番地,7321番地,7385番地,7389番地,7390番地,7393番地,7394番地,7498番地,7499番地,7575番地,7579番地,7624番地,7625番地,7626番地,7627番地,7628番地,7629番地,7630番地,7632番地,7633番地,7634番地,7635番地,7636番地,7637番地,7638番地,7639番地,7640番地,7643番地,7644番地,7645番地,7646番地,7647番地,7648番地,7649番地,7650番地,7651番地,7652番地,7653番地,7654番地,7655番地,7656番地,7657番地,7658番地,7659番地,7660番地,7661番地,7663番地,7664番地,7665番地,7667番地,7671番地,7672番地,7673番地,7674番地,7675番地,7676番地,7677番地,7678番地,7679番地,7680番地,7681番地,7682番地,7742番地,7745番地,7746番地,7747番地,7750番地,7752番地,7754番地,7757番地,7758番地,7761番地,7762番地,7763番地,7764番地,7765番地,7766番地,7768番地,7770番地,7772番地,7773番地,7775番地,7776番地,7777番地,7779番地,7780番地,7782番地,7784番地,7785番地,7787番地,7789番地,7790番地,7792番地,7793番地,7794番地,7797番地,7798番地,7799番地,7806番地,7807番地,7808番地,7810番地,7812番地,7813番地,7814番地,7815番地,7816番地,7821番地,7828番地,7829番地,7830番地,7833番地,7836番地,7839番地,7841番地,7865番地,7867番地,7870番地,7871番地,7875番地,7963番地,8100番地,8102番地,8103番地,8104番地,8105番地,8109番地,8110番地,8111番地,8112番地,8113番地,8114番地,8115番地,8116番地,8117番地,8120番地,8122番地,8123番地,8125番地,8127番地,8128番地,8129番地,8130番地,8131番地,8133番地,8134番地,8135番地,8138番地,8139番地,8140番地,8141番地,8142番地,8143番地,8144番地,8145番地,8147番地,8148番地,8149番地,8150番地,8151番地,8152番地,8153番地,8155番地,8156番地,8157番地,8158番地,8159番地,8160番地,8162番地,8163番地,8164番地,8165番地,8166番地,8167番地,8168番地,8171番地,8172番地,8174番地,8175番地,8177番地,8181番地,8182番地,8183番地,8184番地,8185番地,8186番地,8187番地,8189番地,8191番地,8195番地,8196番地,8200番地,8209番地,8213番地,8214番地,8216番地,8265番地,8273番地,8274番地,8302番地,8305番地,8306番地,8307番地,8308番地,8342番地,8372番地,8374番地,8376番地,8377番地,8378番地,8379番地,8380番地,8381番地,8387番地,8388番地,8389番地,8390番地,8391番地,8392番地,8393番地,8394番地,8395番地,8396番地,8397番地,8398番地,8399番地,8400番地,8401番地,8402番地,8407番地,8408番地,8417番地,8418番地,8419番地,8420番地,8421番地,8422番地,8423番地,8425番地,8426番地,8430番地,8431番地,8432番地,8433番地,8444番地,8445番地,8446番地,8448番地,8449番地,8450番地,8451番地,8452番地,8453番地,8454番地,8456番地,8457番地,8538番地,8539番地,8541番地,8543番地,8544番地,8547番地,8548番地,8549番地,8550番地,8551番地,8552番地,8553番地,8554番地,8555番地,8556番地,8557番地,8558番地,8559番地,8561番地,8562番地,8563番地,8564番地,8565番地,8566番地,8568番地,8569番地,8571番地,8572番地,8573番地,8574番地,8575番地,8576番地,8577番地,8579番地,8580番地,8581番地,8582番地,8583番地,8584番地,8585番地,8586番地,8589番地,8590番地,8591番地,8592番地,8593番地,8594番地,8596番地,8597番地,8599番地,8600番地,8601番地,8602番地,8603番地,8604番地,8606番地,8607番地,8608番地,8609番地,8610番地,8614番地,8615番地,8616番地,8620番地,8621番地,8622番地,8623番地,8640番地,8708番地,8716番地,8757番地,8777番地,8779番地,8782番地,8783番地,8784番地,8787番地,8795番地,8796番地,8798番地,8799番地,8800番地,8804番地,8805番地,8810番地,8824番地,8829番地,8833番地,8835番地,8837番地,8839番地,8845番地,8903番地,8904番地,8905番地,8906番地,8907番地,8908番地,8909番地,8910番地,8911番地,8912番地,8913番地,8933番地,8934番地,8935番地,8936番地,8937番地,8938番地,8940番地,8941番地,8942番地,8943番地,8944番地,8945番地,9564番地,9566番地,9650番地,9651番地,9652番地,9653番地,9654番地,9655番地,9656番地,9657番地,9658番地,9659番地,9660番地,9661番地,9662番地,9663番地,9664番地,9665番地,9667番地,9702番地,9703番地,9704番地,9705番地,9706番地,9707番地,9708番地,9709番地,9710番地,9712番地,9713番地,9714番地,9715番地,9716番地,9717番地,9718番地,9719番地,9720番地,9723番地,9725番地,9726番地,9727番地,9728番地,9729番地,9730番地,9731番地,9732番地,9734番地,9735番地,9736番地,9758番地,9759番地,9760番地,9761番地,9762番地,9763番地,9764番地,9766番地,9767番地,9768番地,9769番地,9770番地,9771番地,9827番地,9904番地
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node NONAME doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37272236:(140.18414306640625,35.89972686767578)5()], processed:[]
+DEBUG:jageocoder.node:798:node:NONAME returns [{"node": {"id": 37272236, "name": "", "x": 140.18414306640625, "y": 35.89972686767578, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", ""]}, "matched": ""}]
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '龍ケ崎市'
+DEBUG:jageocoder.node:958:  -> '愛戸町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '泉町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '板橋町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '稲荷新田町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '入地町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '薄倉町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '大塚町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '大留町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '貝原塚町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '門倉新田町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '上大徳新町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '川崎町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '川原代町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '北方町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '高作町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '小通幸谷町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '佐貫町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '佐沼町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '庄兵衛新田町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '須藤堀町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '大徳町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '高須町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '出し山町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '豊田町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '長沖新田町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '長沖町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '長峰町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '馴馬町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '馴柴町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '塗戸町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '羽黒町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '羽原町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '半田町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '稗柄町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '姫宮町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '別所町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '緑町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '南中島町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '宮渕町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '八代町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '野原町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '若柴町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '羽根野' is not omissible.
+DEBUG:jageocoder.node:958:  -> '奥原町' is not omissible.
+DEBUG:jageocoder.node:958:  -> '下君山' is not omissible.
+DEBUG:jageocoder.node:958:  -> '上君山' is not omissible.
+DEBUG:jageocoder.node:958:  -> '大字奥山' is not omissible.
+DEBUG:jageocoder.node:958:  -> '大字大房' is not omissible.
+DEBUG:jageocoder.node:958:  -> '島田町' is not omissible.
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37269940:龍ケ崎市(140.18226623535156,35.91159439086914)3(geoshape_city_id:08208A1968/jisx0402:08208/postcode:3010000)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:1017:  -> '愛戸町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '泉町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '板橋町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '稲荷新田町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '入地町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '薄倉町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '大塚町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '大留町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '貝原塚町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '門倉新田町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '上大徳新町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '川崎町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '川原代町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '北方町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '高作町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '小通幸谷町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '佐貫町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '佐沼町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '庄兵衛新田町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '須藤堀町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '大徳町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '高須町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '出し山町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '豊田町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '長沖新田町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '長沖町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '長峰町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '馴馬町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '馴柴町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '塗戸町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '羽黒町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '羽原町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '半田町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '姫宮町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '別所町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '緑町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '南中島町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '宮渕町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '八代町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '野原町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '若柴町' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '羽根野' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '大字奥山' is not omissible.
+DEBUG:jageocoder.node:1017:  -> '大字大房' is not omissible.
+DEBUG:jageocoder.node:784:-> comparing with '千秋'
+DEBUG:jageocoder.node:589:node:[37269941:千秋(140.2086181640625,35.88569259643555)6(aza_id:0000129)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '千秋'(37269941)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '千秋'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37269941:千秋(140.2086181640625,35.88569259643555)6(aza_id:0000129)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:千秋 returns [{"node": {"id": 37269941, "name": "千秋", "x": 140.2086181640625, "y": 35.88569259643555, "level": 6, "priority": 9, "note": "aza_id:0000129", "fullname": ["茨城県", "龍ケ崎市", "千秋"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '六ッ谷'
+DEBUG:jageocoder.node:589:node:[37269942:六ッ谷(140.16799926757812,35.91033172607422)6(aza_id:0000145)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '六ッ谷'(37269942)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '六ッ谷'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37269942:六ッ谷(140.16799926757812,35.91033172607422)6(aza_id:0000145)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:六ッ谷 returns [{"node": {"id": 37269942, "name": "六ッ谷", "x": 140.16799926757812, "y": 35.91033172607422, "level": 6, "priority": 9, "note": "aza_id:0000145", "fullname": ["茨城県", "龍ケ崎市", "六ッ谷"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '六斗蒔'
+DEBUG:jageocoder.node:589:node:[37269943:六斗蒔(140.17840576171875,35.900691986083984)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '六斗蒔'(37269943)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 7816番地,8655番地
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 六斗蒔 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37269943:六斗蒔(140.17840576171875,35.900691986083984)5()], processed:[]
+DEBUG:jageocoder.node:798:node:六斗蒔 returns [{"node": {"id": 37269943, "name": "六斗蒔", "x": 140.17840576171875, "y": 35.900691986083984, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "六斗蒔"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '上八代'
+DEBUG:jageocoder.node:589:node:[37273589:上八代(140.20497131347656,35.9195556640625)6(aza_id:0000123)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '上八代'(37273589)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '上八代'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273589:上八代(140.20497131347656,35.9195556640625)6(aza_id:0000123)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:上八代 returns [{"node": {"id": 37273589, "name": "上八代", "x": 140.20497131347656, "y": 35.9195556640625, "level": 6, "priority": 9, "note": "aza_id:0000123", "fullname": ["茨城県", "龍ケ崎市", "上八代"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '上佐沼'
+DEBUG:jageocoder.node:589:node:[37273734:上佐沼(140.2001495361328,35.89058303833008)6(aza_id:0000121)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '上佐沼'(37273734)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '上佐沼'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273734:上佐沼(140.2001495361328,35.89058303833008)6(aza_id:0000121)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:上佐沼 returns [{"node": {"id": 37273734, "name": "上佐沼", "x": 140.2001495361328, "y": 35.89058303833008, "level": 6, "priority": 9, "note": "aza_id:0000121", "fullname": ["茨城県", "龍ケ崎市", "上佐沼"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '上泉'
+DEBUG:jageocoder.node:589:node:[37273735:上泉(140.21078491210938,35.95549011230469)6(aza_id:0000122)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '上泉'(37273735)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '上泉'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273735:上泉(140.21078491210938,35.95549011230469)6(aza_id:0000122)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:上泉 returns [{"node": {"id": 37273735, "name": "上泉", "x": 140.21078491210938, "y": 35.95549011230469, "level": 6, "priority": 9, "note": "aza_id:0000122", "fullname": ["茨城県", "龍ケ崎市", "上泉"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '上町'
+DEBUG:jageocoder.node:589:node:[37273736:上町(140.18768310546875,35.90555953979492)5(postcode:3010012)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '上町'(37273736)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 2418番地,2423番地,2897番地,2898番地,2899番地,2901番地,2902番地,2903番地,2904番地,2905番地,2906番地,2907番地,2908番地,2909番地,2911番地,2914番地,2915番地,2916番地,2917番地,2918番地,2923番地,2924番地,2925番地,2926番地,2927番地,2928番地,2929番地,2930番地,2932番地,2933番地,2934番地,2935番地,2937番地,2938番地,2940番地,2941番地,2942番地,2965番地,4024番地,4025番地,4026番地,4027番地,4028番地,4029番地,4030番地,4031番地,4032番地,4033番地,4034番地,4038番地,4039番地,4041番地,4042番地,4043番地,4046番地,4070番地,4072番地,4074番地,4076番地,4079番地,4108番地,4109番地,4112番地,4124番地,4125番地,4127番地,4128番地,4129番地,4130番地,4131番地,4133番地,4137番地,4151番地,4153番地,4198番地,4199番地,4200番地,4201番地,4202番地,4246番地,4248番地,4249番地,4250番地,4251番地,4252番地,4253番地,4254番地,4259番地,4260番地,4262番地,4263番地,4264番地,4265番地,4266番地,4267番地,4268番地,4269番地,4271番地,4272番地,4274番地,4275番地,4276番地,4277番地,4278番地,4279番地,4280番地,4282番地,4297番地,4298番地,4300番地,4301番地,4303番地,4304番地,4306番地,4307番地,4314番地,4316番地,4337番地,4343番地,4349番地,4353番地,4354番地,4355番地,4359番地,4361番地,4364番地,4366番地,4368番地,4369番地,4370番地,4371番地,4373番地,4374番地,4376番地,4377番地,4378番地,4379番地,4380番地,4382番地,4383番地,4384番地,4386番地,4390番地,4391番地,4393番地,4394番地,4415番地,4661番地,4675番地,4691番地,4693番地,4694番地,4734番地,4738番地,4755番地,4813番地,4814番地,4816番地,4821番地,4822番地,4831番地,4832番地,4833番地,4834番地,4835番地,4837番地,4838番地,4839番地,4841番地,4843番地,4845番地,4846番地,4847番地,4848番地,4849番地,4850番地,4851番地
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 上町 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273736:上町(140.18768310546875,35.90555953979492)5(postcode:3010012)], processed:[]
+DEBUG:jageocoder.node:798:node:上町 returns [{"node": {"id": 37273736, "name": "上町", "x": 140.18768310546875, "y": 35.90555953979492, "level": 5, "priority": 2, "note": "postcode:3010012", "fullname": ["茨城県", "龍ケ崎市", "上町"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '上米'
+DEBUG:jageocoder.node:589:node:[37273914:上米(140.1757354736328,35.90852737426758)6(aza_id:0000124)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '上米'(37273914)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '上米'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273914:上米(140.1757354736328,35.90852737426758)6(aza_id:0000124)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:上米 returns [{"node": {"id": 37273914, "name": "上米", "x": 140.1757354736328, "y": 35.90852737426758, "level": 6, "priority": 9, "note": "aza_id:0000124", "fullname": ["茨城県", "龍ケ崎市", "上米"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '上羽原'
+DEBUG:jageocoder.node:589:node:[37273915:上羽原(140.1896209716797,35.92715835571289)6(aza_id:0000119)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '上羽原'(37273915)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '上羽原'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273915:上羽原(140.1896209716797,35.92715835571289)6(aza_id:0000119)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:上羽原 returns [{"node": {"id": 37273915, "name": "上羽原", "x": 140.1896209716797, "y": 35.92715835571289, "level": 6, "priority": 9, "note": "aza_id:0000119", "fullname": ["茨城県", "龍ケ崎市", "上羽原"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '上貝原塚'
+DEBUG:jageocoder.node:589:node:[37273916:上貝原塚(140.1939697265625,35.93510437011719)6(aza_id:0000120)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '上貝原塚'(37273916)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '上貝原塚'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273916:上貝原塚(140.1939697265625,35.93510437011719)6(aza_id:0000120)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:上貝原塚 returns [{"node": {"id": 37273916, "name": "上貝原塚", "x": 140.1939697265625, "y": 35.93510437011719, "level": 6, "priority": 9, "note": "aza_id:0000120", "fullname": ["茨城県", "龍ケ崎市", "上貝原塚"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '下八代'
+DEBUG:jageocoder.node:589:node:[37273917:下八代(140.21878051757812,35.91727828979492)6(aza_id:0000106)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '下八代'(37273917)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '下八代'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273917:下八代(140.21878051757812,35.91727828979492)6(aza_id:0000106)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:下八代 returns [{"node": {"id": 37273917, "name": "下八代", "x": 140.21878051757812, "y": 35.91727828979492, "level": 6, "priority": 9, "note": "aza_id:0000106", "fullname": ["茨城県", "龍ケ崎市", "下八代"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '下泉'
+DEBUG:jageocoder.node:589:node:[37273918:下泉(140.21762084960938,35.95026779174805)6(aza_id:0000105)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '下泉'(37273918)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '下泉'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273918:下泉(140.21762084960938,35.95026779174805)6(aza_id:0000105)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:下泉 returns [{"node": {"id": 37273918, "name": "下泉", "x": 140.21762084960938, "y": 35.95026779174805, "level": 6, "priority": 9, "note": "aza_id:0000105", "fullname": ["茨城県", "龍ケ崎市", "下泉"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '下町'
+DEBUG:jageocoder.node:589:node:[37273919:下町(140.19239807128906,35.90471649169922)5(postcode:3010824)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '下町'(37273919)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 1844番地,2802番地,2803番地,2804番地,2812番地,2833番地,2837番地,2842番地,2843番地,2844番地,2845番地,2846番地,2847番地,2848番地,2849番地,2850番地,2852番地,2853番地,2855番地,2856番地,2857番地,2861番地,2862番地,2863番地,2877番地,2879番地,2880番地,2881番地,2882番地,2883番地,2884番地,2885番地,2886番地,2887番地,2888番地,2889番地,2890番地,2891番地,2892番地,2893番地,2894番地,2895番地,2945番地,2946番地,2948番地,2950番地,2951番地,2952番地,2953番地,2954番地,2957番地,2958番地,2959番地,2960番地,2963番地,2964番地,2967番地,2970番地,2971番地,2975番地,2976番地,2977番地,2978番地,2981番地,2991番地,2997番地,3021番地,4750番地,4845番地,4853番地,4854番地,4855番地,4856番地,4857番地,4858番地,4860番地,4861番地,4862番地,4864番地,4865番地,4866番地,4867番地,4868番地,4870番地,4872番地,4874番地,4875番地,4876番地,4877番地,4878番地,4879番地,4880番地,4882番地,4883番地,4885番地,4886番地,4887番地,4888番地,4889番地,4891番地,4892番地,4893番地,4896番地,4898番地,4899番地,4900番地,4901番地,4903番地,4904番地,4905番地,4906番地,4909番地,4910番地,4911番地,4912番地,4913番地,4914番地,4915番地,4916番地,4917番地,4918番地,4921番地,4925番地,4926番地,4928番地,4930番地,4931番地,4933番地,4934番地,4938番地,4940番地,4943番地,4945番地,4946番地,4957番地,4961番地,4963番地,4964番地,4965番地,4969番地,4970番地,4972番地,4973番地,4975番地,4979番地,4980番地,4982番地,4983番地,4984番地,4986番地,4987番地,4990番地,4993番地,4995番地,4997番地,5006番地,5009番地,5026番地,5032番地,5504番地,5506番地,5516番地,5517番地,5518番地,5519番地,5520番地,5528番地,5530番地,5531番地,5535番地,5538番地,5541番地,5566番地,5743番地,5773番地,5774番地,5963番地,5992番地,5996番地,5997番地,6186番地,6187番地,6189番地
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 下町 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37273919:下町(140.19239807128906,35.90471649169922)5(postcode:3010824)], processed:[]
+DEBUG:jageocoder.node:798:node:下町 returns [{"node": {"id": 37273919, "name": "下町", "x": 140.19239807128906, "y": 35.90471649169922, "level": 5, "priority": 2, "note": "postcode:3010824", "fullname": ["茨城県", "龍ケ崎市", "下町"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '下羽原'
+DEBUG:jageocoder.node:589:node:[37274103:下羽原(140.19569396972656,35.92307662963867)6(aza_id:0000103)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '下羽原'(37274103)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '下羽原'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274103:下羽原(140.19569396972656,35.92307662963867)6(aza_id:0000103)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:下羽原 returns [{"node": {"id": 37274103, "name": "下羽原", "x": 140.19569396972656, "y": 35.92307662963867, "level": 6, "priority": 9, "note": "aza_id:0000103", "fullname": ["茨城県", "龍ケ崎市", "下羽原"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '下貝原塚'
+DEBUG:jageocoder.node:589:node:[37274104:下貝原塚(140.2060546875,35.94063186645508)6(aza_id:0000104)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '下貝原塚'(37274104)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '下貝原塚'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274104:下貝原塚(140.2060546875,35.94063186645508)6(aza_id:0000104)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:下貝原塚 returns [{"node": {"id": 37274104, "name": "下貝原塚", "x": 140.2060546875, "y": 35.94063186645508, "level": 6, "priority": 9, "note": "aza_id:0000104", "fullname": ["茨城県", "龍ケ崎市", "下貝原塚"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '中八代'
+DEBUG:jageocoder.node:589:node:[37274105:中八代(140.21153259277344,35.9188346862793)6(aza_id:0000137)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '中八代'(37274105)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '中八代'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274105:中八代(140.21153259277344,35.9188346862793)6(aza_id:0000137)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:中八代 returns [{"node": {"id": 37274105, "name": "中八代", "x": 140.21153259277344, "y": 35.9188346862793, "level": 6, "priority": 9, "note": "aza_id:0000137", "fullname": ["茨城県", "龍ケ崎市", "中八代"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '中坪'
+DEBUG:jageocoder.node:589:node:[37274106:中坪(140.15200805664062,35.917415618896484)6(aza_id:0000135)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '中坪'(37274106)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '中坪'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274106:中坪(140.15200805664062,35.917415618896484)6(aza_id:0000135)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:中坪 returns [{"node": {"id": 37274106, "name": "中坪", "x": 140.15200805664062, "y": 35.917415618896484, "level": 6, "priority": 9, "note": "aza_id:0000135", "fullname": ["茨城県", "龍ケ崎市", "中坪"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '中島'
+DEBUG:jageocoder.node:589:node:[37274107:中島(140.1914520263672,35.94215774536133)6(aza_id:0000136)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '中島'(37274107)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '中島'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274107:中島(140.1914520263672,35.94215774536133)6(aza_id:0000136)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:中島 returns [{"node": {"id": 37274107, "name": "中島", "x": 140.1914520263672, "y": 35.94215774536133, "level": 6, "priority": 9, "note": "aza_id:0000136", "fullname": ["茨城県", "龍ケ崎市", "中島"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '中曽根'
+DEBUG:jageocoder.node:589:node:[37274108:中曽根(140.1830291748047,35.91322326660156)6(aza_id:0000134)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '中曽根'(37274108)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '中曽根'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274108:中曽根(140.1830291748047,35.91322326660156)6(aza_id:0000134)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:中曽根 returns [{"node": {"id": 37274108, "name": "中曽根", "x": 140.1830291748047, "y": 35.91322326660156, "level": 6, "priority": 9, "note": "aza_id:0000134", "fullname": ["茨城県", "龍ケ崎市", "中曽根"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '中根台'
+DEBUG:jageocoder.node:589:node:[37274109:中根台(140.169189453125,35.929481506347656)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '中根台'(37274109)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 一丁目,二丁目,三丁目,四丁目,五丁目
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 中根台 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274109:中根台(140.169189453125,35.929481506347656)5()], processed:[]
+DEBUG:jageocoder.node:798:node:中根台 returns [{"node": {"id": 37274109, "name": "中根台", "x": 140.169189453125, "y": 35.929481506347656, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "中根台"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '中谷原'
+DEBUG:jageocoder.node:589:node:[37274184:中谷原(140.1732940673828,35.901737213134766)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '中谷原'(37274184)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 中谷原 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274184:中谷原(140.1732940673828,35.901737213134766)5()], processed:[]
+DEBUG:jageocoder.node:798:node:中谷原 returns [{"node": {"id": 37274184, "name": "中谷原", "x": 140.1732940673828, "y": 35.901737213134766, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "中谷原"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '中郷'
+DEBUG:jageocoder.node:589:node:[37274185:中郷(140.142333984375,35.91297149658203)6(aza_id:0000133)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '中郷'(37274185)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '中郷'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274185:中郷(140.142333984375,35.91297149658203)6(aza_id:0000133)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:中郷 returns [{"node": {"id": 37274185, "name": "中郷", "x": 140.142333984375, "y": 35.91297149658203, "level": 6, "priority": 9, "note": "aza_id:0000133", "fullname": ["茨城県", "龍ケ崎市", "中郷"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '中里'
+DEBUG:jageocoder.node:589:node:[37274186:中里(140.20326232910156,35.933921813964844)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '中里'(37274186)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 一丁目,二丁目,三丁目
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 中里 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274186:中里(140.20326232910156,35.933921813964844)5()], processed:[]
+DEBUG:jageocoder.node:798:node:中里 returns [{"node": {"id": 37274186, "name": "中里", "x": 140.20326232910156, "y": 35.933921813964844, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "中里"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '久保台'
+DEBUG:jageocoder.node:589:node:[37274203:久保台(140.1776885986328,35.92906188964844)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '久保台'(37274203)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 一丁目,二丁目,三丁目,四丁目
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 久保台 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274203:久保台(140.1776885986328,35.92906188964844)5()], processed:[]
+DEBUG:jageocoder.node:798:node:久保台 returns [{"node": {"id": 37274203, "name": "久保台", "x": 140.1776885986328, "y": 35.92906188964844, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "久保台"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '久夫'
+DEBUG:jageocoder.node:589:node:[37274263:久夫(140.2121124267578,35.89788818359375)6(aza_id:0000110)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '久夫'(37274263)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '久夫'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274263:久夫(140.2121124267578,35.89788818359375)6(aza_id:0000110)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:久夫 returns [{"node": {"id": 37274263, "name": "久夫", "x": 140.2121124267578, "y": 35.89788818359375, "level": 6, "priority": 9, "note": "aza_id:0000110", "fullname": ["茨城県", "龍ケ崎市", "久夫"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '光順田'
+DEBUG:jageocoder.node:589:node:[37274264:光順田(140.1954803466797,35.90591049194336)5(postcode:3010822)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '光順田'(37274264)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 1570番地,1575番地,1581番地,1674番地,1675番地,1683番地,1684番地,1685番地,1686番地,1692番地,1696番地,1697番地,1698番地,1700番地,1701番地,1702番地,1711番地,1724番地,1726番地,1728番地,1750番地,1753番地,1759番地,1762番地,1765番地,1767番地,1772番地,1778番地,1779番地,1782番地,1814番地,1816番地,1817番地,1820番地,1821番地,1822番地,2481番地,2485番地,2488番地,2492番地,2494番地,2500番地,2501番地,2502番地,2503番地,2504番地,2505番地,2803番地,2804番地,2805番地,2812番地,2813番地,2814番地,2815番地,2820番地,2831番地,2832番地,2837番地,2838番地,2839番地,2863番地,2864番地,2865番地,2870番地,2871番地,2915番地,2960番地,2973番地,2974番地,2983番地,2985番地,2987番地,2993番地,3010番地,3020番地,3022番地,3023番地,3024番地,3025番地,3026番地,3027番地,3028番地,3029番地,3030番地,3031番地,3032番地,3033番地,3034番地,4231番地
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 光順田 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37274264:光順田(140.1954803466797,35.90591049194336)5(postcode:3010822)], processed:[]
+DEBUG:jageocoder.node:798:node:光順田 returns [{"node": {"id": 37274264, "name": "光順田", "x": 140.1954803466797, "y": 35.90591049194336, "level": 5, "priority": 2, "note": "postcode:3010822", "fullname": ["茨城県", "龍ケ崎市", "光順田"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '前新田'
+DEBUG:jageocoder.node:589:node:[37275753:前新田(140.16769409179688,35.898582458496094)6(aza_id:0000130)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '前新田'(37275753)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '前新田'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37275753:前新田(140.16769409179688,35.898582458496094)6(aza_id:0000130)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:前新田 returns [{"node": {"id": 37275753, "name": "前新田", "x": 140.16769409179688, "y": 35.898582458496094, "level": 6, "priority": 9, "note": "aza_id:0000130", "fullname": ["茨城県", "龍ケ崎市", "前新田"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '北河原'
+DEBUG:jageocoder.node:589:node:[37277520:北河原(140.19775390625,35.87358474731445)6(aza_id:0000143)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '北河原'(37277520)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '北河原'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37277520:北河原(140.19775390625,35.87358474731445)6(aza_id:0000143)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:北河原 returns [{"node": {"id": 37277520, "name": "北河原", "x": 140.19775390625, "y": 35.87358474731445, "level": 6, "priority": 9, "note": "aza_id:0000143", "fullname": ["茨城県", "龍ケ崎市", "北河原"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '南が丘'
+DEBUG:jageocoder.node:589:node:[37279207:南が丘(140.14154052734375,35.88114547729492)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '南が丘'(37279207)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 一丁目,二丁目,三丁目,四丁目,五丁目,六丁目
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 南が丘 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37279207:南が丘(140.14154052734375,35.88114547729492)5()], processed:[]
+DEBUG:jageocoder.node:798:node:南が丘 returns [{"node": {"id": 37279207, "name": "南が丘", "x": 140.14154052734375, "y": 35.88114547729492, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "南が丘"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '古城'
+DEBUG:jageocoder.node:589:node:[37280630:古城(140.19276428222656,35.90924072265625)5(postcode:3010834)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '古城'(37280630)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 3087番地,3128番地,3131番地,3163番地,3175番地,3176番地,3178番地,3179番地,3180番地,3181番地,3182番地,3184番地,3185番地,3189番地,3191番地,3192番地,3193番地,3198番地,3200番地,3211番地,3212番地
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 古城 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37280630:古城(140.19276428222656,35.90924072265625)5(postcode:3010834)], processed:[]
+DEBUG:jageocoder.node:798:node:古城 returns [{"node": {"id": 37280630, "name": "古城", "x": 140.19276428222656, "y": 35.90924072265625, "level": 5, "priority": 2, "note": "postcode:3010834", "fullname": ["茨城県", "龍ケ崎市", "古城"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '向原'
+DEBUG:jageocoder.node:589:node:[37280652:向原(140.15052795410156,35.934993743896484)6(aza_id:0000113)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '向原'(37280652)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '向原'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37280652:向原(140.15052795410156,35.934993743896484)6(aza_id:0000113)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:向原 returns [{"node": {"id": 37280652, "name": "向原", "x": 140.15052795410156, "y": 35.934993743896484, "level": 6, "priority": 9, "note": "aza_id:0000113", "fullname": ["茨城県", "龍ケ崎市", "向原"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '向陽台'
+DEBUG:jageocoder.node:589:node:[37280653:向陽台(140.2270050048828,35.935909271240234)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '向陽台'(37280653)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 一丁目,二丁目,三丁目,四丁目,五丁目,六丁目
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 向陽台 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37280653:向陽台(140.2270050048828,35.935909271240234)5()], processed:[]
+DEBUG:jageocoder.node:798:node:向陽台 returns [{"node": {"id": 37280653, "name": "向陽台", "x": 140.2270050048828, "y": 35.935909271240234, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "向陽台"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '城ノ内'
+DEBUG:jageocoder.node:589:node:[37280849:城ノ内(140.19769287109375,35.92796325683594)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '城ノ内'(37280849)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 一丁目,二丁目,三丁目,四丁目,五丁目
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 城ノ内 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37280849:城ノ内(140.19769287109375,35.92796325683594)5()], processed:[]
+DEBUG:jageocoder.node:798:node:城ノ内 returns [{"node": {"id": 37280849, "name": "城ノ内", "x": 140.19769287109375, "y": 35.92796325683594, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "城ノ内"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '野原'
+DEBUG:jageocoder.node:589:node:[37280959:野原(140.20071411132812,35.9134635925293)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '野原'(37280959)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 野原 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37280959:野原(140.20071411132812,35.9134635925293)5()], processed:[]
+DEBUG:jageocoder.node:798:node:野原 returns [{"node": {"id": 37280959, "name": "野原", "x": 140.20071411132812, "y": 35.9134635925293, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "野原"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '野颪'
+DEBUG:jageocoder.node:589:node:[37281132:野颪(140.1939239501953,35.9489631652832)6(aza_id:0000144)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '野颪'(37281132)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '野颪'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37281132:野颪(140.1939239501953,35.9489631652832)6(aza_id:0000144)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:野颪 returns [{"node": {"id": 37281132, "name": "野颪", "x": 140.1939239501953, "y": 35.9489631652832, "level": 6, "priority": 9, "note": "aza_id:0000144", "fullname": ["茨城県", "龍ケ崎市", "野颪"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '堤外新田'
+DEBUG:jageocoder.node:589:node:[37281133:堤外新田(140.13278198242188,35.88844299316406)6(aza_id:0000138)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '堤外新田'(37281133)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '堤外新田'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37281133:堤外新田(140.13278198242188,35.88844299316406)6(aza_id:0000138)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:堤外新田 returns [{"node": {"id": 37281133, "name": "堤外新田", "x": 140.13278198242188, "y": 35.88844299316406, "level": 6, "priority": 9, "note": "aza_id:0000138", "fullname": ["茨城県", "龍ケ崎市", "堤外新田"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '大羽谷津'
+DEBUG:jageocoder.node:589:node:[37290509:大羽谷津(140.16656494140625,35.93376922607422)6(aza_id:0000131)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '大羽谷津'(37290509)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '大羽谷津'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37290509:大羽谷津(140.16656494140625,35.93376922607422)6(aza_id:0000131)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:大羽谷津 returns [{"node": {"id": 37290509, "name": "大羽谷津", "x": 140.16656494140625, "y": 35.93376922607422, "level": 6, "priority": 9, "note": "aza_id:0000131", "fullname": ["茨城県", "龍ケ崎市", "大羽谷津"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '奈戸岡'
+DEBUG:jageocoder.node:589:node:[37290510:奈戸岡(140.18785095214844,35.91746139526367)5(postcode:3010845)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '奈戸岡'(37290510)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 1番地,10番地,100番地,1000番地,1001番地,1002番地,1003番地,1004番地,1005番地,1006番地,1007番地,1008番地,1009番地,101番地,1010番地,1011番地,1012番地,1013番地,1014番地,1015番地,1016番地,1017番地,1018番地,1019番地,102番地,1020番地,1021番地,1022番地,1023番地,1024番地,1025番地,1026番地,1027番地,1028番地,103番地,1030番地,1031番地,1032番地,1033番地,1034番地,1035番地,1036番地,1037番地,1038番地,1039番地,104番地,1040番地,1041番地,1042番地,1043番地,1044番地,1045番地,1046番地,1047番地,1048番地,1049番地,105番地,1050番地,1051番地,1052番地,1053番地,1054番地,1055番地,1056番地,1057番地,1058番地,1059番地,106番地,1060番地,1061番地,1062番地,1063番地,1064番地,1065番地,1066番地,1067番地,1068番地,1069番地,107番地,1070番地,1071番地,1072番地,1073番地,1074番地,1075番地,1076番地,1077番地,1078番地,1079番地,108番地,1080番地,1081番地,1082番地,1085番地,1086番地,1088番地,1089番地,109番地,1090番地,1091番地,1092番地,1093番地,1094番地,1095番地,1096番地,1097番地,1098番地,1099番地,11番地,110番地,1100番地,1101番地,1102番地,1103番地,1104番地,1105番地,1106番地,1107番地,1108番地,1109番地,111番地,1110番地,1111番地,1112番地,1113番地,1114番地,1115番地,1116番地,1117番地,1118番地,1119番地,112番地,1120番地,1121番地,1122番地,1123番地,1124番地,1125番地,1126番地,1127番地,1128番地,1129番地,113番地,1130番地,1131番地,1132番地,1133番地,1134番地,1135番地,1136番地,1137番地,1138番地,1139番地,114番地,1140番地,1141番地,1142番地,1143番地,1144番地,1145番地,1146番地,1147番地,115番地,116番地,117番地,118番地,119番地,12番地,120番地,122番地,124番地,125番地,1251番地,1252番地,1253番地,1254番地,1255番地,1256番地,1258番地,1259番地,127番地,13番地,1336番地,1337番地,1338番地,1339番地,134番地,1340番地,1341番地,1342番地,1343番地,1344番地,1345番地,1346番地,1347番地,1348番地,136番地,1362番地,1363番地,1364番地,1365番地,1366番地,1367番地,1368番地,1369番地,137番地,1370番地,1371番地,1385番地,1386番地,1387番地,1388番地,1389番地,139番地,1390番地,1391番地,1392番地,1393番地,1394番地,1395番地,1396番地,1397番地,1398番地,1399番地,14番地,1400番地,1401番地,1402番地,1403番地,1404番地,1405番地,1406番地,1407番地,1408番地,1409番地,1410番地,1411番地,1412番地,1413番地,1415番地,1416番地,1417番地,1418番地,1419番地,142番地,1420番地,1421番地,1422番地,1423番地,1424番地,1425番地,1426番地,1427番地,1428番地,1429番地,143番地,1430番地,1431番地,1432番地,1433番地,1434番地,1435番地,1436番地,1437番地,1438番地,1439番地,144番地,1440番地,1441番地,1442番地,1443番地,1444番地,1445番地,1446番地,1447番地,1448番地,1449番地,146番地,148番地,15番地,151番地,152番地,153番地,154番地,155番地,156番地,16番地,161番地,163番地,164番地,165番地,166番地,167番地,168番地,169番地,17番地,170番地,171番地,172番地,173番地,179番地,18番地,184番地,185番地,19番地,198番地,2番地,20番地,21番地,22番地,228番地,229番地,23番地,230番地,24番地,248番地,25番地,253番地,257番地,258番地,26番地,261番地,263番地,266番地,27番地,28番地,284番地,287番地,288番地,289番地,29番地,290番地,291番地,292番地,293番地,295番地,296番地,297番地,298番地,299番地,3番地,30番地,300番地,301番地,304番地,308番地,31番地,311番地,312番地,315番地,316番地,317番地,32番地,33番地,34番地,340番地,344番地,345番地,35番地,36番地,362番地,37番地,38番地,39番地,40番地,400番地,402番地,41番地,42番地,43番地,44番地,45番地,46番地,47番地,48番地,49番地,5番地,50番地,51番地,52番地,53番地,54番地,55番地,56番地,57番地,58番地,59番地,6番地,60番地,61番地,62番地,63番地,64番地,65番地,66番地,67番地,68番地,69番地,7番地,70番地,71番地,72番地,73番地,739番地,74番地,740番地,741番地,742番地,743番地,744番地,745番地,746番地,747番地,748番地,749番地,75番地,750番地,751番地,752番地,753番地,754番地,755番地,756番地,757番地,758番地,759番地,760番地,761番地,762番地,763番地,764番地,765番地,766番地,767番地,768番地,769番地,770番地,771番地,772番地,773番地,774番地,775番地,776番地,777番地,778番地,779番地,78番地,780番地,781番地,782番地,783番地,784番地,785番地,786番地,787番地,788番地,789番地,79番地,790番地,791番地,792番地,793番地,794番地,796番地,797番地,798番地,799番地,8番地,80番地,800番地,801番地,802番地,803番地,804番地,805番地,806番地,807番地,808番地,809番地,81番地,810番地,811番地,812番地,813番地,814番地,815番地,816番地,817番地,818番地,819番地,82番地,820番地,821番地,822番地,823番地,824番地,825番地,826番地,827番地,828番地,829番地,83番地,830番地,831番地,832番地,833番地,834番地,835番地,836番地,837番地,838番地,839番地,84番地,840番地,841番地,842番地,843番地,844番地,845番地,846番地,847番地,848番地,849番地,85番地,850番地,851番地,852番地,853番地,854番地,855番地,856番地,857番地,858番地,859番地,86番地,860番地,861番地,862番地,863番地,864番地,865番地,866番地,867番地,868番地,869番地,87番地,870番地,871番地,872番地,873番地,874番地,875番地,876番地,877番地,878番地,879番地,88番地,880番地,881番地,882番地,883番地,884番地,885番地,886番地,887番地,889番地,89番地,890番地,891番地,892番地,893番地,894番地,895番地,896番地,897番地,898番地,899番地,9番地,90番地,900番地,901番地,902番地,903番地,904番地,905番地,906番地,907番地,908番地,909番地,91番地,910番地,911番地,912番地,913番地,914番地,915番地,916番地,917番地,918番地,919番地,92番地,920番地,921番地,922番地,923番地,924番地,925番地,926番地,928番地,929番地,93番地,930番地,931番地,932番地,933番地,934番地,935番地,936番地,937番地,938番地,939番地,94番地,940番地,941番地,942番地,943番地,944番地,945番地,946番地,947番地,948番地,95番地,952番地,953番地,954番地,955番地,956番地,957番地,958番地,959番地,96番地,960番地,961番地,962番地,963番地,964番地,965番地,966番地,967番地,968番地,969番地,97番地,970番地,971番地,972番地,973番地,974番地,975番地,976番地,977番地,978番地,979番地,980番地,981番地,982番地,983番地,984番地,985番地,986番地,987番地,988番地,989番地,99番地,993番地,994番地,995番地,996番地,997番地,998番地,999番地
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 奈戸岡 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37290510:奈戸岡(140.18785095214844,35.91746139526367)5(postcode:3010845)], processed:[]
+DEBUG:jageocoder.node:798:node:奈戸岡 returns [{"node": {"id": 37290510, "name": "奈戸岡", "x": 140.18785095214844, "y": 35.91746139526367, "level": 5, "priority": 2, "note": "postcode:3010845", "fullname": ["茨城県", "龍ケ崎市", "奈戸岡"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '女化'
+DEBUG:jageocoder.node:589:node:[37291230:女化(140.18539428710938,35.942073822021484)6(aza_id:0000115)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '女化'(37291230)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '女化'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37291230:女化(140.18539428710938,35.942073822021484)6(aza_id:0000115)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:女化 returns [{"node": {"id": 37291230, "name": "女化", "x": 140.18539428710938, "y": 35.942073822021484, "level": 6, "priority": 9, "note": "aza_id:0000115", "fullname": ["茨城県", "龍ケ崎市", "女化"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '姫宮'
+DEBUG:jageocoder.node:589:node:[37291231:姫宮(140.17172241210938,35.90325164794922)5()], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '姫宮'(37291231)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 0 found.
+DEBUG:jageocoder.node:651:No candidates. Children are; 8102番地,8104番地,8105番地,8110番地,8117番地,8122番地,8123番地,8125番地,8135番地,8138番地,8141番地,8143番地,8144番地,8154番地,8156番地,8158番地,8159番地,8168番地,8172番地,8175番地,8518番地
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 姫宮 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37291231:姫宮(140.17172241210938,35.90325164794922)5()], processed:[]
+DEBUG:jageocoder.node:798:node:姫宮 returns [{"node": {"id": 37291231, "name": "姫宮", "x": 140.17172241210938, "y": 35.90325164794922, "level": 5, "priority": 2, "note": "", "fullname": ["茨城県", "龍ケ崎市", "姫宮"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '宮前'
+DEBUG:jageocoder.node:589:node:[37291523:宮前(140.2099151611328,35.89952850341797)6(aza_id:0000111)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '宮前'(37291523)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '宮前'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37291523:宮前(140.2099151611328,35.89952850341797)6(aza_id:0000111)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:宮前 returns [{"node": {"id": 37291523, "name": "宮前", "x": 140.2099151611328, "y": 35.89952850341797, "level": 6, "priority": 9, "note": "aza_id:0000111", "fullname": ["茨城県", "龍ケ崎市", "宮前"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '富士ノ下'
+DEBUG:jageocoder.node:589:node:[37292954:富士ノ下(140.13983154296875,35.93960189819336)6(aza_id:0000140)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '富士ノ下'(37292954)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '富士ノ下'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37292954:富士ノ下(140.13983154296875,35.93960189819336)6(aza_id:0000140)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:富士ノ下 returns [{"node": {"id": 37292954, "name": "富士ノ下", "x": 140.13983154296875, "y": 35.93960189819336, "level": 6, "priority": 9, "note": "aza_id:0000140", "fullname": ["茨城県", "龍ケ崎市", "富士ノ下"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '富士見'
+DEBUG:jageocoder.node:589:node:[37292955:富士見(140.18099975585938,35.9229621887207)6(aza_id:0000141)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '富士見'(37292955)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:651:No candidates. Children are; 
+DEBUG:jageocoder.node:943:Scanning '3710番地' in sub aza-records of '富士見'
+DEBUG:jageocoder.node:971:  -> omissible '3710番地'
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37292955:富士見(140.18099975585938,35.9229621887207)6(aza_id:0000141)], processed:[]
+DEBUG:jageocoder.node:1006:Scanning aza-records
+DEBUG:jageocoder.node:798:node:富士見 returns [{"node": {"id": 37292955, "name": "富士見", "x": 140.18099975585938, "y": 35.9229621887207, "level": 6, "priority": 9, "note": "aza_id:0000141", "fullname": ["茨城県", "龍ケ崎市", "富士見"]}, "matched": ""}]
+DEBUG:jageocoder.node:784:-> comparing with '寺後'
+DEBUG:jageocoder.node:589:node:[37292956:寺後(140.18270874023438,35.91106033325195)5(postcode:3010836)], index:3710番地, optional_prefix:
+DEBUG:jageocoder.node:495:Searching '3710\..*' under '寺後'(37292956)
+DEBUG:jageocoder.node:496:  cond.1: name_index match '3710\..*'
+DEBUG:jageocoder.node:501:  cond.3: coordinates are required.
+DEBUG:jageocoder.node:558:  -> 1 found.
+DEBUG:jageocoder.node:651:Filtered children are; 3710番地
+DEBUG:jageocoder.node:660:-> comparing; 3710.番地
+DEBUG:jageocoder.itaiji:268:Searching 3710.番地 in 3710番地
+DEBUG:jageocoder.itaiji:397:Comparing string 3710番地 with expected value 3710
+DEBUG:jageocoder.itaiji:401:Substring 3710 matches
+DEBUG:jageocoder.itaiji:292:Comparing '番'(5) with '番'(4)
+DEBUG:jageocoder.itaiji:292:Comparing '地'(6) with '地'(5)
+DEBUG:jageocoder.node:866:child:[37292996:3710番地(140.18231201171875,35.91142272949219)7()] match 6 chars
+DEBUG:jageocoder.node:589:node:[37292996:3710番地(140.18231201171875,35.91142272949219)7()], index:, optional_prefix:
+DEBUG:jageocoder.node:936:Consider '3710番地' is omissible, since the node 寺後 doesn't have city/aza code.
+DEBUG:jageocoder.node:732:Checking Aza-name, current_node:[37292956:寺後(140.18270874023438,35.91106033325195)5(postcode:3010836)], processed:[]
+DEBUG:jageocoder.node:798:node:寺後 returns [{"node": {"id": 37292996, "name": "3710番地", "x": 140.18231201171875, "y": 35.91142272949219, "level": 7, "priority": 3, "note": "", "fullname": ["茨城県", "龍ケ崎市", "寺後", "3710番地"]}, "matched": "3710番地"}]
+DEBUG:jageocoder.node:798:node:龍ケ崎市 returns [{"node": {"id": 37292996, "name": "3710番地", "x": 140.18231201171875, "y": 35.91142272949219, "level": 7, "priority": 3, "note": "", "fullname": ["茨城県", "龍ケ崎市", "寺後", "3710番地"]}, "matched": "3710番地"}]
+DEBUG:jageocoder.tree:1248:龍ケ崎市(37269940) marked as processed
+DEBUG:jageocoder.tree:1288:candidate: 竜ガ崎市3710番地 (10)
+DEBUG:jageocoder.tree:1194:Key '竜ガ崎' is shorter than '竜ガ崎市'
+DEBUG:jageocoder.tree:1194:Key '' is shorter than '竜ガ崎市'
+{"matched": "龍ケ崎市3710番地", "candidates": [{"id": 37292996, "name": "3710番地", "x": 140.18231201171875, "y": 35.91142272949219, "level": 7, "priority": 3, "note": "", "fullname": ["茨城県", "龍ケ崎市", "寺後", "3710番地"]}]}

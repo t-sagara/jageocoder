@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import re
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Tuple, Optional, Union, TYPE_CHECKING
 
 from PortableTab import BaseTable
 
@@ -74,10 +74,26 @@ class AddressNodeTable(BaseTable):
         """
         Create TRIE index on "name" and "note" columns.
         """
+        def _split_note(note):
+            notes = []
+            for attr in re.split(r'(?<!\\)/', note):
+                try:
+                    k, v = re.split(r'(?<!\\):', attr, 1)
+                except ValueError:
+                    k, v = '', attr
+
+                k = re.sub(r'\\([:/])', r'\g<1>', k)
+                v = re.sub(r'\\([:/])', r'\g<1>', v)
+                if k not in ('moveto', 'geoshape_city_id'):
+                    # Do not include these attributes in the search index.
+                    notes.append(attr)
+
+            return notes
+
         self.create_trie_on("nameIndex")
         self.create_trie_on(
             attr="note",
-            func=lambda x: re.split(r"\s*/\s*", x))
+            func=_split_note)
 
 
 class AddressNode(object):
@@ -114,6 +130,7 @@ class AddressNode(object):
 
     """
     ROOT_NODE_ID = 0
+    NONAME = "NONAME"
 
     def __init__(
             self,
@@ -162,7 +179,7 @@ class AddressNode(object):
         alt: str, optional
             String to be used instead if the node name is empty.
         """
-        if self.name == 'NONAME':
+        if self.name == self.NONAME:
             return alt
 
         return self.name
@@ -177,10 +194,16 @@ class AddressNode(object):
     @classmethod
     def from_record(cls, record) -> AddressNode:
         """
-        East: 153°59'12″
-        West: 122°55'57″
-        South: 20°25'31″
-        North: 45°33'26″
+        Convert from a record of AddressNodeTable to an AddressNode object.
+
+        Parameters
+        ----------
+        record: CapnpRecord
+            A record stored in PortableTab's table.
+
+        Returns
+        -------
+        AddressNode
         """
         return AddressNode(
             id=record.id,
@@ -196,6 +219,14 @@ class AddressNode(object):
         )
 
     def to_record(self):
+        """
+        Convert from the AddressNode object to an object of
+        dict that can be registered to the AddressNodeTable table.
+
+        Returns
+        -------
+        dict
+        """
         x = float(self.x or 999.9)
         y = float(self.y or 999.9)
 
@@ -214,6 +245,9 @@ class AddressNode(object):
 
     @classmethod
     def root(cls) -> AddressNode:
+        """
+        Generate the root AddressNode object.
+        """
         return AddressNode(
             id=cls.ROOT_NODE_ID,
             name="_root_",
@@ -227,8 +261,17 @@ class AddressNode(object):
 
     def set_attributes(self, **kwargs):
         """
-        Set attributes of this node by kwargs values.
-        'name' can't be modified.
+        Set attributes of the node by kwargs values.
+
+        Parameters
+        ----------
+        kwargs: dict
+            A dictionary with the name of the attribute to be changed
+            as key and the new value as value.
+
+        Note
+        ----
+        The 'name' attribute can't be modified.
         """
         self.x = kwargs.get('x', kwargs.get('lon'))
         self.y = kwargs.get('y', kwargs.get('lat'))
@@ -238,6 +281,15 @@ class AddressNode(object):
 
     @property
     def parent(self) -> Optional[AddressNode]:
+        """
+        Get the parent node of the node.
+
+        Return
+        ------
+        AddressNode
+            The parent object. When the parent node is the root-node,
+            None will be returned.
+        """
         return self.get_parent()
 
     def get_parent(self) -> Optional[AddressNode]:
@@ -247,7 +299,7 @@ class AddressNode(object):
         Returns
         -------
         AddressNode
-            The parent.
+            The parent object.
 
         Notes
         -----
@@ -268,10 +320,11 @@ class AddressNode(object):
         target_name : str
             The name (or standardized name) of the target node.
 
-        Return
-        ------
-        Returns the relevand node if it is found,
-        or None if it is not.
+        Returns
+        -------
+        AddressNode
+            If a node with the specified name is found, it is returned;
+            if not, None is returned.
         """
         address_node = self.table.get_record(pos=self.id)
         next_pos = self.id + 1
@@ -291,7 +344,26 @@ class AddressNode(object):
 
     @property
     def children(self) -> List[AddressNode]:
+        """
+        Get child nodes of the node.
+
+        Returns
+        -------
+        List[AddressNode]
+            The list of the child nodes.
+        """
         return self.get_children()
+
+    def get_children(self) -> List[AddressNode]:
+        """
+        Get child nodes of the node.
+
+        Returns
+        -------
+        List[AddressNode]
+            The list of the child nodes.
+        """
+        return list(self.iter_children())
 
     def iter_children(self) -> Iterator[AddressNode]:
         """
@@ -300,6 +372,7 @@ class AddressNode(object):
         Returns
         -------
         Iterator[AddressNode]
+            An iterator object that returns a child node in sequence.
         """
         pos: int = self.id + 1
         while pos < self.sibling_id:
@@ -311,19 +384,70 @@ class AddressNode(object):
                 parent = self.table.get_record(pos=node.parent_id)
                 pos = parent.sibling_id
 
-    def get_children(self) -> List[AddressNode]:
+    def get_notes(self) -> Tuple[Tuple[str, str]]:
         """
-        Get all children of the node.
+        Get list of key-value set from the note field.
 
         Returns
         -------
-        List[AddressNode]
+        Tuple[Tuple[str, str]]
+            Tuple containing tuples consisting of keys and values.
         """
-        return list(self.iter_children())
+        notes = []
+        for attr in re.split(r'(?<!\\)/', self.note):
+            try:
+                k, v = re.split(r'(?<!\\):', attr, 1)
+            except ValueError:
+                k, v = '', attr
+
+            k = re.sub(r'\\([:/])', r'\g<1>', k)
+            v = re.sub(r'\\([:/])', r'\g<1>', v)
+            notes.append((k, v))
+
+        return tuple(notes)
+
+    def set_notes(self, notes: Tuple[Tuple[str, str]]) -> None:
+        """
+        Set the note field from the list of key-value set.
+
+        Parameters
+        ----------
+        notes: ((str, str))
+            List of key-value set (as tuples).
+        """
+        attrs = []
+        for attr in notes:
+            k = re.sub(r'[:/]', r'\\\g<0>', attr[0])
+            v = re.sub(r'[:/]', r'\\\g<0>', attr[1])
+            attrs.append(f'{k}:{v}')
+
+        self.note = '/'.join(attrs)
+
+    def add_note(self, key: str, value: str) -> None:
+        """
+        Add an attribute with key-value set to the note field.
+
+        Parameters
+        ----------
+        key: str
+            The key of the attribute to be added.
+        value: str
+            The value of the attribute to be added.
+        """
+        notes = self.get_notes()
+        notes = notes + tuple([tuple([key, value])])
+        self.set_notes(notes)
 
     def add_dummy_coordinates(self) -> AddressNode:
         """
         Add dummy coordinate values to the node.
+        If the coordinates of the node are not specified,
+        this method selects a child node with valid coordinates
+        and temporarily duplicates it.
+
+        Notes
+        -----
+        - The duplicated values are not registered in the database.
         """
         new_node = copy.copy(self)
         for child in self.iter_children():
@@ -344,7 +468,7 @@ class AddressNode(object):
             min_candidate: Optional[str] = None,
             gt_candidate: Optional[str] = None,
             max_level: Optional[int] = None,
-            require_coordinates: bool = False):
+            require_coordinates: bool = False) -> List[AddressNode]:
         """
         Search for children nodes that satisfy the specified conditions.
 
@@ -362,6 +486,11 @@ class AddressNode(object):
             Maximum level of child nodes; unlimited if None.
         require_coordinates: bool [False]
             If set to True, the child node must have valid coordinates.
+
+        Returns
+        -------
+        List[AddressNode]
+            A list of all child nodes that satisfy the specified condition.
         """
         logger.debug(f"Searching '{pattern}' under '{self.name}'({self.id})")
         logger.debug(f"  cond.1: name_index match '{pattern}'")
@@ -450,8 +579,8 @@ class AddressNode(object):
 
         Return
         ------
-        List[AddressNode]
-            List of relevant AddressNode.
+        List[Result]
+            List of Result objects containing relevant AddressNode.
         """
         l_optional_prefix = tree.converter.check_optional_prefixes(index)
         optional_prefix = index[0: l_optional_prefix]
@@ -540,9 +669,10 @@ class AddressNode(object):
                 candidates += new_candidates
 
         if self.level in (AddressLevel.CITY, AddressLevel.WARD):
-            noname_child = self.get_child('NONAME')
+            noname_child = self.get_child(self.NONAME)
             if noname_child:
-                if processed_nodes is None or noname_child.id in processed_nodes:
+                if processed_nodes is None or \
+                        noname_child.id in processed_nodes:
                     msg = "-> Skip {}({}) (already processed)."
                     logger.debug(msg.format(
                         noname_child.name, noname_child.id))
@@ -553,8 +683,11 @@ class AddressNode(object):
                         index=optional_prefix + index,
                         processed_nodes=processed_nodes)
 
-                    candidates += new_candidates
+                    if len(new_candidates) > 1 or \
+                            new_candidates[0].node.id != noname_child.id:
+                        candidates += new_candidates
 
+        # Processes the region's own rules.
         parent_node = self.get_parent()
         if self.level == AddressLevel.WARD and parent_node.name == '京都市':
             # Street name (通り名) support in Kyoto City
@@ -634,6 +767,29 @@ class AddressNode(object):
                         optional_prefix +
                         index[0:azalen] + cand.matched,
                         l_optional_prefix + cand.nchars))
+
+        if len(candidates) == 0:
+            index_std = tree.converter.standardize(index)
+            if re.match(r'\d+\.', index_std):
+                for child in self.get_omissible_children(tree):
+                    if child.name == self.NONAME:
+                        continue
+
+                    if processed_nodes is None or \
+                            child.id in processed_nodes:
+                        msg = "-> Skip {}({}) (already processed)."
+                        logger.debug(msg.format(
+                            child.name, child.id))
+                    else:
+                        logger.debug(f"-> comparing with '{child.name}'")
+                        new_candidates = child.search_recursive(
+                            tree=tree,
+                            index=optional_prefix + index,
+                            processed_nodes=processed_nodes)
+
+                        if len(new_candidates) > 1 or \
+                                new_candidates[0].node.id != child.id:
+                            candidates += new_candidates
 
         if len(candidates) == 0:
             candidates = [Result(self, '', 0)]
@@ -783,7 +939,9 @@ class AddressNode(object):
             return index
 
         # Search sub-aza-records using TRIE index on "code"
-        logger.debug("Scanning sub aza-records in '{}'".format(index))
+        logger.debug(
+            "Scanning '{}' in sub aza-records of '{}'".format(
+                index, self.name))
         omissible_index = index
         aza_records = tree.aza_masters.search_records_on(
             attr="code",
@@ -812,18 +970,59 @@ class AddressNode(object):
         logger.debug("  -> omissible '{}'".format(omissible_index))
         return omissible_index
 
-    def save_recursive(self, session):
+    def get_omissible_children(
+        self,
+        tree: AddressTree,
+    ) -> List[AddressNode]:
         """
-        Add the node to the database recursively.
+        Create a list of omissible child nodes refer to Aza-master.
 
         Parameters
         ----------
-        session : sqlalchemy.orm.Session
-            The database session for executing SQL queries.
+        tree: AddressTree
+            The tree containing this node.
+
+        Returns
+        -------
+        List[AddressNode]
+            List of omissible child nodes.
         """
-        session.add(self)
-        for c in self.children:
-            c.save_recursive(session)
+        if self.level < AddressLevel.CITY or \
+                self.level > AddressLevel.AZA:
+            return []
+
+        if self.level < AddressLevel.OAZA:
+            target_prefix = self.get_city_jiscode()
+        else:
+            target_prefix = self.get_aza_code().rstrip('0')
+
+        if target_prefix == "":  # Skip unknown OAZA
+            return []
+
+        candidates = {}
+        for child in self.children:
+            if child.level > AddressLevel.AZA:
+                continue
+
+            candidates[child.name_index] = child
+
+        # Search sub-aza-records using TRIE index on "code"
+        logger.debug("Scanning aza-records")
+        aza_records = tree.aza_masters.search_records_on(
+            attr="code",
+            value=target_prefix,
+            funcname="keys"
+        )
+        for aza_record in aza_records:
+            if aza_record.startCountType == 1:
+                names = json.loads(aza_record.names)
+                name = tree.converter.standardize(names[-1][1])
+                if name in candidates:
+                    logger.debug("  -> '{}' is not omissible.".format(
+                        names[-1][1]))
+                    del candidates[name]
+
+        return list(candidates.values())
 
     def as_dict(self):
         """
@@ -864,7 +1063,7 @@ class AddressNode(object):
         self,
         delimiter: Optional[str] = None,
         alt: Optional[str] = '',
-    ):
+    ) -> Union[str, List[str]]:
         """
         Returns a complete address notation starting with the name of
         the prefecture.
@@ -876,6 +1075,14 @@ class AddressNode(object):
             If None is specified, returns a list of elements.
         alt: str, optional
             String to be used instead if the node name is empty.
+
+        Returns
+        -------
+        str, List[str]
+            If a delimiter is specified (including ""), returns a string
+            consisting of the name of the address node concatenated
+            with the delimiter.
+            Otherwise, it returns a list of address node names.
         """
         names = []
         cur_node = self
@@ -888,7 +1095,7 @@ class AddressNode(object):
 
         return names
 
-    def get_parent_list(self):
+    def get_parent_list(self) -> List[AddressNode]:
         """
         Returns a complete node list starting with the prefecture.
         """
@@ -902,7 +1109,7 @@ class AddressNode(object):
 
     def get_nodes_by_level(self):
         """
-        The function returns an array of this node and its upper nodes.
+        The method returns an array of this node and its upper nodes.
         The Nth node of the array contains the node corresponding
         to address level N.
         If there is no element corresponding to level N, None is stored.
@@ -912,14 +1119,17 @@ class AddressNode(object):
         >>> import jageocoder
         >>> jageocoder.init()
         >>> node = jageocoder.searchNode('多摩市落合1-15')[0][0]
-        >>> [str(x) for x in node.get_node_array_by_level()]
-        ['None', '[11460206:東京都(139.69164,35.6895)1(jisx0401:13)]', 'None', '[12063501:多摩市(139.446366,35.636959)3(jisx0402:13224)]', 'None',
-                                '[12065382:落合(139.427097,35.624877)5(None)]', '[12065383:一丁目(139.427097,35.624877)6(None)]', '[12065389:15番地(139.428969,35.625779)7(None)]']
+        >>> [str(x) for x in node.get_nodes_by_level()]
+        ['None', "[{'id': 49229505, 'name': '東京都', 'x': 139.6917724609375, 'y': 35.68962860107422, 'level': 1, 'priority': 1, 'note': 'lasdec:130001/jisx0401:13', 'fullname': ['東京都']}]", 'None', "[{'id': 50026506, 'name': '多摩市', 'x': 139.4463653564453, 'y': 35.636959075927734, 'level': 3, 'priority': 1, 'note': 'geoshape_city_id:13224A1971/jisx0402:13224/postcode:2060000', 'fullname': ['東京都', '多摩市']}]", 'None', "[{'id': 50042949, 'name': '落合', 'x': 139.42709350585938, 'y': 35.6248779296875, 'level': 5, 'priority': 2, 'note': '', 'fullname': ['東京都', '多摩市', '落合']}]", "[{'id': 50042950, 'name': '一丁目', 'x': 139.42709350585938, 'y': 35.6248779296875, 'level': 6, 'priority': 2, 'note': 'aza_id:0010001/postcode:2060033', 'fullname': ['東京都', '多摩市', '落合', '一丁目']}]", "[{'id': 50042979, 'name': '15番地', 'x': 139.42897033691406, 'y': 35.62577819824219, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '多摩市', '落合', '一丁目', '15番地']}]"]
         """  # noqa: E501
         result = [None for _ in range(self.level + 1)]
         cur_node = self
         while cur_node is not None:
-            result[cur_node.level] = cur_node
+            if result[cur_node.level] is None:
+                result[cur_node.level] = [cur_node]
+            else:
+                result[cur_node.level].insert(0, cur_node)
+
             cur_node = cur_node.get_parent()
 
         return result
@@ -929,13 +1139,7 @@ class AddressNode(object):
             self.id, self.get_name(), self.x, self.y, self.level, str(self.note))
 
     def __repr__(self):
-        r = []
-        cur_node = self
-        while cur_node is not None:
-            r.insert(0, str(cur_node))
-            cur_node = cur_node.get_parent()
-
-        return '>'.join(r)
+        return str(self.as_dict())
 
     def retrieve_upper_node(self, target_levels: List[int]):
         """
@@ -1076,14 +1280,14 @@ class AddressNode(object):
 
     def get_aza_names(
         self,
-        tree: AddressTree,
+        tree: Optional[AddressTree] = None,
     ) -> list:
         """
         Returns representation of Aza node containing this node.
 
         Parameters
         ----------
-        tree: AddressTree
+        tree: AddressTree, optional
             The tree containing this node.
 
         Returns
@@ -1100,6 +1304,10 @@ class AddressNode(object):
             code = self.get_city_jiscode()
         else:
             code = self.get_pref_jiscode()
+
+        if tree is None:
+            import jageocoder.module
+            tree = jageocoder.module.get_module_tree()
 
         aza_record = tree.aza_masters.search_by_code(code)
         if aza_record:
