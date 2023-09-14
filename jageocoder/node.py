@@ -772,9 +772,6 @@ class AddressNode(object):
             index_std = tree.converter.standardize(index)
             if re.match(r'\d+\.', index_std):
                 for child in self.get_omissible_children(tree):
-                    if child.name == self.NONAME:
-                        continue
-
                     if processed_nodes is None or \
                             child.id in processed_nodes:
                         msg = "-> Skip {}({}) (already processed)."
@@ -1014,13 +1011,18 @@ class AddressNode(object):
             funcname="keys"
         )
         for aza_record in aza_records:
-            if aza_record.startCountType == 1:
+            if aza_record.startCountType == 1:  # 起番
                 names = json.loads(aza_record.names)
-                name = tree.converter.standardize(names[-1][1])
-                if name in candidates:
-                    logger.debug("  -> '{}' is not omissible.".format(
-                        names[-1][1]))
-                    del candidates[name]
+                for e in names:
+                    level = e[0]
+                    if level < AddressLevel.OAZA:
+                        continue
+
+                    name = tree.converter.standardize(e[1])
+                    if name in candidates:
+                        logger.debug("  -> '{}' is not omissible.".format(
+                            names[-1][1]))
+                        del candidates[name]
 
         return list(candidates.values())
 

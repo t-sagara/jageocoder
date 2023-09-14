@@ -664,6 +664,15 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["福島県", "いわき市", "平上高久",
                       "塚田", "97番", "乙地"])
 
+    def test_notexist(self):
+        """
+        Check that it does not search for nonexistent addresses.
+        """
+        self._check(
+            query="多摩市長沼１－２－３",
+            fullname=["東京都", "多摩市"]
+        )
+
 
 class TestSearchNodeMethods(unittest.TestCase):
 
