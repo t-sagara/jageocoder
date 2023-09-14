@@ -664,13 +664,19 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["福島県", "いわき市", "平上高久",
                       "塚田", "97番", "乙地"])
 
-    def test_notexist(self):
+    def test_not_exist_oaza(self):
         """
         Check that it does not search for nonexistent addresses.
         """
         self._check(
             query="多摩市長沼１－２－３",
             fullname=["東京都", "多摩市"]
+        )
+
+    def test_not_exist_aza(self):
+        self._check(
+            query="秋田県大館市釈迦内字上堰２６",
+            fullname=["秋田県", "大館市", "釈迦内"]
         )
 
 
