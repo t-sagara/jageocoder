@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Search noname oaza",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search", "-d", "--db-dir",
+                "/home/sagara/github/jageocoder-converter/db_ibaraki",
+                "茨城県潮来市1016"
+            ]
+        },
+        {
             "name": "Install dictionary",
             "type": "python",
             "request": "launch",

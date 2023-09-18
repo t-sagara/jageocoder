@@ -265,7 +265,10 @@ class Converter(object):
             The length of the substring that matches the pattern.
             If it does not match exactly, it returns 0.
         """
-        logger.debug("Searching {} in {}".format(pattern, string))
+        logger.debug((
+            "Counts the number of characters matching '{}' "
+            "from the beginning of '{}'."
+        ).format(pattern, string))
         nloops = 0
         checked_positions = None
         aza_positions = []
@@ -289,8 +292,8 @@ class Converter(object):
             s = string[string_pos]
             if c < '0' or c > '9':
                 # Compare not numeric character
-                logger.debug("Comparing '{}'({}) with '{}'({})".format(
-                    c, pattern_pos, s, string_pos))
+                # logger.debug("Comparing '{}'({}) with '{}'({})".format(
+                #     c, pattern_pos, s, string_pos))
                 if c != s:
                     if pre_s + s in self.optional_strings_in_middle:
                         logger.debug('"{}" in query "{}" is optional.'.format(
@@ -405,6 +408,7 @@ class Converter(object):
                 pending_slen = 0
             else:
                 # The number did not match the expected value
+                logger.debug("The value of numbers do not match. (return 0)")
                 return 0
 
         if removed_postfix is not None:
@@ -419,6 +423,10 @@ class Converter(object):
                 return 0
 
         string_pos -= pending_slen
+        logger.debug(
+            "{} characters matched. ('{}')".format(
+                string_pos, string[0:string_pos]
+            ))
         return string_pos
 
     def optional_str_len(self, string: str, pos: int) -> int:

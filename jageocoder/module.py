@@ -93,7 +93,7 @@ def set_search_config(**kwargs):
 
     - auto_redirect: bool (default = True)
         When this option is set and the retrieved node has a
-        new address recorded in the "moveto" attribute,
+        new address recorded in the "ref" attribute,
         the new address is retrieved automatically.
     """
     if not is_initialized():

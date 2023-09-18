@@ -49,8 +49,8 @@ Examples:
     座標が登録されている住所のみ検索対象とするかどうかを指定します。
     座標が登録されていない場合、経緯度 ≒ 999.9 と表示されます。
   - JAGEOCODER_OPT_AUTO_REDIRECT ([true],false)
-    検索したノードの moveto に新しい住所が記載されている場合に、
-    自動的に新しい住所を検索するかどうかを指定します。
+    検索したノードの ref に参照先住所が記載されている場合に、
+    自動的に参照先を検索するかどうかを指定します。
 
 - 住所データベースのディレクトリを表示します。
 
@@ -91,7 +91,8 @@ def main():
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(
-        logging.Formatter('%(levelname)s:%(name)s:%(lineno)s:%(message)s')
+        logging.Formatter(
+            '%(levelname)s:%(name)s:%(lineno)s:%(funcName)s:%(message)s')
     )
     logger.addHandler(console_handler)
 

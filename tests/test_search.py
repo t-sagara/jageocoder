@@ -679,6 +679,21 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["秋田県", "大館市", "釈迦内"]
         )
 
+    def test_redirect(self):
+        """
+        Check the redirect feature.
+        """
+        jageocoder.set_search_config(auto_redirect=True)
+        self._check(
+            query="相模原市田名2178",
+            fullname=["神奈川県", "相模原市", "中央区", "田名", "2178番地"]
+        )
+
+        self._check(
+            query="相模原市田名2179",
+            fullname=["神奈川県", "相模原市", "緑区", "田名", "2179番地"]
+        )
+
 
 class TestSearchNodeMethods(unittest.TestCase):
 

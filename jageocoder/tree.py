@@ -375,7 +375,7 @@ class AddressTree(object):
 
         - auto_redirect: bool (default = True)
             When this option is set and the retrieved node has a
-            new address recorded in the "moveto" attribute,
+            new address recorded in the "ref" attribute,
             the new address is retrieved automatically.
         """
         for k, v in kwargs.items():
@@ -1149,7 +1149,11 @@ class AddressTree(object):
 
         return cur_node
 
-    def search_by_trie(self, query: str) -> dict:
+    def search_by_trie(
+        self,
+        query: str,
+        processed_nodes: Optional[Set[int]] = None
+    ) -> dict:
         """
         Get the list of corresponding nodes using the TRIE index.
         Returns a list of address element nodes that match
@@ -1163,6 +1167,8 @@ class AddressTree(object):
         ----------
         query : str
             An address notation to be searched.
+        processed_nodes: Set of the AddressNode's id, optional
+            List of node's id that have already been processed.
 
         Return
         ------
@@ -1186,7 +1192,7 @@ class AddressTree(object):
         logger.debug("Trie: {}".format(','.join(keys)))
 
         min_key = ''
-        processed_nodes: List[int] = []
+        processed_nodes: Set[int] = processed_nodes or set()
         resolved_node_ids: Set[int] = set()
 
         for k in keys:
@@ -1205,6 +1211,11 @@ class AddressTree(object):
             for node_id in trie_node.nodes:
                 node = self.get_address_node(id=node_id)
 
+                if node_id in processed_nodes:
+                    logger.debug("Skip {}({}), already processed.".format(
+                        node.name, node.id))
+                    continue
+
                 if node.y > 90.0 and self.get_config('require_coordinates'):
                     node = node.add_dummy_coordinates()
                     if node.y > 90.0:
@@ -1221,11 +1232,6 @@ class AddressTree(object):
                         "Set min_key to '{}'").format(k))
                     min_key = k
 
-                if node_id in processed_nodes:
-                    logger.debug("Node {}({}) already processed.".format(
-                        node.name, node.id))
-                    continue
-
                 if len(target_area) > 0:
                     # Check if the node is inside the specified area
                     for area in target_area:
@@ -1238,37 +1244,57 @@ class AddressTree(object):
                         logger.debug(msg.format(node.name, node.id))
                         continue
 
-                logger.debug("Search '{}' under {}({})".format(
+                logger.debug((
+                    "Search for the node with the longest match "
+                    "to the remaining '{}' recursively, "
+                    "starting with node '{}'(id:{})."
+                ).format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
                     tree=self,
                     index=rest_index,
                     processed_nodes=processed_nodes)
-                processed_nodes.append(node_id)
+                processed_nodes.add(node_id)
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
 
-                _results_by_node = results_by_node[:]
-                results_by_node.clear()
-                for cand in _results_by_node:
-                    if re.search(r'moveto:.', cand.node.note) is None or \
-                            not self.get_config('auto_redirect'):
-                        results_by_node.append(cand)
-                        continue
+                if len(results_by_node[0].matched) == 0 and \
+                        node.level == AddressLevel.CITY and \
+                        not rest_index.startswith(AddressNode.NONAME):
 
-                    for k, v in cand.node.get_notes():
-                        if k != "moveto":
-                            continue
+                    logger.debug(
+                        "Search for NONAME Oaza of '{}'({})".format(
+                            node.name, node.id
+                        ))
 
-                        logger.debug(f"Redirect '{cand.node.name}' to '{v}'")
-                        new_key = v + rest_index[len(cand.matched):]
-                        aliased_results = self.search_by_trie(new_key)
-                        for node_id, val in aliased_results.items():
-                            node, matched = val
-                            matched = matched[len(v):]
-                            results_by_node.append(
-                                Result(node, matched=matched)
+                    aza_skip = self.get_config('aza_skip')
+                    for result in results.values():
+                        if result[1].startswith(key) and result[1] > key:
+                            self.set_config(aza_skip=False)
+                            logger.debug(
+                                "Since one or more candidates are found, "
+                                "no omission of Aza will be checked."
                             )
+                            break
+
+                    noname_child = node.get_child(AddressNode.NONAME)
+                    if noname_child is not None and \
+                            noname_child.id not in processed_nodes:
+                        processed_nodes.add(noname_child.id)
+                        # Search under NONAME oaza node.
+                        for result in noname_child.search_recursive(
+                            tree=self,
+                            index=rest_index,
+                            processed_nodes=processed_nodes
+                        ):
+                            if len(result.matched) > 0:
+                                results_by_node.append(result)
+                                logger.debug(
+                                    "Found '{}'({}) in NONAME Oaza.".format(
+                                        result.node.name, result.node.id
+                                    ))
+
+                    self.set_config(aza_skip=aza_skip)
 
                 for cand in results_by_node:
                     if len(target_area) > 0:
