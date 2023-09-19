@@ -1277,8 +1277,8 @@ class AddressTree(object):
                             )
                             break
 
-                    noname_child = node.get_child(AddressNode.NONAME)
-                    if noname_child is not None and \
+                    noname_child = node.table.get_record(pos=node.id + 1)
+                    if noname_child.name == AddressNode.NONAME and \
                             noname_child.id not in processed_nodes:
                         processed_nodes.add(noname_child.id)
                         # Search under NONAME oaza node.

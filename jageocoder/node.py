@@ -49,7 +49,7 @@ class AddressNodeTable(BaseTable):
         super().__init__(db_dir=db_dir)
         self.datasets = Dataset(db_dir=db_dir)
 
-    @lru_cache(maxsize=1024)
+    @lru_cache(maxsize=65536)
     def get_record(self, pos: int) -> AddressNode:
         """
         Get the record at the specified position
@@ -130,7 +130,7 @@ class AddressNode(object):
 
     """
     ROOT_NODE_ID = 0
-    NONAME = "NONAME"
+    NONAME = "."  # Must be smaller than numbers.
 
     def __init__(
             self,
@@ -324,21 +324,52 @@ class AddressNode(object):
         -------
         AddressNode
             If a node with the specified name is found, it is returned;
-            if not, None is returned.
+            Otherwise return None.
         """
-        address_node = self.table.get_record(pos=self.id)
-        next_pos = self.id + 1
-        while next_pos < address_node.sibling_id:
-            candidate = self.table.get_record(pos=next_pos)
-            if candidate.parent_id != self.id:
-                next_pos += 1
-                continue
+        target_name_index = default_itaiji_converter.standardize(target_name)
+        if target_name == target_name_index:
+            targets = (target_name,)
+        else:
+            targets = (target_name, target_name_index,)
 
-            if candidate.name == target_name or \
-                    candidate.name_index == target_name:
-                return candidate
+        for target in (targets):
+            lb: int = self.id + 1  # lower bound
+            ub: int = self.sibling_id  # upper bound
+            cp: int = 0
+            cp_node: AddressNode = None
+            lb_node: AddressNode = self.table.get_record(pos=lb)
+            if lb_node.name_index == target:
+                return lb_node
 
-            next_pos = candidate.sibling_id
+            while cp_node is None or \
+                    ub > lb_node.sibling_id:
+                cp = int((lb + ub) / 2)  # current position
+                cp_node = self.table.get_record(pos=cp)
+                if cp_node.parent_id != self.id:
+                    while cp_node.parent_id != self.id:
+                        cp = cp_node.parent_id
+                        cp_node = self.table.get_record(pos=cp)
+
+                    if cp == lb and cp_node.sibling_id < ub:
+                        cp = cp_node.sibling_id
+                        cp_node = self.table.get_record(pos=cp)
+
+                if cp_node.name_index < target:
+                    lb = cp
+                    lb_node = self.table.get_record(pos=lb)
+                elif cp_node.name_index == target:
+                    break
+                else:
+                    ub = cp
+
+            while cp < ub:
+                cp_node = self.table.get_record(pos=cp)
+                if cp_node.name_index == target:
+                    return cp_node
+                elif cp_node.name_index > target:
+                    break
+
+                cp += 1
 
         return None
 
@@ -806,7 +837,7 @@ class AddressNode(object):
 
                 tree.set_config(auto_redirect=auto_redirect)
 
-        if len(candidates) == 0:
+        if False and len(candidates) == 0:
             # Search common names
             for k, v in self.get_notes():
                 if k != "cn":
@@ -1061,81 +1092,6 @@ class AddressNode(object):
                         del candidates[name]
 
         return list(candidates.values())
-
-    def search_blocks(
-        self,
-        tree: AddressTree,
-        index: str,
-        optional_prefix: str,
-        processed_nodes: List[AddressNode],
-    ) -> List[Result]:
-        """
-        Search for 地番/街区 node in the subtree of this node
-        with the numerical value specified by the `index`.
-        Skip omissible 大字/字 nodes if necessary.
-        """
-        if self.sibling_id == self.id + 1:  # no child
-            return []
-
-        logger.debug(
-            f"Searching block node '{index}' under {self.get_fullname()}")
-
-        index_std = tree.converter.standardize(index)
-        numbers = index_std[0: index_std.find('.') + 1]  # The target number
-
-        pos = self.id + 1
-        ub = self.sibling_id
-        logger.debug(f"Start id={pos}, ub={ub}")
-        while pos < self.sibling_id:
-            node = self.table.get_record(pos=pos)
-            logger.debug(f"[{pos}] node '{node.name}'")
-            if node.name_index.startswith(numbers):
-                break
-
-            # if node.name_index > numbers:
-            #     pos = max(ub + 1, pos + 1)
-            #     logger.debug(f"{node.name_index} gt {numbers} (pos -> {pos})")
-            #     continue
-
-            if pos >= ub:
-                ub = self.sibling_id
-
-            if node.level < AddressLevel.BLOCK:
-                aza_record = node.get_aza_record(tree)
-                if aza_record is not None and aza_record.startCountType == 1:
-                    # This node is not omissible...
-                    pos = node.sibling_id
-                    logger.debug(
-                        f"Node '{node.name}' is not omissible. pos -> {pos}")
-                    continue
-
-                if aza_record is None:
-                    logger.debug(
-                        f"Node '{node.name}' is not existing in ABR."
-                    )
-                else:
-                    logger.debug(
-                        f"Node '{node.name}' startCountType={aza_record.startCountType}"
-                    )
-
-                # Searching inside the subnode.
-                ub = node.sibling_id
-                pos += 1
-                logger.debug(f"Scanning into node '{node.name}'")
-                continue
-
-            if node.level > AddressLevel.BLOCK:
-                pos = node.parent.sibling_id
-                continue
-
-            pos += 1
-
-        else:
-            return []
-
-        return self._get_candidates_from_child(
-            tree, node, index, optional_prefix, processed_nodes
-        )
 
     def as_dict(self):
         """
