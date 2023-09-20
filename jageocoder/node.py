@@ -49,7 +49,7 @@ class AddressNodeTable(BaseTable):
         super().__init__(db_dir=db_dir)
         self.datasets = Dataset(db_dir=db_dir)
 
-    @lru_cache(maxsize=65536)
+    @lru_cache(maxsize=1024)
     def get_record(self, pos: int) -> AddressNode:
         """
         Get the record at the specified position
@@ -706,13 +706,11 @@ class AddressNode(object):
                 continue
 
             logger.debug("-> comparing; {}".format(child.name_index))
-            new_candidates = self._get_candidates_from_child(
+            new_candidates = child._get_candidates(
                 tree=tree,
-                child=child,
                 index=index,
                 optional_prefix=optional_prefix,
                 processed_nodes=processed_nodes)
-            processed_nodes.add(child.id)
 
             if len(new_candidates) > 0:
                 candidates += new_candidates
@@ -877,23 +875,19 @@ class AddressNode(object):
         ))
         return candidates
 
-    @classmethod
-    def _get_candidates_from_child(
-            cls,
+    def _get_candidates(
+            self,
             tree: AddressTree,
-            child: AddressNode,
             index: str,
             optional_prefix: str,
             processed_nodes: List[AddressNode]) -> List[AddressNode]:
         """
-        Get candidates from the child.
+        Get candidates from the self node.
 
         Parameters
         ----------
         tree: AddressTree
             The tree containing this node.
-        child: AddressNode
-            The starting child node.
         index: str
             Standardized query string. Numeric characters are kept as
             original notation.
@@ -909,42 +903,42 @@ class AddressNode(object):
             as the second element.
         """
 
-        match_len = tree.converter.match_len(index, child.name_index)
+        match_len = tree.converter.match_len(index, self.name_index)
         if match_len == 0:
             l_optional_postfix = tree.converter.check_optional_postfixes(
-                child.name_index, child.level)
+                self.name_index, self.level)
             if l_optional_postfix > 0:
-                # In case the index string of the child node with optional
+                # In case the index string of the self node with optional
                 # postfixes removed is completely included in the beginning
                 # of the search string.
-                # ex. index='2.-8.', child.name_index='2.番' ('番' is a postfix)
-                optional_postfix = child.name_index[-l_optional_postfix:]
-                alt_child_index = child.name_index[0: -l_optional_postfix]
+                # ex. index='2.-8.', self.name_index='2.番' ('番' is a postfix)
+                optional_postfix = self.name_index[-l_optional_postfix:]
+                alt_index = self.name_index[0: -l_optional_postfix]
                 logger.debug(
-                    "child:{} has optional postfix {}".format(
-                        child, optional_postfix))
+                    "self:{} has optional postfix {}".format(
+                        self, optional_postfix))
                 match_len = tree.converter.match_len(
-                    index, alt_child_index, removed_postfix=optional_postfix)
+                    index, alt_index, removed_postfix=optional_postfix)
                 if match_len < len(index) and index[match_len] in '-ノ':
                     match_len += 1
 
-        if match_len == 0 and child.name_index.endswith('.条'):
+        if match_len == 0 and self.name_index.endswith('.条'):
             # Support for Sapporo City and other cities that use
             # "北3西1" instead of "北3条西１丁目".
-            alt_child_index = child.name_index.replace('条', '', 1)
-            logger.debug("child:{} ends with '.条'".format(child))
-            match_len = tree.converter.match_len(index, alt_child_index)
+            alt_index = self.name_index.replace('条', '', 1)
+            logger.debug("self:{} ends with '.条'".format(self))
+            match_len = tree.converter.match_len(index, alt_index)
 
         if match_len == 0:
-            logger.debug("{} doesn't match".format(child.name))
+            logger.debug("{} doesn't match".format(self.name))
             return []
 
         candidates = []
         offset = match_len
         rest_index = index[offset:]
         l_optional_prefix = len(optional_prefix)
-        logger.debug("child:{} match {} chars".format(child, offset))
-        for cand in child.search_recursive(
+        logger.debug("self:{} match {} chars".format(self, offset))
+        for cand in self.search_recursive(
                 tree=tree,
                 index=rest_index,
                 processed_nodes=processed_nodes):
@@ -989,6 +983,23 @@ class AddressNode(object):
         if self.level < AddressLevel.CITY or \
                 self.level > AddressLevel.AZA:
             return ""
+
+        for id in processed_nodes or []:
+            node = self.table.get_record(pos=id)
+            if node.parent_id == self.parent_id and \
+                    node.name_index != self.name_index:
+                logger.debug((
+                    "Can't skip substring after '{}', "
+                    "a sibling node {} had been selected").format(
+                        self.name, node.name))
+                return ""
+
+            elif node.parent_id == self.id:
+                logger.debug((
+                    "Can't skip substring after '{}', "
+                    "a self node {} had been selected").format(
+                        self.name, node.name))
+                return ""
 
         if self.level < AddressLevel.OAZA:
             target_prefix = self.get_city_jiscode()

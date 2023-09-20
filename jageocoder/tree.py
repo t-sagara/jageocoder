@@ -1211,11 +1211,6 @@ class AddressTree(object):
             for node_id in trie_node.nodes:
                 node = self.get_address_node(id=node_id)
 
-                if node_id in processed_nodes:
-                    logger.debug("Skip {}({}), already processed.".format(
-                        node.name, node.id))
-                    continue
-
                 if node.y > 90.0 and self.get_config('require_coordinates'):
                     node = node.add_dummy_coordinates()
                     if node.y > 90.0:
@@ -1231,6 +1226,11 @@ class AddressTree(object):
                         "A node with ward or higher levels found. "
                         "Set min_key to '{}'").format(k))
                     min_key = k
+
+                if node_id in processed_nodes:
+                    logger.debug("Node {}({}) already processed.".format(
+                        node.name, node.id))
+                    continue
 
                 if len(target_area) > 0:
                     # Check if the node is inside the specified area
