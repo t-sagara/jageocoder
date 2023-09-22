@@ -61,6 +61,16 @@ class TestItaijiMethods(unittest.TestCase):
             pattern='福島県波江町高瀬丈六十二')
         self.assertEqual(r, 12)
 
+    def test_optional_aza_len(self):
+        r = converter.optional_aza_len('字小坂145番地')
+        self.assertEqual(r, 3)
+
+        r = converter.optional_aza_len('字一ノ瀬甲2048番地先')
+        self.assertEqual(r, 4)
+
+        r = converter.optional_aza_len('一丁目15番地', 0)
+        self.assertEqual(r, 0)
+
 
 if __name__ == '__main__':
     import logging

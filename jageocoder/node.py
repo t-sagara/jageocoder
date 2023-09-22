@@ -746,38 +746,37 @@ class AddressNode(object):
         # Search for subnodes with queries excludes Aza-name candidates
         omissible_index = None
         aza_skip = tree.get_config('aza_skip')
-        if aza_skip is not False and \
-            (len(candidates) == 0 or
-                len(index) - len(candidates[0].matched) > 2):
+        if len(candidates) == 0 or \
+                len(index) - len(candidates[0].matched) > 2:
             logger.debug((
                 "Try to skip over the omissible Aza-names and "
                 "search for matching nodes since no candidates found."
             ))
             if aza_skip is True:   # Skip = on
                 omissible_index = index
+            elif aza_skip is False:  # Skip = off
+                omissible_index = self.get_omissible_index(
+                    tree=tree,
+                    index=index,
+                    processed_nodes=processed_nodes,
+                    strict=True)
             elif aza_skip is None:  # Skip = auto
                 omissible_index = self.get_omissible_index(
                     tree=tree,
                     index=index,
-                    processed_nodes=processed_nodes
-                )
+                    processed_nodes=processed_nodes,
+                    strict=False)
 
         if omissible_index is None:
             pass  # has candidate, or aza_skip is prohibitted
         elif omissible_index == "":
             logger.debug("No omissible Aza-names are found.")
         else:
-            aza_positions = tree.converter.optional_aza_len(index, 0)
-            aza_positions.append(len(omissible_index))
-            if len(index) in aza_positions:
-                aza_positions.remove(len(index))
+            azalen = tree.converter.optional_aza_len(index, 0)
+            if azalen > len(omissible_index):
+                azalen = 0
 
-            aza_positions.sort()
-
-            for azalen in aza_positions:
-                if azalen > len(omissible_index):
-                    break
-
+            if azalen > 0:
                 msg = '"{}" in index "{}" is omissible.'
                 logger.debug(msg.format(index[:azalen], index))
                 # Note: Disable 'aza_skip' here not to perform
@@ -788,22 +787,20 @@ class AddressNode(object):
                     index=index[azalen:],
                     processed_nodes=processed_nodes)
                 tree.set_config(aza_skip=aza_skip)
-                if sub_candidates[0].matched == '':
-                    continue
+                if sub_candidates[0].matched != '':
+                    for cand in sub_candidates:
+                        if cand.node.level < AddressLevel.BLOCK and \
+                                cand.node.name_index not in \
+                                tree.converter.chiban_heads:
+                            logger.debug("{} is ignored".format(
+                                cand.node.name))
+                            continue
 
-                for cand in sub_candidates:
-                    if cand.node.level < AddressLevel.BLOCK and \
-                            cand.node.name_index not in \
-                            tree.converter.chiban_heads:
-                        logger.debug("{} is ignored".format(
-                            cand.node.name))
-                        continue
-
-                    candidates.append(Result(
-                        cand.node,
-                        optional_prefix +
-                        index[0:azalen] + cand.matched,
-                        l_optional_prefix + cand.nchars))
+                        candidates.append(Result(
+                            cand.node,
+                            optional_prefix +
+                            index[0:azalen] + cand.matched,
+                            l_optional_prefix + cand.nchars))
 
         if len(candidates) == 0:
             auto_redirect = tree.get_config('auto_redirect')
@@ -953,7 +950,8 @@ class AddressNode(object):
             self,
             tree: AddressTree,
             index: str,
-            processed_nodes: List[AddressNode]) -> str:
+            processed_nodes: List[AddressNode],
+            strict: bool = False) -> str:
         """
         Obtains an optional leading substring from the search string index.
 
@@ -966,6 +964,8 @@ class AddressNode(object):
         processed_nodes: List of AddressNode
             List of nodes that have already been processed
             by TRIE search results.
+        strict: bool
+            If true, check the omission more strict.
 
         Returns
         -------
@@ -1017,29 +1017,49 @@ class AddressNode(object):
         logger.debug(
             "Scanning '{}' in sub aza-records of '{}'".format(
                 index, self.name))
-        omissible_index = index
         aza_records = tree.aza_masters.search_records_on(
             attr="code",
             value=target_prefix,
             funcname="keys"
         )
-        for aza_record in aza_records:
-            if aza_record.azaClass == 3 and \
-                aza_record.startCountType == 1 or \
-                    aza_record.azaClass == 1:
+        if not strict:
+            # Consider omittable except for those parts that cannot
+            # be omitted by Aza-master.
+            omissible_index = index
+            for aza_record in aza_records:
+                if not strict and (aza_record.azaClass == 3 and
+                                   aza_record.startCountType == 1) or \
+                        aza_record.azaClass == 1:
 
-                names = json.loads(aza_record.names)
-                # logger.debug(
-                #     "  -> '{}' is not omissible.".format(names[-1][1]))
-                name = tree.converter.standardize(names[-1][1])
-                pos = omissible_index.find(name)
-                if pos >= 0:
-                    logger.debug(
-                        "Can't omit substring '{}' from '{}' in {}".format(
-                            name, names[-1][1], omissible_index))
-                    omissible_index = omissible_index[0:pos]
+                    names = json.loads(aza_record.names)
+                    # logger.debug(
+                    #     "  -> '{}' is not omissible.".format(names[-1][1]))
+                    name = tree.converter.standardize(names[-1][1])
+                    pos = omissible_index.find(name)
+                    if pos >= 0:
+                        logger.debug(
+                            "Can't omit substring '{}' from '{}' in {}".format(
+                                name, names[-1][1], omissible_index))
+                        omissible_index = omissible_index[0:pos]
 
-                    if pos == 0:
+                        if pos == 0:
+                            break
+        else:  # strict mode
+            # Consider omittable only those portions that can be omitted
+            # with by Aza-master.
+            omissible_index = ""
+            for aza_record in aza_records:
+                if aza_record.startCountType == 2:
+                    names = json.loads(aza_record.names)
+                    name = tree.converter.standardize(names[-1][1])
+                    pos = index.find(name)
+                    if pos > len(omissible_index):
+                        logger.debug(
+                            "Can omit substring '{}' from '{}' in {}".format(
+                                name, names[-1][1], index))
+                        omissible_index = index[0:pos]
+
+                    if pos == len(index):
                         break
 
         logger.debug("  -> omissible '{}'".format(omissible_index))
