@@ -116,9 +116,10 @@ class Converter(object):
                          self.optional_strings_in_middle)))
 
         # Patterns that cannot be omitted as AZA names
+        hyphens = re.escape(strlib.hyphen)
         self.re_not_ommisible_aza_patterns = re.compile(
             '(' +
-            rf'{numbers}(条|線|丁|丁目|区|番|号)|' +
+            rf'{numbers}[条線丁区番号{hyphens}]|' +
             rf'[{self.chiban_heads}]{numbers}|' +
             rf'{numbers}$' +
             ')'

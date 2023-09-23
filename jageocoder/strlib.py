@@ -15,17 +15,21 @@ class Strlib(object):
     KATAKANA = 5
     ALPHABET = 6
 
-    def __init__(self):
-        self.hyphen = ("\u002D\uFE63\uFF0D\u2010\u2011\u2043\u02D6"
-                       "\u2212\u2012\u2013\u2014\u2015\uFE58\u30FC")
-        self.kansuji = "〇一二三四五六七八九"
-        self.arabic = "０１２３４５６７８９"
+    hyphen = (
+        "\u002D\uFE63\uFF0D\u2010\u2011\u2043\u02D6"
+        "\u2212\u2012\u2013\u2014\u2015\uFE58\u30FC"
+    )
+    kansuji = "〇一二三四五六七八九"
+    arabic = "０１２３４５６７８９"
 
-        self.re_en = re.compile(r'[a-zA-Z]')
-        self.re_ascii = re.compile(r'[\u0021-\u007e]')
-        self.re_hira = re.compile(r'[\u3041-\u309F]')
-        self.re_kata = re.compile(r'[\u30A1-\u30FF]')
-        self.re_cjk = re.compile(r'[\u4E00-\u9FFF]')
+    re_en = re.compile(r'[a-zA-Z]')
+    re_ascii = re.compile(r'[\u0021-\u007e]')
+    re_hira = re.compile(r'[\u3041-\u309F]')
+    re_kata = re.compile(r'[\u30A1-\u30FF]')
+    re_cjk = re.compile(r'[\u4E00-\u9FFF]')
+
+    def __init__(self):
+        pass
 
     def is_hyphen(self, c: str) -> bool:
         """
