@@ -92,7 +92,7 @@ class Converter(object):
 
         # Extra characters that may be added to the end of a word at will
         self.extra_characters = options.get(
-            'suffixes', '-ノ区町')
+            'suffixes', '-ノ')
 
         # Characters that may be the beginning of Chiban
         self.chiban_heads = options.get(
