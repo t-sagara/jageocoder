@@ -125,6 +125,12 @@ class Converter(object):
             ')'
         )
 
+        # Patterns that do not follow behind nodes at that level
+        self.re_non_trailing_patterns = {
+            AddressLevel.BLOCK: re.compile(r'[0-9A-Za-z甲乙丙丁]+\.?(番|番地|号|地)'),
+            AddressLevel.BLD: re.compile(r'[0-9]+\.?(号|番地)'),
+        }
+
     def check_optional_prefixes(self, notation: str) -> int:
         """
         Check optional prefixes in the notation and
@@ -187,6 +193,29 @@ class Converter(object):
             return len(m.group(1))
 
         return 0
+
+    def check_trailing_string(self, index: str, level: int) -> bool:
+        """
+        Check for a pattern that should not be followed after
+        the specified node.
+
+        Parameters
+        ----------
+        index: str
+            The trailing string.
+        level: int
+            The level of the specified node.
+
+        Returns
+        -------
+        bool
+            True if a pattern following the node.
+            Otherwise false.
+        """
+        if level not in self.re_non_trailing_patterns:
+            return False
+
+        return self.re_non_trailing_patterns[level].match(index)
 
     def standardize(self, notation: Union[str, None],
                     keep_numbers: bool = False) -> str:

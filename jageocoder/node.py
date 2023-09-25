@@ -743,6 +743,36 @@ class AddressNode(object):
                         l_optional_prefix +
                         len(child.name_index) + len(cand[1])))
 
+        if len(candidates) == 0:
+            auto_redirect = tree.get_config('auto_redirect')
+            if auto_redirect is not False:
+                tree.set_config(auto_redirect=False)  # Stop multi-redirection
+                # Search redirect nodes
+                for k, v in self.get_notes():
+                    if k != "ref":
+                        continue
+
+                    for ref in v.split('|'):
+                        logger.debug(
+                            f"Redirect '{self.get_fullname()}' to '{ref}'"
+                        )
+                        new_key = ref + index
+                        redirect_results = tree.search_by_trie(
+                            new_key, processed_nodes)
+                        for node_id, val in redirect_results.items():
+                            node, matched = val
+                            if len(matched) > len(ref):
+                                matched = matched[len(ref):]
+                                candidates.append(
+                                    Result(
+                                        node,
+                                        matched=matched,
+                                        nchars=len(matched)
+                                    )
+                                )
+
+                tree.set_config(auto_redirect=auto_redirect)
+
         # Search for subnodes with queries excludes Aza-name candidates
         omissible_index = None
         aza_skip = tree.get_config('aza_skip')
@@ -801,36 +831,6 @@ class AddressNode(object):
                             optional_prefix +
                             index[0:azalen] + cand.matched,
                             l_optional_prefix + cand.nchars))
-
-        if len(candidates) == 0:
-            auto_redirect = tree.get_config('auto_redirect')
-            if auto_redirect is not False:
-                tree.set_config(auto_redirect=False)  # Stop multi-redirection
-                # Search redirect nodes
-                for k, v in self.get_notes():
-                    if k != "ref":
-                        continue
-
-                    for ref in v.split('|'):
-                        logger.debug(
-                            f"Redirect '{self.get_fullname()}' to '{ref}'"
-                        )
-                        new_key = ref + index
-                        redirect_results = tree.search_by_trie(
-                            new_key, processed_nodes)
-                        for node_id, val in redirect_results.items():
-                            node, matched = val
-                            if len(matched) > len(ref):
-                                matched = matched[len(ref):]
-                                candidates.append(
-                                    Result(
-                                        node,
-                                        matched=matched,
-                                        nchars=len(matched)
-                                    )
-                                )
-
-                tree.set_config(auto_redirect=auto_redirect)
 
         if False and len(candidates) == 0:
             # Search common names
@@ -916,7 +916,11 @@ class AddressNode(object):
                         self, optional_postfix))
                 match_len = tree.converter.match_len(
                     index, alt_index, removed_postfix=optional_postfix)
-                if match_len < len(index) and index[match_len] in '-ノ':
+
+                if tree.converter.check_trailing_string(
+                        index[match_len:], self.level):
+                    match_len = 0
+                elif match_len < len(index) and index[match_len] in '-ノ':
                     match_len += 1
 
         if match_len == 0 and self.name_index.endswith('.条'):
