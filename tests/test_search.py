@@ -281,6 +281,7 @@ class TestSearchMethods(unittest.TestCase):
                       "甲", "1994番地"])
 
         self._check(
+            aza_skip='on',
             query="千葉県袖ケ浦市久保田字一ノ山１５２３",
             match="千葉県袖ケ浦市久保田字一ノ山１５２３",
             fullname=["千葉県", "袖ケ浦市", "久保田", "1523番地"])
@@ -518,6 +519,7 @@ class TestSearchMethods(unittest.TestCase):
                 ["長野県", "千曲市", "磯部"]])
 
         self._check(
+            aza_skip='on',
             query="長野県千曲市礒部字下河原１１３７",
             match="長野県千曲市礒部字下河原１１３７",
             fullname=["長野県", "千曲市", "大字磯部", "1137番地"])
@@ -530,6 +532,7 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["佐賀県", "嬉野市", "嬉野町", "大字下野"])
 
         self._check(
+            aza_skip='on',
             query="佐賀県嬉野市嬉野町大字下野字長波須ハ丙１２２４",
             match="佐賀県嬉野市嬉野町大字下野字長波須ハ丙",
             fullname=["佐賀県", "嬉野市", "嬉野町", "大字下野", "丙"])
@@ -568,6 +571,7 @@ class TestSearchMethods(unittest.TestCase):
         # Cases where the oaza-name directly under the city
         # needs to be skipped.
         self._check(
+            aza_skip='on',
             query="高知県高岡郡佐川町字若枝甲４８５",
             match="高知県高岡郡佐川町字若枝甲４８５",
             fullname=["高知県", "高岡郡", "佐川町", "甲", "485番地"])
@@ -575,6 +579,7 @@ class TestSearchMethods(unittest.TestCase):
         # When enable_aza_skip option is set to True,
         # '十輪谷' will be omitted even it doesn't start with '字'
         self._check(
+            aza_skip='on',
             query="広島県府中市鵜飼町十輪谷甲１２４－１",
             match="広島県府中市鵜飼町十輪谷甲１２４－",
             fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"])

@@ -782,15 +782,15 @@ class AddressNode(object):
                 "Try to skip over the omissible Aza-names and "
                 "search for matching nodes since no candidates found."
             ))
-            if aza_skip is True:   # Skip = on
-                omissible_index = index
-            elif aza_skip is False:  # Skip = off
+            if aza_skip is False:   # Skip = off
+                omissible_index = ""
+            elif aza_skip is None:  # Skip = auto
                 omissible_index = self.get_omissible_index(
                     tree=tree,
                     index=index,
                     processed_nodes=processed_nodes,
                     strict=True)
-            elif aza_skip is None:  # Skip = auto
+            elif aza_skip is True:  # Skip = on
                 omissible_index = self.get_omissible_index(
                     tree=tree,
                     index=index,
