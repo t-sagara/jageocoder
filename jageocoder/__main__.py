@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import sys
 
 import jageocoder
@@ -13,7 +12,7 @@ HELP = """
 Usage:
   {p} -h
   {p} -v
-  {p} search [-d] [--area=<area>] [--db-dir=<dir>] [--force-aza-skip|--disable-aza-skip] <address>
+  {p} search [-d] [--area=<area>] [--db-dir=<dir>] <address>
   {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] <url>
@@ -26,8 +25,6 @@ Options:
   -d --debug          実行時にデバッグメッセージを表示します.
   -y --yes            確認メッセージに対して自動的に y と答えます。
   --area=<area>       検索対象地域の都道府県・市区町村名を指定します。
-  --force-aza-skip    「字」を常にスキップします。
-  --disable-aza-skip  「字」を常にスキップしません。
   --level=<level>     検索する住所レベルを指定します。
   --db-dir=<dir>      住所データベースのディレクトリを指定します。
 
@@ -42,15 +39,15 @@ Examples:
 
   環境変数で検索オプションを指定できます（[]内がデフォルト）。
   - JAGEOCODER_OPT_AZA_SKIP (on,off,[auto])
-    「字」のスキップ処理を指定します。
+    「字」の省略判定処理を指定します。
   - JAGEOCODER_OPT_BEST_ONLY ([true],false)
     最適解のみ表示するかどうかを指定します。
   - JAGEOCODER_OPT_REQUIRE_COORDINATES ([true],false)
     座標が登録されている住所のみ検索対象とするかどうかを指定します。
     座標が登録されていない場合、経緯度 ≒ 999.9 と表示されます。
   - JAGEOCODER_OPT_AUTO_REDIRECT ([true],false)
-    検索したノードの ref に参照先住所が記載されている場合に、
-    自動的に参照先を検索するかどうかを指定します。
+    検索した住所が合併等により変わっている場合、
+    変更先の住所を自動的に検索するかどうかを指定します。
 
 - 住所データベースのディレクトリを表示します。
 
@@ -59,10 +56,10 @@ Examples:
 - 住所データベースをインストールします。
 
   (ウェブから最新の全国住居表示レベルデータファイルをダウンロードします)
-  {p} download-dictionary https://www.info-proto.com/static/jageocoder/latest/jukyo_all_v20.zip
+  {p} download-dictionary https://www.info-proto.com/static/jageocoder/latest/jukyo_all_v21.zip
 
   (ダウンロードしたファイルをインストールします)
-  {p} install-dictionary jukyo_all_v20.zip
+  {p} install-dictionary jukyo_all_v21.zip
 
 - 住所データベースをアンインストールします。
 
@@ -98,26 +95,9 @@ def main():
 
     if args['search']:
         jageocoder.init(db_dir=args['--db-dir'], mode='r')
-        search_options = {}
         target_area = None
         if args.get('--area'):
             target_area = args['--area'].split(',')
-
-        if args['--disable-aza-skip']:
-            search_options['aza_skip'] = False
-        elif args['--force-aza-skip']:
-            search_options['aza_skip'] = True
-        else:
-            aza_skip = os.environ.get(
-                'JAGEOCODER_OPT_AZA_SKIP', 'auto')
-            search_options['aza_skip'] = aza_skip
-
-        search_options['best_only'] = os.environ.get(
-            'JAGEOCODER_OPT_BEST_ONLY', 'true')
-        search_options['require_coordinates'] = os.environ.get(
-            'JAGEOCODER_OPT_REQUIRE_COORDINATES', 'true')
-        search_options['auto_redirect'] = os.environ.get(
-            'JAGEOCODER_OPT_AUTO_REDIRECT', 'true')
 
         try:
             jageocoder.set_search_config(target_area=target_area)
@@ -127,8 +107,6 @@ def main():
                 "the --area option.").format(args['--area']),
                 file=sys.stderr)
             exit(1)
-
-        jageocoder.set_search_config(**search_options)
 
         try:
             print(json.dumps(

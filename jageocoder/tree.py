@@ -215,13 +215,18 @@ class AddressTree(object):
         }
         self.set_config(**{
             'debug': self.debug,
-            'aza_skip': os.environ.get('JAGEOCODER_AZA_SKIP', False),
-            'best_only': os.environ.get('JAGEOCODER_BEST_ONLY', True),
-            'target_area': os.environ.get('JAGEOCODER_TARGET_AREA', None),
+            'aza_skip': os.environ.get(
+                'JAGEOCODER_AZA_SKIP', self.config["aza_skip"]),
+            'best_only': os.environ.get(
+                'JAGEOCODER_BEST_ONLY', self.config["best_only"]),
+            'target_area': os.environ.get(
+                'JAGEOCODER_TARGET_AREA', self.config["target_area"]),
             'require_coordinates': os.environ.get(
-                'JAGEOCODER_REQUIRE_COORDINATES', True),
+                'JAGEOCODER_REQUIRE_COORDINATES',
+                self.config["require_coordinates"]),
             'auto_redirect': os.environ.get(
-                'JAGEOCODER_AUTO_REDIRECT', True),
+                'JAGEOCODER_AUTO_REDIRECT',
+                self.config["auto_redirect"]),
         })
 
         # Itaiji converter

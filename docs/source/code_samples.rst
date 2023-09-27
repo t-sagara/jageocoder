@@ -36,7 +36,7 @@
    <class 'jageocoder.result.Result'>
 
 このクラスのオブジェクトは、一致した文字列を
-:py:attr:`matched <jageocoder.result.Result.matched>` 属性に、住所要素を
+:py:attr:`matched <jageocoder.result.Result.matched>` 属性に、住所ノードを
 :py:attr:`node <jageocoder.result.Result.node>` 属性に持っています。
 
 .. code-block:: python
@@ -46,7 +46,7 @@
    >>> results[0].node
    {'id': 50357162, 'name': '8番', 'x': 139.6917724609375, 'y': 35.68962860107422, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}
 
-住所要素は :py:class:`AddressNode <jageocoder.node.AddressNode>`
+住所ノードは :py:class:`AddressNode <jageocoder.node.AddressNode>`
 クラスのオブジェクトなので、:py:attr:`x <jageocoder.node.AddressNode.x>`
 属性に経度、 :py:attr:`y <jageocoder.node.AddressNode.y>` 属性に緯度、
 :py:attr:`level <jageocoder.node.AddressNode.level>` 属性に住所レベルを持ちます。
@@ -62,7 +62,7 @@
 
 住所レベルの数値の意味は :py:class:`jageocoder.address.AddressLevel`
 の定義を参照してください。
-この x, y を返すことで、住所に対応する経緯度を取得できます。
+
 
 .. _sample-set-search-config:
 
@@ -95,8 +95,8 @@
    >>> [x.node.get_fullname(" ") for x in results]
    ['神奈川県 相模原市 中央区 中央 一丁目']
 
-設定した ``target_area`` を初期値に戻したい場合は ``[]`` を
-セットしてください。また、設定条件を確認するには
+設定した ``target_area`` を初期値に戻したい場合は ``[]`` または
+``None`` をセットしてください。また、設定条件を確認するには
 :py:meth:`jageocoder.get_search_config` を呼んでください。
 
 .. code-block:: python
@@ -105,23 +105,26 @@
    >>> jageocoder.get_search_config()
    {
       'debug': False,
-      'aza_skip': False,
+      'aza_skip': None,
       'best_only': True,
       'target_area': [],
       'require_coordinates': True,
       'auto_redirect': True
    }
 
+
 .. _sample-reverse-geocoding:
 
 経緯度から住所を調べる
 ----------------------
 
-地点の経緯度を指定し、その地点の住所を調べます（リバースジオコーディング）。
+地点の経緯度を指定し、その地点の住所を調べることができます
+（いわゆるリバースジオコーディング）。
 
-より厳密には、指定した地点を囲む３点（ドロネー三角形の頂点）を
-構成する住所の情報を取得し、一番目の点（最も指定した座標に近い点）の
-住所表記を返します。
+:py:meth:`jageocoder.reverse` に調べたい地点の経度と緯度を渡すと、
+指定した地点を囲むドロネー三角形を構成する住所ノードを検索し、
+住所ノードを ``candidate``、指定した地点からの距離を ``dist`` に持つ
+dict の list を返します。
 
 .. code-block:: python
 
@@ -134,7 +137,9 @@
    ['東京都', '新宿区', '西新宿', '二丁目']
 
 :py:meth:`jageocoder.reverse` に ``level`` オプションパラメータを
-指定すると、検索する住所のレベルを変更できます。
+指定すると、検索する住所のレベルを指定できます。デフォルトでは
+字レベル (6) なので、街区・地番レベルで検索したい場合は 7 を、
+号・枝番レベルまで検索したい場合は 8 を指定してください。
 
 .. code-block:: python
 
@@ -148,8 +153,14 @@
 
    リバースジオコーディング用のインデックスは、初めてリバース
    ジオコーディングを実行した時に自動的に作成されます。
-   インデックスを削除したい場合は、辞書ディレクトリにある
+   この処理には辞書データーベースのサイズによっては非常に長い
+   時間がかかる（1時間以上）ので、辞書データベースのインストール後に
+   ``jageocoder reverse 135 34`` のように実行して構築しておくことを
+   お勧めします。
+
+   インデックスを削除したい場合は、辞書データベースのディレクトリにある
    ``rtree.dat`` ``rtree.idx`` という 2 つのファイルを削除してください。
+
 
 .. _sample-node-methods:
 
