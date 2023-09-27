@@ -19,8 +19,8 @@ running the following steps.
     >>> jageocoder.searchNode('<Japanese-address>')
 """
 
-__version__ = '2.0.3'  # The package version
-__dictionary_version__ = '20230405'  # Compatible dictionary version
+__version__ = '2.1.0'  # The package version
+__dictionary_version__ = '20230927'  # Compatible dictionary version
 __author__ = 'Takeshi Sagara <sagara@info-proto.com>'
 
 __all__ = [
@@ -44,9 +44,9 @@ __all__ = [
     'instaleld_dictionary_readme',
 ]
 
-from jageocoder.module import init, free, is_initialized,\
-    get_db_dir, set_search_config, get_search_config,\
-    get_module_tree, download_dictionary, install_dictionary,\
-    uninstall_dictionary, create_trie_index,\
-    search, searchNode, reverse, version, dictionary_version,\
+from jageocoder.module import init, free, is_initialized, \
+    get_db_dir, set_search_config, get_search_config, \
+    get_module_tree, download_dictionary, install_dictionary, \
+    uninstall_dictionary, create_trie_index, \
+    search, searchNode, reverse, version, dictionary_version, \
     installed_dictionary_version, installed_dictionary_readme  # noqa: F401

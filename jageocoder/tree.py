@@ -211,14 +211,22 @@ class AddressTree(object):
             'best_only': True,
             'target_area': [],
             'require_coordinates': True,
+            'auto_redirect': True,
         }
         self.set_config(**{
             'debug': self.debug,
-            'aza_skip': os.environ.get('JAGEOCODER_AZA_SKIP', False),
-            'best_only': os.environ.get('JAGEOCODER_BEST_ONLY', True),
-            'target_area': os.environ.get('JAGEOCODER_TARGET_AREA', None),
+            'aza_skip': os.environ.get(
+                'JAGEOCODER_AZA_SKIP', self.config["aza_skip"]),
+            'best_only': os.environ.get(
+                'JAGEOCODER_BEST_ONLY', self.config["best_only"]),
+            'target_area': os.environ.get(
+                'JAGEOCODER_TARGET_AREA', self.config["target_area"]),
             'require_coordinates': os.environ.get(
-                'JAGEOCODER_REQUIRE_COORDINATES', True),
+                'JAGEOCODER_REQUIRE_COORDINATES',
+                self.config["require_coordinates"]),
+            'auto_redirect': os.environ.get(
+                'JAGEOCODER_AUTO_REDIRECT',
+                self.config["auto_redirect"]),
         })
 
         # Itaiji converter
@@ -369,6 +377,11 @@ class AddressTree(object):
             Specify the areas to be searched.
             The area can be specified by the list of name of the node
             (such as prefecture name or city name), or JIS code.
+
+        - auto_redirect: bool (default = True)
+            When this option is set and the retrieved node has a
+            new address recorded in the "ref" attribute,
+            the new address is retrieved automatically.
         """
         for k, v in kwargs.items():
             self._set_config(k, v)
@@ -1005,16 +1018,6 @@ class AddressTree(object):
 
         return trie_nodes
 
-    def save_all(self) -> None:
-        """
-        Save all AddressNode in the tree to the database.
-        """
-        self.__not_in_readonly_mode()
-        logger.debug("Starting save full tree (recursive)...")
-        self.get_root().save_recursive(self.session)
-        self.session.commit()
-        logger.debug("Finished save tree.")
-
     def read_file(self, path: os.PathLike,
                   do_update: bool = False) -> None:
         """
@@ -1151,7 +1154,11 @@ class AddressTree(object):
 
         return cur_node
 
-    def search_by_trie(self, query: str) -> dict:
+    def search_by_trie(
+        self,
+        query: str,
+        processed_nodes: Optional[Set[int]] = None
+    ) -> dict:
         """
         Get the list of corresponding nodes using the TRIE index.
         Returns a list of address element nodes that match
@@ -1165,6 +1172,8 @@ class AddressTree(object):
         ----------
         query : str
             An address notation to be searched.
+        processed_nodes: Set of the AddressNode's id, optional
+            List of node's id that have already been processed.
 
         Return
         ------
@@ -1188,7 +1197,7 @@ class AddressTree(object):
         logger.debug("Trie: {}".format(','.join(keys)))
 
         min_key = ''
-        processed_nodes: List[int] = []
+        processed_nodes: Set[int] = processed_nodes or set()
         resolved_node_ids: Set[int] = set()
 
         for k in keys:
@@ -1240,15 +1249,57 @@ class AddressTree(object):
                         logger.debug(msg.format(node.name, node.id))
                         continue
 
-                logger.debug("Search '{}' under {}({})".format(
+                logger.debug((
+                    "Search for the node with the longest match "
+                    "to the remaining '{}' recursively, "
+                    "starting with node '{}'(id:{})."
+                ).format(
                     rest_index, node.name, node.id))
                 results_by_node = node.search_recursive(
                     tree=self,
                     index=rest_index,
                     processed_nodes=processed_nodes)
-                processed_nodes.append(node_id)
+                processed_nodes.add(node_id)
                 logger.debug('{}({}) marked as processed'.format(
                     node.name, node.id))
+
+                if len(results_by_node[0].matched) == 0 and \
+                        node.level == AddressLevel.CITY and \
+                        not rest_index.startswith(AddressNode.NONAME):
+
+                    logger.debug(
+                        "Search for NONAME Oaza of '{}'({})".format(
+                            node.name, node.id
+                        ))
+
+                    aza_skip = self.get_config('aza_skip')
+                    for result in results.values():
+                        if result[1].startswith(key) and result[1] > key:
+                            self.set_config(aza_skip=False)
+                            logger.debug(
+                                "Since one or more candidates are found, "
+                                "no omission of Aza will be checked."
+                            )
+                            break
+
+                    noname_child = node.table.get_record(pos=node.id + 1)
+                    if noname_child.name == AddressNode.NONAME and \
+                            noname_child.id not in processed_nodes:
+                        processed_nodes.add(noname_child.id)
+                        # Search under NONAME oaza node.
+                        for result in noname_child.search_recursive(
+                            tree=self,
+                            index=rest_index,
+                            processed_nodes=processed_nodes
+                        ):
+                            if len(result.matched) > 0:
+                                results_by_node.append(result)
+                                logger.debug(
+                                    "Found '{}'({}) in NONAME Oaza.".format(
+                                        result.node.name, result.node.id
+                                    ))
+
+                    self.set_config(aza_skip=aza_skip)
 
                 for cand in results_by_node:
                     if len(target_area) > 0:

@@ -66,15 +66,16 @@ class Converter(object):
             self.set_options({})
 
     def set_options(self, options: dict):
+        numbers = rf'[0-9{strlib.kansuji}{strlib.arabic}十百千]+'
         # Optional postfixes for each address level
         # which can be ommitted or represented by hyphens.
         self.re_optional_postfixes = {
             AddressLevel.CITY: re.compile(r'(市|区|町|村)$'),
             AddressLevel.WARD: re.compile(r'(区)$'),
-            AddressLevel.OAZA: re.compile(r'(町|条|線|丁|丁目|区|番|号|番丁|番町)$'),
-            AddressLevel.AZA: re.compile(r'(町|条|線|丁|丁目|区|番|号)$'),
-            AddressLevel.BLOCK: re.compile(r'(番|番地|号|地)$'),
-            AddressLevel.BLD: re.compile(r'(号|番地)$'),
+            AddressLevel.OAZA: re.compile(r'[0-9]+\.(町|条|線|丁|丁目|区|番|号|番丁|番町)$'),
+            AddressLevel.AZA: re.compile(r'[0-9]+\.(町|条|線|丁|丁目|区|番|号)$'),
+            AddressLevel.BLOCK: re.compile(r'[0-9A-Za-z甲乙丙丁]+\.?(番|番地|号|地)$'),
+            AddressLevel.BLD: re.compile(r'[0-9]+\.(号|番地)$'),
         }
 
         # Prefixes that are sometimes added to words at will
@@ -83,7 +84,7 @@ class Converter(object):
 
         # Letters that are sometimes insereted to words at will
         self.optional_letters_in_middle = options.get(
-            'middle_letters', 'ケヶガツッノ区町')
+            'middle_letters', 'ケヶガツッノ')
 
         # Strings that are sometimes inserted to words at will
         self.optional_strings_in_middle = options.get(
@@ -91,7 +92,7 @@ class Converter(object):
 
         # Extra characters that may be added to the end of a word at will
         self.extra_characters = options.get(
-            'suffixes', '-ノ区町')
+            'suffixes', '-ノ')
 
         # Characters that may be the beginning of Chiban
         self.chiban_heads = options.get(
@@ -99,6 +100,7 @@ class Converter(object):
             ('甲乙丙丁戊己庚辛壬癸'
              '子丑寅卯辰巳午未申酉戌亥'
              '続新'
+             'いろはにほへとちりぬるをわかよたれそつね'
              'イロハニホヘトチリヌルヲワカヨタレソツネ'))
 
         # Max length of Aza-name which can be ommitted
@@ -112,6 +114,22 @@ class Converter(object):
             r'^({})'.format(
                 '|'.join(list(self.optional_letters_in_middle) +
                          self.optional_strings_in_middle)))
+
+        # Patterns that cannot be omitted as AZA names
+        hyphens = re.escape(strlib.hyphen)
+        self.re_not_ommisible_aza_patterns = re.compile(
+            '(' +
+            rf'{numbers}[条線丁区番号{hyphens}]|' +
+            rf'[{self.chiban_heads}]{numbers}|' +
+            rf'{numbers}$' +
+            ')'
+        )
+
+        # Patterns that do not follow behind nodes at that level
+        self.re_non_trailing_patterns = {
+            AddressLevel.BLOCK: re.compile(r'[0-9A-Za-z甲乙丙丁]+\.?(番|番地|号|地)'),
+            AddressLevel.BLD: re.compile(r'[0-9]+\.?(号|番地)'),
+        }
 
     def check_optional_prefixes(self, notation: str) -> int:
         """
@@ -175,6 +193,29 @@ class Converter(object):
             return len(m.group(1))
 
         return 0
+
+    def check_trailing_string(self, index: str, level: int) -> bool:
+        """
+        Check for a pattern that should not be followed after
+        the specified node.
+
+        Parameters
+        ----------
+        index: str
+            The trailing string.
+        level: int
+            The level of the specified node.
+
+        Returns
+        -------
+        bool
+            True if a pattern following the node.
+            Otherwise false.
+        """
+        if level not in self.re_non_trailing_patterns:
+            return False
+
+        return self.re_non_trailing_patterns[level].match(index)
 
     def standardize(self, notation: Union[str, None],
                     keep_numbers: bool = False) -> str:
@@ -265,10 +306,13 @@ class Converter(object):
             The length of the substring that matches the pattern.
             If it does not match exactly, it returns 0.
         """
-        logger.debug("Searching {} in {}".format(pattern, string))
+        logger.debug((
+            "Counts the number of characters matching '{}' "
+            "from the beginning of '{}'."
+        ).format(pattern, string))
         nloops = 0
         checked_positions = None
-        aza_positions = []
+        aza_position = None
         pattern_pos = string_pos = 0
         pending_slen = 0  # number of optional characters in string
         pending_plen = 0  # number of optional characters in pattern
@@ -289,8 +333,8 @@ class Converter(object):
             s = string[string_pos]
             if c < '0' or c > '9':
                 # Compare not numeric character
-                logger.debug("Comparing '{}'({}) with '{}'({})".format(
-                    c, pattern_pos, s, string_pos))
+                # logger.debug("Comparing '{}'({}) with '{}'({})".format(
+                #     c, pattern_pos, s, string_pos))
                 if c != s:
                     if pre_s + s in self.optional_strings_in_middle:
                         logger.debug('"{}" in query "{}" is optional.'.format(
@@ -325,7 +369,13 @@ class Converter(object):
                         logger.debug(('... but ignore it since '
                                       'other string was skipped.'))
 
-                    plen = self.optional_str_len(pattern, pattern_pos)
+                    if aza_position is not None:
+                        # 検索文字列の一部を字名としてスキップしたのに
+                        # 次の文字が住所の文字と一致しない
+                        return 0
+                    else:
+                        plen = self.optional_str_len(pattern, pattern_pos)
+
                     if plen > 0:
                         skipped = pattern[pattern_pos: pattern_pos + plen]
                         msg = '"{}" in pattern "{}" is optional.'
@@ -351,22 +401,16 @@ class Converter(object):
                         pending_slen = 0
                         continue
 
-                    # Search optional Aza-names
-                    if len(aza_positions) == 0:
+                    # Search optional Aza-name
+                    if aza_position is None:
                         # Check if aza-name starts here
-                        aza_positions = self.optional_aza_len(
+                        aza_position = string_pos + self.optional_aza_len(
                             string, string_pos)
 
-                    # Skip optional Aza-names
-                    if len(aza_positions) > 0:
-                        if aza_positions[0] <= string_pos:
-                            aza_positions.pop(0)
-                            continue
-
-                        logger.debug('"{}" in query "{}" is optional.'.format(
-                            string[string_pos: aza_positions[0]],
+                        logger.debug('"{}" in query "{}" is omissible.'.format(
+                            string[string_pos: aza_position],
                             string))
-                        string_pos = aza_positions.pop(0)
+                        string_pos = aza_position
                         pending_slen = 0
                         continue
 
@@ -405,6 +449,7 @@ class Converter(object):
                 pending_slen = 0
             else:
                 # The number did not match the expected value
+                logger.debug("The value of numbers do not match. (return 0)")
                 return 0
 
         if removed_postfix is not None:
@@ -419,6 +464,10 @@ class Converter(object):
                 return 0
 
         string_pos -= pending_slen
+        logger.debug(
+            "{} characters matched. ('{}')".format(
+                string_pos, string[0:string_pos]
+            ))
         return string_pos
 
     def optional_str_len(self, string: str, pos: int) -> int:
@@ -430,7 +479,7 @@ class Converter(object):
 
         return 0
 
-    def optional_aza_len(self, string: str, pos: int) -> List[int]:
+    def optional_aza_len(self, string: str, pos: int = 0) -> int:
         """
         Returns the length of Aza-name candidates that can be omitted.
 
@@ -443,27 +492,41 @@ class Converter(object):
 
         Returns
         -------
-        List[int]
-            Number of characters in the candidates.
+        int
+            Number of characters that can be omitted.
         """
+        m = self.re_not_ommisible_aza_patterns.search(string[pos:])
+        if m is None:
+            return 0
+
+        n = string[pos:].find(m.group(0))
+        return n
+
         candidates = []
-
-        if pos >= len(string):
-            return []
-
-        if string[pos] in '0123456789０１２３４５６７８９':
-            return candidates
-
-        for i in range(1, self.max_skip_azaname + 1):
+        i = 0
+        while i <= self.max_skip_azaname:
             if pos + i >= len(string):
                 break
 
-            c = string[pos + i]
-            if c in self.chiban_heads:
-                candidates.append(pos + i)
-            elif c in '0123456789０１２３４５６７８９':
-                candidates.append(pos + i)
-                break
+            number = strlib.get_number(string[pos + i])
+            if number["i"] > 0:
+                if self.re_optional_postfixes[AddressLevel.AZA].match(
+                    string[pos + i + number["i"]:]
+                ):
+                    # 漢数字を含む数値の後ろに接尾辞が続く場合、
+                    # その数字部分以降は省略不可
+                    candidates.append(pos + i)
+                    break
+                elif string[pos + i] in '0123456789０１２３４５６７８９':
+                    # 数字以降は省略不可
+                    candidates.append(pos + i)
+                    break
+                else:
+                    # 数値の途中では省略しない
+                    i += number["i"]
+                    continue
+
+            i += 1
 
         return candidates
 

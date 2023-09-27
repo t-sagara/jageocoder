@@ -20,8 +20,8 @@ Linux, Windows, MacOS 上に、 jageocoder をインストールして
 .. code-block:: console
 
    $ pip install jageocoder
-   $ jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v20.zip
-   $ jageocoder install-dictionary jukyo_all_v20.zip
+   $ jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip
+   $ jageocoder install-dictionary jukyo_all_v21.zip
 
 より詳細なインストール手順やアンインストールの方法については
 :doc:`install` を参照してください。

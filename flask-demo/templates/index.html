@@ -12,7 +12,7 @@
   <li class="node">
     {% for node in result.node.get_parent_list() %}
     <a href="{{ url_for('show_node', id=node.id, q=q, skip_aza=skip_aza, area=area) }}">
-      {{ node.name }}</a>
+      {{ node.get_name('(空)') }}</a>
     <nbsp;>
       {% endfor %}
       <ul>

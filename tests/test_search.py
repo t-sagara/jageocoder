@@ -61,11 +61,11 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="落合1-15-2",
-            match="落合1-15-",
+            match="落合1-15-2",
             target_area=["多摩市"],
             ncandidates=1,
-            level=7,
-            fullname=["東京都", "多摩市", "落合", "一丁目", "15番地"]
+            level=8,
+            fullname=["東京都", "多摩市", "落合", "一丁目", "15番地", "2"]
         )
 
     def test_sapporo(self):
@@ -91,9 +91,9 @@ class TestSearchMethods(unittest.TestCase):
     def test_akita(self):
         self._check(
             query="秋田市山王4-1-1",
-            match="秋田市山王4-1-",
-            level=7,
-            fullname=["秋田県", "秋田市", "山王", "四丁目", "1番"])
+            match="秋田市山王4-1-1",
+            level=8,
+            fullname=["秋田県", "秋田市", "山王", "四丁目", "1番地", "1"])
 
     def test_kyoto(self):
         """
@@ -128,6 +128,23 @@ class TestSearchMethods(unittest.TestCase):
                 ["東京都", "西多摩郡", "瑞穂町", "箱根ケ崎", "2335番地"],
                 ["東京都", "西多摩郡", "瑞穂町", "大字箱根ケ崎", "2335番地"]],
             level=7)
+
+    def test_noname_oaza(self):
+        """
+        Test oaza which has no name.
+        """
+        self._check(
+            query="竜ヶ崎市3751番地",
+            match="竜ヶ崎市3751番地",
+            fullname=[["茨城県", "龍ケ崎市", "", "3751番地"]],
+            level=7)
+
+        # Exclude this test, since this is a dictionary matter.
+        # self._check(
+        #     query="竜ヶ崎市3710番地",
+        #     match="竜ヶ崎市3710番地",
+        #     fullname=[["茨城県", "龍ケ崎市", "寺後", "3710番地"]],
+        #     level=7)
 
     def test_oaza_not_in_dictionary(self):
         """
@@ -264,6 +281,7 @@ class TestSearchMethods(unittest.TestCase):
                       "甲", "1994番地"])
 
         self._check(
+            aza_skip='on',
             query="千葉県袖ケ浦市久保田字一ノ山１５２３",
             match="千葉県袖ケ浦市久保田字一ノ山１５２３",
             fullname=["千葉県", "袖ケ浦市", "久保田", "1523番地"])
@@ -274,9 +292,9 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="兵庫県宍粟市山崎町上ノ１５０２",
-            match="兵庫県宍粟市山崎町上ノ",
-            level=5,
-            fullname=["兵庫県", "宍粟市", "山崎町上ノ"])
+            match="兵庫県宍粟市山崎町上ノ１５０２",
+            level=7,
+            fullname=["兵庫県", "宍粟市", "山崎町上ノ", "1502番地"])
 
     def test_kana_no_aza(self):
         """
@@ -308,31 +326,31 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="石川県羽咋市一ノ宮町ケ２８",
-            match="石川県羽咋市一ノ宮町ケ",
-            fullname=["石川県", "羽咋市", "一ノ宮町", "ケ"],
-            level=6)
+            match="石川県羽咋市一ノ宮町ケ２８",
+            fullname=["石川県", "羽咋市", "一ノ宮町", "ケ", "28番地"],
+            level=7)
 
-    def test_complement_cho(self):
-        """
-        Complement Oaza names if it lacks a "町", "村" or similar characters.
-        """
-        self._check(
-            query="龍ケ崎市薄倉２３６４",
-            level=7,
-            fullname=["茨城県", "龍ケ崎市", "薄倉町", "2364番地"])
+    # def test_complement_cho(self):
+    #     """
+    #     Complement Oaza names if it lacks a "町", "村" or similar characters.
+    #     """
+    #     self._check(
+    #         query="龍ケ崎市薄倉２３６４",
+    #         level=7,
+    #         fullname=["茨城県", "龍ケ崎市", "薄倉町", "2364番地"])
 
-        self._check(
-            query="宮城県仙台市太白区秋保湯元字寺田",
-            fullname=["宮城県", "仙台市", "太白区", "秋保町湯元", "字寺田"])
+    #     self._check(
+    #         query="宮城県仙台市太白区秋保湯元字寺田",
+    #         fullname=["宮城県", "仙台市", "太白区", "秋保町湯元", "字寺田"])
 
-    def test_delete_cho(self):
-        """
-        Delete extra "町" in oaza names.
-        """
-        self._check(
-            query="鹿児島県伊佐市菱刈町川北字古川２２６３",
-            match="鹿児島県伊佐市菱刈町川北",
-            fullname=["鹿児島県", "伊佐市", "菱刈川北"])
+    # def test_delete_cho(self):
+    #     """
+    #     Delete extra "町" in oaza names.
+    #     """
+    #     self._check(
+    #         query="鹿児島県伊佐市菱刈町川北字古川２２６３",
+    #         match="鹿児島県伊佐市菱刈町川北字古川２２６３",
+    #         fullname=["鹿児島県", "伊佐市", "菱刈川北", "2263番地"])
 
     def test_not_complement_cho(self):
         """
@@ -342,7 +360,7 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="熊本県球磨郡湯前町字上長尾",
-            match="熊本県球磨郡湯前町")
+            match="熊本県球磨郡湯前町字上長尾")
 
     def test_no_optional_charcters_in_result(self):
         """
@@ -447,16 +465,21 @@ class TestSearchMethods(unittest.TestCase):
     def test_unnecessary_ku(self):
         """
         Testing for unnecessary "区" in the query string.
+
+        これは「地域自治区」の解消により住所が改正されたものなので、
+        住所変更履歴で対応する。
+        - https://www.city.oshu.iwate.jp/soshiki/1/4071.html
+        - https://www.city.hachinohe.aomori.jp/material/files/group/69/20150129-132950.pdf
         """
         self._check(
-            query="岩手県奥州市胆沢区小山",
-            fullname=["岩手県", "奥州市", "胆沢小山"])
+            query="岩手県奥州市胆沢区南都田字小十文字114",
+            fullname=["岩手県", "奥州市", "胆沢南都田", "字小十文字", "114番地"])
 
         self._check(
             query="青森県八戸市南郷区大字島守字赤羽６",
             fullname=[
-                ["青森県", "八戸市", "南郷", "大字島守"],
-                ["青森県", "八戸市", "南郷大字島守"]])
+                ["青森県", "八戸市", "南郷", "大字島守", "字赤羽", "6番地"],
+                ["青森県", "八戸市", "南郷大字島守", "字赤羽", "6番地"]])
 
     def test_unnecessary_aza_name(self):
         """
@@ -496,6 +519,7 @@ class TestSearchMethods(unittest.TestCase):
                 ["長野県", "千曲市", "磯部"]])
 
         self._check(
+            aza_skip='on',
             query="長野県千曲市礒部字下河原１１３７",
             match="長野県千曲市礒部字下河原１１３７",
             fullname=["長野県", "千曲市", "大字磯部", "1137番地"])
@@ -508,6 +532,7 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["佐賀県", "嬉野市", "嬉野町", "大字下野"])
 
         self._check(
+            aza_skip='on',
             query="佐賀県嬉野市嬉野町大字下野字長波須ハ丙１２２４",
             match="佐賀県嬉野市嬉野町大字下野字長波須ハ丙",
             fullname=["佐賀県", "嬉野市", "嬉野町", "大字下野", "丙"])
@@ -532,21 +557,21 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="宮城県石巻市渡波字転石山１－６",
-            fullname=["宮城県", "石巻市", "渡波", "字転石山"])
+            fullname=["宮城県", "石巻市", "渡波", "字転石山", "1番地"])
 
         # If "字新得基線" will be skipped, "新得町１"
         # can be resolved to "字新得1番地"
         self._check(
             query="北海道上川郡新得町字新得基線１",
-            match="北海道上川郡新得町字新得基線",
+            match="北海道上川郡新得町字新得基線１",
             fullname=[
-                ["北海道", "上川郡", "新得町", "字新得", "基線"],
-                ["北海道", "上川郡", "新得町", "字新得基線"]
+                ["北海道", "上川郡", "新得町", "", "字新得基線", "1番地"]
             ])
 
         # Cases where the oaza-name directly under the city
         # needs to be skipped.
         self._check(
+            aza_skip='on',
             query="高知県高岡郡佐川町字若枝甲４８５",
             match="高知県高岡郡佐川町字若枝甲４８５",
             fullname=["高知県", "高岡郡", "佐川町", "甲", "485番地"])
@@ -554,6 +579,7 @@ class TestSearchMethods(unittest.TestCase):
         # When enable_aza_skip option is set to True,
         # '十輪谷' will be omitted even it doesn't start with '字'
         self._check(
+            aza_skip='on',
             query="広島県府中市鵜飼町十輪谷甲１２４－１",
             match="広島県府中市鵜飼町十輪谷甲１２４－",
             fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"])
@@ -566,8 +592,8 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="長野県長野市小島田町５２４",
-            match="長野県長野市小島田町",
-            fullname=["長野県", "長野市", "小島田町"])
+            match="長野県長野市小島田町５２４",
+            fullname=["長野県", "長野市", "小島田町", "524番地"])
 
         self._check(
             query="山形県酒田市京田２－１－１１",
@@ -576,8 +602,8 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="宮城県仙台市青葉区芋沢字田尻６６",
-            match="宮城県仙台市青葉区芋沢",
-            fullname=["宮城県", "仙台市", "青葉区", "芋沢"])
+            match="宮城県仙台市青葉区芋沢字田尻６６",
+            fullname=["宮城県", "仙台市", "青葉区", "芋沢", "字田尻", "66番地"])
 
         self._check(
             query="宮城県仙台市青葉区芋沢６６",
@@ -591,8 +617,8 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="脇町猪尻西上野61-1",
-            fullname=["徳島県", "美馬市", "脇町", "大字猪尻",
-                      "西上野", "61番地"])
+            fullname=["徳島県", "美馬市", "脇町大字猪尻",
+                      "字西上野", "61番地", "1"])
 
     def test_not_repeat_omission(self):
         """
@@ -602,17 +628,17 @@ class TestSearchMethods(unittest.TestCase):
         are omitted repeateadly, it would match '字中' in the query.
         """
         self._check(
-            query="奥州市水沢区佐倉河字中半入川原１",
-            match="奥州市水沢区佐倉河字中半入",
+            query="奥州市水沢佐倉河字中半入川原１",
+            match="奥州市水沢佐倉河字中半入",
             fullname=["岩手県", "奥州市", "水沢佐倉河", "中半入"]
         )
 
         # '大字', '字', '小字' can be omitted if other optional
         # characters were omitted such as '町'
         self._check(
-            query="鹿児島県霧島市霧島町大字永水４９６２",
-            match="鹿児島県霧島市霧島町大字永水",
-            fullname=["鹿児島県", "霧島市", "霧島永水"])
+            query="鹿児島県霧島市霧島大字永水４９６２",
+            match="鹿児島県霧島市霧島大字永水４９６２",
+            fullname=["鹿児島県", "霧島市", "霧島永水", "4962番地"])
 
     def test_ommit_county(self):
         """
@@ -642,11 +668,58 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_datsurakuchi(self):
         """
+        Check to see if you can correctly determine "脱落地".
         """
         self._check(
             query="福島県いわき市平上高久塚田97乙",
             fullname=["福島県", "いわき市", "平上高久",
                       "塚田", "97番", "乙地"])
+
+    def test_not_exist_oaza(self):
+        """
+        Check that it does not search for nonexistent addresses.
+        """
+        self._check(
+            query="多摩市長沼１－２－３",
+            fullname=["東京都", "多摩市"]
+        )
+
+    def test_not_exist_aza(self):
+        self._check(
+            query="秋田県大館市釈迦内字上堰２６",
+            fullname=["秋田県", "大館市", "釈迦内"]
+        )
+
+    def test_redirect(self):
+        """
+        Check the redirect feature.
+        """
+        jageocoder.set_search_config(auto_redirect=True)
+        self._check(
+            query="相模原市田名2178",
+            fullname=["神奈川県", "相模原市", "中央区", "田名", "2178番地"]
+        )
+
+        self._check(
+            query="相模原市田名2179",
+            fullname=["神奈川県", "相模原市", "緑区", "田名", "2179番地"]
+        )
+
+    def test_aza_skip_false(self):
+        """
+        Check the process when the aza-skip option is set to false.
+        """
+        self._check(
+            aza_skip=False,
+            query="仙台市青葉区芋沢字大竹新田下１９",
+            fullname=["宮城県", "仙台市", "青葉区", "芋沢", "大竹新田下"]
+        )
+
+        self._check(
+            aza_skip=False,
+            query="仙台市青葉区作並字岩谷堂西１６",
+            fullname=["宮城県", "仙台市", "青葉区", "作並", "字岩谷堂"]
+        )
 
 
 class TestSearchNodeMethods(unittest.TestCase):

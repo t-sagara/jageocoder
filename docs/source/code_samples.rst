@@ -23,7 +23,7 @@
    >>> if len(results) > 0:
    ...     print(results[0].node.x, results[0].node.y)
    ...
-   139.691778 35.689627
+   139.6917724609375 35.68962860107422
 
 :py:meth:`jageocoder.searchNode` は、
 指定した住所文字列に最長一致すると解釈された
@@ -36,7 +36,7 @@
    <class 'jageocoder.result.Result'>
 
 このクラスのオブジェクトは、一致した文字列を
-:py:attr:`matched <jageocoder.result.Result.matched>` 属性に、住所要素を
+:py:attr:`matched <jageocoder.result.Result.matched>` 属性に、住所ノードを
 :py:attr:`node <jageocoder.result.Result.node>` 属性に持っています。
 
 .. code-block:: python
@@ -44,9 +44,9 @@
    >>> results[0].matched
    '新宿区西新宿2-8-'
    >>> results[0].node
-   [12111340:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12951429:新宿区(139.703463,35.69389)3(jisx0402:13104/postcode:1600000)]>[12976444:西新宿(139.697501,35.690383)5()]>[12977775:二丁目(139.691774,35.68945)6(aza_id:0023002/postcode:1600023)]>[12977785:8番(139.691778,35.689627)7(None)]
+   {'id': 50357162, 'name': '8番', 'x': 139.6917724609375, 'y': 35.68962860107422, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}
 
-住所要素は :py:class:`AddressNode <jageocoder.node.AddressNode>`
+住所ノードは :py:class:`AddressNode <jageocoder.node.AddressNode>`
 クラスのオブジェクトなので、:py:attr:`x <jageocoder.node.AddressNode.x>`
 属性に経度、 :py:attr:`y <jageocoder.node.AddressNode.y>` 属性に緯度、
 :py:attr:`level <jageocoder.node.AddressNode.level>` 属性に住所レベルを持ちます。
@@ -54,15 +54,15 @@
 .. code-block:: python
 
    >>> results[0].node.x
-   139.691778
+   139.6917724609375
    >>> results[0].node.y
-   35.689627
+   35.68962860107422
    >>> results[0].node.level
    7
 
 住所レベルの数値の意味は :py:class:`jageocoder.address.AddressLevel`
 の定義を参照してください。
-この x, y を返すことで、住所に対応する経緯度を取得できます。
+
 
 .. _sample-set-search-config:
 
@@ -81,8 +81,8 @@
    >>> import jageocoder
    >>> jageocoder.init()
    >>> results = jageocoder.searchNode('中央区中央1')
-   >>> [''.join(x.node.get_fullname()) for x in results]
-   ['千葉県千葉市中央区中央一丁目', '神奈川県相模原市中央区中央一丁目']
+   >>> [x.node.get_fullname(" ") for x in results]
+   ['千葉県 千葉市 中央区 中央 一丁目', '神奈川県 相模原市 中央区 中央 一丁目']
 
 もし対象の住所が神奈川県にあることがあらかじめ分かっている場合には、
 ``target_area`` で検索範囲を神奈川県に指定しておくことで
@@ -92,11 +92,11 @@
 
    >>> jageocoder.set_search_config(target_area=['神奈川県'])
    >>> results = jageocoder.searchNode('中央区中央1')
-   >>> [''.join(x.node.get_fullname()) for x in results]
-   ['神奈川県相模原市中央区中央一丁目']
+   >>> [x.node.get_fullname(" ") for x in results]
+   ['神奈川県 相模原市 中央区 中央 一丁目']
 
-設定した ``target_area`` を初期値に戻したい場合は ``[]`` を
-セットしてください。また、設定条件を確認するには
+設定した ``target_area`` を初期値に戻したい場合は ``[]`` または
+``None`` をセットしてください。また、設定条件を確認するには
 :py:meth:`jageocoder.get_search_config` を呼んでください。
 
 .. code-block:: python
@@ -105,21 +105,26 @@
    >>> jageocoder.get_search_config()
    {
       'debug': False,
-      'aza_skip': False,
+      'aza_skip': None,
       'best_only': True,
-      'target_area': []
+      'target_area': [],
+      'require_coordinates': True,
+      'auto_redirect': True
    }
+
 
 .. _sample-reverse-geocoding:
 
 経緯度から住所を調べる
 ----------------------
 
-地点の経緯度を指定し、その地点の住所を調べます（リバースジオコーディング）。
+地点の経緯度を指定し、その地点の住所を調べることができます
+（いわゆるリバースジオコーディング）。
 
-より厳密には、指定した地点を囲む３点（ドロネー三角形の頂点）を
-構成する住所の情報を取得し、一番目の点（最も指定した座標に近い点）の
-住所表記を返します。
+:py:meth:`jageocoder.reverse` に調べたい地点の経度と緯度を渡すと、
+指定した地点を囲むドロネー三角形を構成する住所ノードを検索し、
+住所ノードを ``candidate``、指定した地点からの距離を ``dist`` に持つ
+dict の list を返します。
 
 .. code-block:: python
 
@@ -132,7 +137,9 @@
    ['東京都', '新宿区', '西新宿', '二丁目']
 
 :py:meth:`jageocoder.reverse` に ``level`` オプションパラメータを
-指定すると、検索する住所のレベルを変更できます。
+指定すると、検索する住所のレベルを指定できます。デフォルトでは
+字レベル (6) なので、街区・地番レベルで検索したい場合は 7 を、
+号・枝番レベルまで検索したい場合は 8 を指定してください。
 
 .. code-block:: python
 
@@ -146,8 +153,14 @@
 
    リバースジオコーディング用のインデックスは、初めてリバース
    ジオコーディングを実行した時に自動的に作成されます。
-   インデックスを削除したい場合は、辞書ディレクトリにある
+   この処理には辞書データーベースのサイズによっては非常に長い
+   時間がかかる（1時間以上）ので、辞書データベースのインストール後に
+   ``jageocoder reverse 135 34`` のように実行して構築しておくことを
+   お勧めします。
+
+   インデックスを削除したい場合は、辞書データベースのディレクトリにある
    ``rtree.dat`` ``rtree.idx`` という 2 つのファイルを削除してください。
+
 
 .. _sample-node-methods:
 
@@ -178,30 +191,30 @@ GeoJSON 文字列を取得するには、 ``json.dumps()`` でエンコードし
 .. code-block:: python
 
    >>> import json
-   >>> print(json.dumps(node.as_geojson(), indent=2, ensure_ascii=False))
+   >>> print(json.dumps(node.as_geojson(), indent=4, ensure_ascii=False))
    {
-     "type": "Feature",
-     "geometry": {
-       "type": "Point",
-       "coordinates": [
-         139.691778,
-         35.689627
-       ]
-     },
-     "properties": {
-       "id": 12977785,
-       "name": "8番",
-       "level": 7,
-       "priority": 3,
-       "note": null,
-       "fullname": [
-         "東京都",
-         "新宿区",
-         "西新宿",
-         "二丁目",
-         "8番"
-       ]
-     }
+      "type": "Feature",
+      "geometry": {
+         "type": "Point",
+         "coordinates": [
+               139.6917724609375,
+               35.68962860107422
+         ]
+      },
+      "properties": {
+         "id": 50357162,
+         "name": "8番",
+         "level": 7,
+         "priority": 3,
+         "note": "",
+         "fullname": [
+               "東京都",
+               "新宿区",
+               "西新宿",
+               "二丁目",
+               "8番"
+         ]
+      }
    }
 
 **都道府県コード**
@@ -253,7 +266,7 @@ v1.3 から list オブジェクトを返すように変更されました。
 **郵便番号**
 
 :py:meth:`get_postcode() <jageocoder.node.AddressNode.get_postcode>` メソッドで
-郵便番号を取得できます。ただし事業者郵便番号は登録されていません。
+郵便番号を取得できます。ただしビルや事業者の郵便番号は登録されていません。
 
 .. code-block:: python
 
@@ -272,9 +285,9 @@ v1.3 から list オブジェクトを返すように変更されました。
 .. code-block:: python
 
    >>> node.get_gsimap_link()
-   'https://maps.gsi.go.jp/#16/35.689627/139.691778/'
+   'https://maps.gsi.go.jp/#16/35.689629/139.691772/'
    >>> node.get_googlemap_link()
-   'https://maps.google.com/maps?q=35.689627,139.691778&z=16'
+   'https://maps.google.com/maps?q=35.689629,139.691772&z=16'
 
 **親ノードを辿る**
 
@@ -290,7 +303,7 @@ AddressNode の属性 :py:attr:`parent <jageocoder.node.AddressNode.parent>`
    >>> parent.get_fullname()
    ['東京都', '新宿区', '西新宿', '二丁目']
    >>> parent.x, parent.y
-   (139.691774, 35.68945)
+   (139.6917724609375, 35.689449310302734)
 
 **子ノードを辿る**
 
@@ -299,18 +312,15 @@ AddressNode の属性 :py:attr:`children <jageocoder.node.AddressNode.children>`
 で取得します。
 
 親ノードは一つですが、子ノードは複数あります。
-実際に返すのは SQL クエリオブジェクトですが、
-イテレータでループしたり list にキャストできます。
-
 今 parent は '二丁目' を指しているので、子ノードは
 そこに含まれる街区レベル（○番）を持つノードのリストになります。
 
 .. code-block:: python
 
    >>> parent.children
-   <sqlalchemy.orm.dynamic.AppenderQuery object at 0x7f7d2f241438>
+   [{'id': 50357153, 'name': '1番', 'x': 139.6939239501953, 'y': 35.6916618347168, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '1番']}, {'id': 50357154, 'name': '10番', 'x': 139.689697265625, 'y': 35.687679290771484, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '10番']}, {'id': 50357155, 'name': '11番', 'x': 139.6876983642578, 'y': 35.691104888916016, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '11番']}, {'id': 50357156, 'name': '2番', 'x': 139.6943359375, 'y': 35.68998718261719, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '2番']}, {'id': 50357157, 'name': '3番', 'x': 139.6947784423828, 'y': 35.68826675415039, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '3番']}, {'id': 50357158, 'name': '4番', 'x': 139.69332885742188, 'y': 35.688148498535156, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '4番']}, {'id': 50357159, 'name': '5番', 'x': 139.69297790527344, 'y': 35.68976593017578, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '5番']}, {'id': 50357160, 'name': '6番', 'x': 139.6924591064453, 'y': 35.6920166015625, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '6番']}, {'id': 50357161, 'name': '7番', 'x': 139.69137573242188, 'y': 35.691253662109375, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '7番']}, {'id': 50357162, 'name': '8番', 'x': 139.6917724609375, 'y': 35.68962860107422, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}, {'id': 50357163, 'name': '9番', 'x': 139.692138671875, 'y': 35.688079833984375, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '9番']}]
    >>> [child.name for child in parent.children]
-   ['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
+   ['1番', '10番', '11番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
 
 AddressNode のメソッドのより詳しい説明は API リファレンスの
 :doc:`api_node` を参照してください。

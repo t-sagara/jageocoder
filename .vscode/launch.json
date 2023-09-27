@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Search noname oaza",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search", "-d", "--db-dir",
+                "/home/sagara/github/jageocoder-converter/db_ibaraki",
+                "茨城県潮来市1016"
+            ]
+        },
+        {
             "name": "Install dictionary",
             "type": "python",
             "request": "launch",
@@ -59,6 +70,23 @@
                 "--no-reload"
             ],
             "jinja": true,
+            "justMyCode": true
+        },
+        {
+            "name": "Search moved address",
+            "type": "python",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--db-dir=/home/sagara/jageocoder/db_tokyo",
+                "南多摩郡多摩町永山１"
+            ],
+            "env": {
+                "JAGEOCODER_OPT_BEST_ONLY": "off",
+                "JAGEOCODER_OPT_REQUIRE_COORDINATES": "off",
+                "JAGEOCODER_OPT_AUTO_REDIRECT": "true",
+            },
             "justMyCode": true
         },
         {

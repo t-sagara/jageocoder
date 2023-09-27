@@ -7,8 +7,8 @@ project = 'jageocoder'
 copyright = '2022, sagara@info-proto.com'
 author = 'Takeshi Sagara'
 
-release = jageocoder.version()  # '1.3'
-version = jageocoder.version()  # '1.3.0dev1'
+release = jageocoder.version()
+version = jageocoder.version()
 
 # -- General configuration
 
