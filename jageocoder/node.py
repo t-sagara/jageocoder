@@ -746,7 +746,7 @@ class AddressNode(object):
         if len(candidates) == 0:
             auto_redirect = tree.get_config('auto_redirect')
             if auto_redirect is not False:
-                tree.set_config(auto_redirect=False)  # Stop multi-redirection
+                tree.set_config(auto_redirect=True)  # Stop multi-redirection
                 # Search redirect nodes
                 for k, v in self.get_notes():
                     if k != "ref":
