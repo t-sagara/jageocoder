@@ -216,16 +216,16 @@ class AddressTree(object):
         self.set_config(**{
             'debug': self.debug,
             'aza_skip': os.environ.get(
-                'JAGEOCODER_AZA_SKIP', self.config["aza_skip"]),
+                'JAGEOCODER_OPT_AZA_SKIP', self.config["aza_skip"]),
             'best_only': os.environ.get(
-                'JAGEOCODER_BEST_ONLY', self.config["best_only"]),
+                'JAGEOCODER_OPT_BEST_ONLY', self.config["best_only"]),
             'target_area': os.environ.get(
-                'JAGEOCODER_TARGET_AREA', self.config["target_area"]),
+                'JAGEOCODER_OPT_TARGET_AREA', self.config["target_area"]),
             'require_coordinates': os.environ.get(
-                'JAGEOCODER_REQUIRE_COORDINATES',
+                'JAGEOCODER_OPT_REQUIRE_COORDINATES',
                 self.config["require_coordinates"]),
             'auto_redirect': os.environ.get(
-                'JAGEOCODER_AUTO_REDIRECT',
+                'JAGEOCODER_OPT_AUTO_REDIRECT',
                 self.config["auto_redirect"]),
         })
 
