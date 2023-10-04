@@ -1181,6 +1181,11 @@ class AddressTree(object):
         and whose value is a list of node and substrings
         that match the query.
         """
+        logger.debug((
+            "Called with query:'{}', processed_nodes:{}".format(
+                query,
+                processed_nodes
+            )))
         index = self.converter.standardize(
             query, keep_numbers=True)
         index_for_trie = self.converter.standardize(query)
@@ -1320,7 +1325,7 @@ class AddressTree(object):
                     if best_only:
                         if _len > max_len:
                             results = {
-                                "cand.node.id": [cand.node, key + cand.matched]
+                                cand.node.id: [cand.node, key + cand.matched]
                             }
                             max_len = _len
                             min_part = _part
