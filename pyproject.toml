@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jageocoder"
-version = "2.1.1rc1"
+version = "2.1.1"
 description = "A Japanese-address geocoder for Python."
 authors = ["Takeshi Sagara <sagara@info-proto.com>"]
 repository = "https://github.com/t-sagara/jageocoder/"
