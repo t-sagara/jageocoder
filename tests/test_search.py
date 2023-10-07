@@ -721,6 +721,25 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["宮城県", "仙台市", "青葉区", "作並", "字岩谷堂"]
         )
 
+    def test_infinite_recursion(self):
+        """
+        Check for infinite recursion.
+        """
+        # self._check(
+        #     query="北海道紋別郡湧別町錦町１８１番地",
+        #     fullname=["北海道", "紋別郡", "湧別町", "錦町"]
+        # )
+
+        # self._check(
+        #     query="岩手県一関市滝沢字小林６０番地１１３",
+        #     fullname=["岩手県", "一関市", "滝沢", "字小林", "60番地", "113"]
+        # )
+
+        self._check(
+            query="徳島県三好市池田町中西ナガウチ２７４－１",
+            fullname=["徳島県", "三好市", "池田町中西", "ナガウチ", "274番地"]
+        )
+
 
 class TestSearchNodeMethods(unittest.TestCase):
 

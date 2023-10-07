@@ -2,7 +2,7 @@ import json
 from logging import getLogger
 import os
 import re
-from typing import Union, List, Optional
+from typing import Union, List, Tuple, Optional
 
 import jaconv
 
@@ -114,6 +114,10 @@ class Converter(object):
             r'^({})'.format(
                 '|'.join(list(self.optional_letters_in_middle) +
                          self.optional_strings_in_middle)))
+        self.first_letters_of_optional_strings_in_middle = ""
+        for s in self.optional_strings_in_middle:
+            if len(s) > 1:
+                self.first_letters_of_optional_strings_in_middle += s[0]
 
         # Patterns that cannot be omitted as AZA names
         hyphens = re.escape(strlib.hyphen)
@@ -296,7 +300,7 @@ class Converter(object):
             A long string starting with the pattern.
         pattern: str
             The search pattern.
-        remove_postfix: str, optional
+        removed_postfix: str, optional
             The postfix that were included in the original pattern,
             but were removed for matching.
 
@@ -305,18 +309,18 @@ class Converter(object):
         int
             The length of the substring that matches the pattern.
             If it does not match exactly, it returns 0.
+
+        Notes
+        -----
+        - If a leading part of the pattern matches the string,
+          this method returns 0.
         """
         logger.debug((
             "Counts the number of characters matching '{}' "
             "from the beginning of '{}'."
         ).format(pattern, string))
         nloops = 0
-        checked_positions = None
-        aza_position = None
         pattern_pos = string_pos = 0
-        pending_slen = 0  # number of optional characters in string
-        pending_plen = 0  # number of optional characters in pattern
-        c = s = 'x'
         while pattern_pos < len(pattern):
             nloops += 1
             if nloops > 256:
@@ -327,130 +331,16 @@ class Converter(object):
             if string_pos >= len(string):
                 return 0
 
-            pre_c = c
-            pre_s = s
-            c = pattern[pattern_pos]
-            s = string[string_pos]
-            if c < '0' or c > '9':
-                # Compare not numeric character
-                # logger.debug("Comparing '{}'({}) with '{}'({})".format(
-                #     c, pattern_pos, s, string_pos))
-                if c != s:
-                    if pre_s + s in self.optional_strings_in_middle:
-                        logger.debug('"{}" in query "{}" is optional.'.format(
-                            string[string_pos - 1: string_pos + 1],
-                            string))
-                        string_pos += 1
-                        pattern_pos -= 1
-                        pending_slen = len(pre_s + s)
-                        continue
+            is_equal, slen1, slen2 = self._check_equal(
+                string, string_pos,
+                pattern, pattern_pos)
 
-                    if pre_c + c in self.optional_strings_in_middle:
-                        msg = '"{}" in pattern "{}" is optional.'
-                        logger.debug(msg.format(
-                            string[pattern_pos - 1: pattern_pos + 1],
-                            pattern))
-                        string_pos -= 1
-                        pattern_pos += 1
-                        pending_plen = len(pre_c + c)
-                        continue
-
-                    slen = self.optional_str_len(string, string_pos)
-                    if slen > 0:
-                        skipped = string[string_pos: string_pos + slen]
-                        msg = '"{}" in query "{}" is optional.'
-                        logger.debug(msg.format(skipped, string))
-                        if skipped in self.optional_strings_in_middle or \
-                                (pending_slen == 0 and pending_plen == 0):
-                            string_pos += slen
-                            pending_slen = slen
-                            continue
-
-                        logger.debug(('... but ignore it since '
-                                      'other string was skipped.'))
-
-                    if aza_position is not None:
-                        # 検索文字列の一部を字名としてスキップしたのに
-                        # 次の文字が住所の文字と一致しない
-                        return 0
-                    else:
-                        plen = self.optional_str_len(pattern, pattern_pos)
-
-                    if plen > 0:
-                        skipped = pattern[pattern_pos: pattern_pos + plen]
-                        msg = '"{}" in pattern "{}" is optional.'
-                        logger.debug(msg.format(skipped, pattern))
-                        if skipped in self.optional_strings_in_middle or \
-                                (pending_plen == 0 and
-                                    removed_postfix is None):
-                            pattern_pos += plen
-                            pending_plen = plen
-                            continue
-
-                        logger.debug(('... but ignore it since '
-                                      'other string was skipped.'))
-
-                    if pending_slen > 0 and pending_plen > 0 and \
-                            (checked_positions is None or
-                             checked_positions != [string_pos, pattern_pos]):
-                        checked_positions = [string_pos, pattern_pos]
-                        string_pos -= pending_slen
-                        skipped = string[string_pos: string_pos + pending_slen]
-                        msg = 'Rewind optional string "{}" in query "{}".'
-                        logger.debug(msg.format(skipped, string))
-                        pending_slen = 0
-                        continue
-
-                    # Search optional Aza-name
-                    if aza_position is None:
-                        # Check if aza-name starts here
-                        aza_position = string_pos + self.optional_aza_len(
-                            string, string_pos)
-
-                        logger.debug('"{}" in query "{}" is omissible.'.format(
-                            string[string_pos: aza_position],
-                            string))
-                        string_pos = aza_position
-                        pending_slen = 0
-                        continue
-
-                    return 0
-
-                pattern_pos += 1
-                string_pos += 1
-                pending_slen = 0
-                continue
-
-            # Compare numbers:
-            # Check if the numeric sequence of the search string
-            # matches the number expected by the pattern.
-            period_pos = pattern.find('.', pattern_pos)
-            if period_pos < 0:
-                raise RuntimeError(
-                    "No period after a number in the pattern string.")
-
-            slen = self.optional_str_len(string, string_pos)
-            if slen > 0:
-                logger.debug('"{}" in query "{}" is optional.'.format(
-                    string[string_pos: string_pos + slen], string))
-                string_pos += slen
-                pending_slen = slen
-                continue
-
-            expected = int(pattern[pattern_pos:period_pos])
-            logger.debug("Comparing string {} with expected value {}".format(
-                string[string_pos:], expected))
-            candidate = strlib.get_number(string[string_pos:], expected)
-            if candidate['n'] == expected and candidate['i'] > 0:
-                logger.debug("Substring {} matches".format(
-                    string[string_pos: string_pos + candidate['i']]))
-                pattern_pos = period_pos + 1
-                string_pos += candidate['i']
-                pending_slen = 0
-            else:
-                # The number did not match the expected value
-                logger.debug("The value of numbers do not match. (return 0)")
+            if not is_equal:
                 return 0
+
+            string_pos += slen1
+            pattern_pos += slen2
+            continue
 
         if removed_postfix is not None:
             # If the next character of the query string is
@@ -463,12 +353,102 @@ class Converter(object):
                         removed_postfix, string[string_pos:]))
                 return 0
 
-        string_pos -= pending_slen
         logger.debug(
             "{} characters matched. ('{}')".format(
                 string_pos, string[0:string_pos]
             ))
         return string_pos
+
+    def _check_equal(
+        self,
+        string: str,
+        string_pos: int,
+        pattern: str,
+        pattern_pos: int
+    ) -> Tuple[bool, int, int]:
+        """
+        Determines if the leading parts of two strings,
+        string and pattern, are equivalent.
+
+        Parameters
+        ----------
+        string: str
+            A long string starting with the pattern.
+        string_pos: int
+            Character position at which to start the comparison.
+        pattern: str
+            The search pattern.
+        pattern_pos: int
+            Character position at which to start the comparison.
+
+        Returns
+        -------
+        (bool, int, int)
+            - The first value is a boolean value indicating whether
+              the two strings are equivalent.
+            - The second value is the number of characters in the string
+              that are matched.
+            - The third value is the number of characters in the patter
+              that are matched.
+
+        """
+        c = pattern[pattern_pos]
+        s = string[string_pos]
+        if c < '0' or c > '9':
+            # Compare not numeric character
+            # logger.debug("Comparing '{}'({}) with '{}'({})".format(
+            #     c, pattern_pos, s, string_pos))
+            if c == s and \
+                    c not in self.first_letters_of_optional_strings_in_middle:
+                return (True, 1, 1)
+
+            slen = self.optional_str_len(string, string_pos)
+            plen = self.optional_str_len(pattern, pattern_pos)
+            if slen > 0 and plen > 0 and \
+                    string[string_pos + slen:string_pos + slen + 1] == pattern[
+                        pattern_pos + plen:pattern_pos + plen + 1]:
+                return (True, slen + 1, plen + 1)
+
+            if slen > 0 and string[string_pos + slen:string_pos + slen + 1] == c:
+                return (True, slen + 1, 1)
+
+            if plen > 0 and pattern[pattern_pos + plen:pattern_pos + plen + 1] == s:
+                return (True, 1, plen + 1)
+
+            if c == s:
+                # For the case that c, s are in self.first_letters_of_optional_strings_in_middle
+                return (True, 1, 1)
+
+            # Search optional Aza-name
+            aza_len = self.optional_aza_len(string, string_pos)
+            s = string[string_pos + aza_len:string_pos + aza_len + 1]
+            if s == c:
+                return (True, aza_len + 1, 1)
+
+            if plen > 0 and pattern[pattern_pos + plen:pattern_pos + plen + 1] == s:
+                return (True, aza_len + 1, plen + 1)
+
+            return (False, 0, 0)
+
+        # Compare numbers:
+        # Check if the numeric sequence of the search string
+        # matches the number expected by the pattern.
+        period_pos = pattern.find('.', pattern_pos)
+        if period_pos < 0:
+            raise RuntimeError(
+                "No period after a number in the pattern string.")
+
+        slen = self.optional_str_len(string, string_pos)
+        expected = int(pattern[pattern_pos:period_pos])
+        logger.debug("Comparing string {} with expected value {}".format(
+            string[string_pos + slen:], expected))
+        candidate = strlib.get_number(string[string_pos + slen:], expected)
+        if candidate['n'] == expected and candidate['i'] > 0:
+            logger.debug("Substring {} matches".format(
+                string[string_pos + slen: string_pos + slen + candidate['i']]))
+            return (True, slen + candidate['i'], period_pos + 1 - pattern_pos)
+
+        return (False, 0, 0)
 
     def optional_str_len(self, string: str, pos: int) -> int:
         m = self.re_optional_strings_in_middle.match(

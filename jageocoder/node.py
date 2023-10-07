@@ -637,7 +637,18 @@ class AddressNode(object):
                 "Returns an empty result because it matched up "
                 "to the last character."
             ))
-            return [Result(self, optional_prefix, 0)]
+            processed_nodes.add(self.id)
+            logger.debug(f"{self.name}({self.id}) marked as processed")
+            return [Result(self, "", 0)]
+
+        if self.sibling_id == self.id + 1:
+            logger.debug(f"{self.name}({self.id}) has no child.")
+            candidates = self.check_redirect(tree, index, processed_nodes)
+
+            if len(candidates) == 0:
+                candidates = [Result(self, "", 0)]
+
+            return candidates
 
         max_level = None
         v = strlib.get_number(index)
@@ -705,7 +716,7 @@ class AddressNode(object):
                 logger.debug(msg.format(child.name, child.id))
                 continue
 
-            logger.debug("-> comparing; {}".format(child.name_index))
+            logger.debug("-> comparing; {}".format(child.name))
             new_candidates = child._get_candidates(
                 tree=tree,
                 index=index,
@@ -732,6 +743,7 @@ class AddressNode(object):
                 logger.debug(
                     "child:{} match {} chars".format(child, offset))
                 processed_nodes.add(child.id)
+                logger.debug(f"{child.name}({child.id}) marked as processed")
                 for cand in child.search_recursive(
                         tree=tree,
                         index=rest_index,
@@ -744,34 +756,9 @@ class AddressNode(object):
                         len(child.name_index) + len(cand[1])))
 
         if len(candidates) == 0:
-            auto_redirect = tree.get_config('auto_redirect')
-            if auto_redirect is not False:
-                tree.set_config(auto_redirect=True)  # Stop multi-redirection
-                # Search redirect nodes
-                for k, v in self.get_notes():
-                    if k != "ref":
-                        continue
-
-                    for ref in v.split('|'):
-                        logger.debug(
-                            f"Redirect '{self.get_fullname()}' to '{ref}'"
-                        )
-                        new_key = ref + index
-                        redirect_results = tree.search_by_trie(
-                            new_key, processed_nodes)
-                        for node_id, val in redirect_results.items():
-                            node, matched = val
-                            if len(matched) > len(ref):
-                                matched = matched[len(ref):]
-                                candidates.append(
-                                    Result(
-                                        node,
-                                        matched=matched,
-                                        nchars=len(matched)
-                                    )
-                                )
-
-                tree.set_config(auto_redirect=auto_redirect)
+            candidates += self.check_redirect(
+                tree, index, processed_nodes
+            )
 
         # Search for subnodes with queries excludes Aza-name candidates
         omissible_index = None
@@ -872,6 +859,44 @@ class AddressNode(object):
         ))
         return candidates
 
+    def check_redirect(
+        self,
+        tree: AddressTree,
+        index: str,
+        processed_nodes: Set[int]
+    ) -> List[Result]:
+        auto_redirect = tree.get_config('auto_redirect')
+        if auto_redirect is False:
+            return []
+
+        candidates = []
+        # Search redirect nodes
+        for k, v in self.get_notes():
+            if k != "ref":
+                continue
+
+            for ref in v.split('|'):
+                logger.debug(
+                    f"Redirect '{self.get_fullname()}' to '{ref}'"
+                )
+                processed_nodes.add(self.id)
+                logger.debug(
+                    f"{self.name}({self.id}) marked as processed")
+                tree.set_config(auto_redirect=False)
+                redirect_results = tree.search_by_trie(ref)
+                tree.set_config(auto_redirect=auto_redirect)
+                for node_id, val in redirect_results.items():
+                    if node_id in processed_nodes:
+                        continue
+
+                    node: AddressNode = val[0]
+                    for result in node.search_recursive(
+                            tree, index, processed_nodes):
+                        if len(result.matched) > 0:
+                            candidates.append(result)
+
+        return candidates
+
     def _get_candidates(
             self,
             tree: AddressTree,
@@ -939,6 +964,7 @@ class AddressNode(object):
         rest_index = index[offset:]
         l_optional_prefix = len(optional_prefix)
         logger.debug("self:{} match {} chars".format(self, offset))
+        # logger.debug(f"{self.name}({self.id}) marked as processed")
         for cand in self.search_recursive(
                 tree=tree,
                 index=rest_index,
@@ -1053,6 +1079,17 @@ class AddressNode(object):
             # with by Aza-master.
             omissible_index = ""
             for aza_record in aza_records:
+                if aza_record.startCountType == 1:
+                    names = json.loads(aza_record.names)
+                    name = tree.converter.standardize(names[-1][1])
+                    if name == self.name_index:
+                        logger.debug((
+                            "Can omit string after '{}' "
+                            "since it's startCountType=1"
+                        ).format(self.name))
+                        omissible_index = index
+                        break
+
                 if aza_record.startCountType == 2:
                     names = json.loads(aza_record.names)
                     name = tree.converter.standardize(names[-1][1])

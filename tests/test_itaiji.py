@@ -71,6 +71,15 @@ class TestItaijiMethods(unittest.TestCase):
         r = converter.optional_aza_len('一丁目15番地', 0)
         self.assertEqual(r, 0)
 
+    def test_infinite_roop(self):
+        pattern = '滝ノ沢平'
+        string = '滝沢字小林60番地113'
+        _ = converter.match_len(
+            string=string,
+            pattern=pattern,
+            removed_postfix=None
+        )
+
 
 if __name__ == '__main__':
     import logging
