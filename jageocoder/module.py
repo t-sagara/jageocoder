@@ -397,16 +397,16 @@ def searchNode(query: str) -> List[Result]:
     return _tree.searchNode(query)
 
 
-def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
+def reverse(x: float, y: float, level: Optional[int] = None, skip_index_no_lat_lon: bool = False) -> dict:
     """
     Reverse geocoding.
     """
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
-    from jageocoder.rtree import Index
+    from jageocoder.ja_rtree import Index
 
     global _tree
-    idx = Index(tree=_tree)
+    idx = Index(tree=_tree, skip_index_no_lat_lon=skip_index_no_lat_lon)
     return idx.nearest(x=x, y=y, level=level)
 
 

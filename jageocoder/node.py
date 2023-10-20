@@ -130,6 +130,7 @@ class AddressNode(object):
 
     """
     ROOT_NODE_ID = 0
+    DEFAULT_X_Y = 999.9
     NONAME = "."  # Must be smaller than numbers.
 
     def __init__(

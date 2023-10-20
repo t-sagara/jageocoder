@@ -228,6 +228,8 @@ class Index(object):
     ----------
     tree: AddressTree
         The address tree to build rtree.
+    skip_index_no_lat_lon: bool
+        Flag that do not index node that has no lat lon
 
     Attributes
     ----------
@@ -240,9 +242,10 @@ class Index(object):
 
     geod = Geodesic.WGS84
 
-    def __init__(self, tree: AddressTree):
+    def __init__(self, tree: AddressTree, skip_index_no_lat_lon: bool):
         self._tree = tree
         self.idx = None
+        self._skip_index_no_lat_lon = skip_index_no_lat_lon
 
         treepath = os.path.join(tree.db_dir, "rtree")
         if os.path.exists(treepath + ".dat") and \
@@ -315,15 +318,19 @@ class Index(object):
             while id < max_id:
                 pbar.update(id - prev_id)
                 prev_id = id
-
                 node = node_table.get_record(pos=id)
+                print(f"全node id: {node.id}, name: {node.name}, x: {node.x}, y: {node.y}, level: {node.level}" )
                 if node.level > AddressLevel.AZA:
                     id = node.sibling_id
                     continue
                 elif node.level < AddressLevel.OAZA:
                     id += 1
                     continue
+                elif self._skip_index_no_lat_lon and node.x == AddressNode.DEFAULT_X_Y and node.y == AddressNode.DEFAULT_X_Y:
+                    id += 1
+                    continue
 
+                print(f"indexに格納されるid: {node.id}, name: {node.name}, x: {node.x}, y: {node.y}, level: {node.level}" )
                 file_idx.insert(
                     id=id,
                     coordinates=(node.x, node.y, node.x, node.y)
@@ -431,8 +438,10 @@ class Index(object):
         nodes = []
         ancestors = set()
         max_level = 0
-        for node in self._sort_by_dist(
-                x, y, self.idx.nearest((x, y, x, y), 10)):
+        print("初期時に作成したrtree indexから10件検索")
+        nodess = self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10))
+        print(f"初期時に作成したrtree indexから10件検索結果: {nodess}")
+        for node in nodess:
             if node.id in ancestors:
                 continue
 
@@ -447,6 +456,8 @@ class Index(object):
 
         if level > max_level:
             # Search points in the higher levels
+            print("インメモリのrtree作成")
+            # rtree自体の作成に時間かかっているわけではなかった
             local_idx = index.Rtree()  # Create local rtree on memory
             for node in nodes:
                 child_id = node.id
@@ -456,6 +467,7 @@ class Index(object):
                         child_id = child_node.parent.sibling_id
                         continue
 
+                    print(f"インメモリのrtreeに格納するnode: {child_node}")
                     local_idx.insert(
                         id=child_id,
                         coordinates=(
@@ -465,8 +477,17 @@ class Index(object):
 
             nodes = []
             ancestors = set()
-            for node in self._sort_by_dist(
-                    x, y, local_idx.nearest((x, y, x, y), 20)):
+            print("インメモリのrtreeから再度20件検索")
+            # NOTE:
+            # このnearestで20件以上の結果が返ってきている
+            # メソッドの中にもコメント書いたが
+            # 同じdistanceのnodeがあれば、両方返すと書いているので
+            # num_results = 20を指定しているが、435件返ってくるのは
+            # lat, lon: 999.9でほとんどのノードで同じdistanceになっているから
+            re_nodess = self._sort_by_dist(x, y, local_idx.nearest((x, y, x, y), 20))
+            print(f"インメモリのrtreeから再度20件検索結果数: {len(re_nodess)}")
+            print(f"インメモリのrtreeから再度20件検索結果: {re_nodess}")
+            for node in re_nodess:
                 if node.id in ancestors:
                     continue
 
@@ -480,7 +501,13 @@ class Index(object):
 
         # Select the 3 nodes that make the smallest triangle
         # surrounding the target point
+        # NOTE:
+        # ここに時間かかっている
+        # poetry run python jageocoder reverse 136.901476 36.98889の場合、nodesの数が435件
+        # 435件の中から、3点を抽出するのはそりゃ時間かかるわ
+        print("3点node検索")
         nodes = DelaunayTriangle.select(x, y, nodes)
+        print(f"3点node結果: {nodes}")
 
         # Convert nodes to the dict format.
         results = []
@@ -499,6 +526,7 @@ class Index(object):
             registered.add(node.id)
 
         # Sort by distance
+        print("最終結果をsort")
         results = sorted(results, key=lambda r: r['dist'])
 
         return results
