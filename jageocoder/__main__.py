@@ -13,7 +13,7 @@ Usage:
   {p} -h
   {p} -v
   {p} search [-d] [--area=<area>] [--db-dir=<dir>] <address>
-  {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] <longitude> <latitude>
+  {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] [--skip_index_no_lat_lon] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] <url>
   {p} install-dictionary [-d] [-y] [--db-dir=<dir>] <path>
@@ -26,6 +26,7 @@ Options:
   -y --yes            確認メッセージに対して自動的に y と答えます。
   --area=<area>       検索対象地域の都道府県・市区町村名を指定します。
   --level=<level>     検索する住所レベルを指定します。
+  --skip_index_no_lat_lon     latigitude、longitudeがないデータのrtree index構築をスキップ
   --db-dir=<dir>      住所データベースのディレクトリを指定します。
 
 Examples:
@@ -125,7 +126,8 @@ def main():
             jageocoder.reverse(
                 x=float(args['<longitude>']),
                 y=float(args['<latitude>']),
-                level=int(args['--level'] or AddressLevel.AZA)),
+                level=int(args['--level'] or AddressLevel.AZA),
+                skip_index_no_lat_lon=args['--skip_index_no_lat_lon']),
             ensure_ascii=False))
 
     elif args['download-dictionary']:

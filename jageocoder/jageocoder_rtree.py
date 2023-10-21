@@ -325,7 +325,6 @@ class Index(object):
                 elif node.level < AddressLevel.OAZA:
                     id += 1
                     continue
-                # TODO: ↓「999.9のprefixマッチしたら」に変更
                 elif self._is_not_index_node(node=node):
                     print(f"indexに格納されないnode id: {node.id}, name: {node.name}, x: {node.x}, y: {node.y}, level: {node.level}" )
                     id += 1
@@ -442,10 +441,7 @@ class Index(object):
         nodes = []
         ancestors = set()
         max_level = 0
-        print("初期時に作成したrtree indexから10件検索")
-        nodess = self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10))
-        print(f"初期時に作成したrtree indexから10件検索結果: {nodess}")
-        for node in nodess:
+        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
             if node.id in ancestors:
                 continue
 
@@ -460,8 +456,6 @@ class Index(object):
 
         if level > max_level:
             # Search points in the higher levels
-            print("インメモリのrtree作成")
-            # rtree自体の作成に時間かかっているわけではなかった
             local_idx = index.Rtree()  # Create local rtree on memory
             for node in nodes:
                 child_id = node.id
@@ -470,8 +464,10 @@ class Index(object):
                     if child_node.level > level:
                         child_id = child_node.parent.sibling_id
                         continue
-
-                    print(f"インメモリのrtreeに格納するnode: {child_node}")
+                    elif self._is_not_index_node(child_node):
+                        child_id += 1
+                        continue
+                    
                     local_idx.insert(
                         id=child_id,
                         coordinates=(
@@ -481,17 +477,7 @@ class Index(object):
 
             nodes = []
             ancestors = set()
-            print("インメモリのrtreeから再度20件検索")
-            # NOTE:
-            # このnearestで20件以上の結果が返ってきている
-            # メソッドの中にもコメント書いたが
-            # 同じdistanceのnodeがあれば、両方返すと書いているので
-            # num_results = 20を指定しているが、435件返ってくるのは
-            # lat, lon: 999.9でほとんどのノードで同じdistanceになっているから
-            re_nodess = self._sort_by_dist(x, y, local_idx.nearest((x, y, x, y), 20))
-            print(f"インメモリのrtreeから再度20件検索結果数: {len(re_nodess)}")
-            print(f"インメモリのrtreeから再度20件検索結果: {re_nodess}")
-            for node in re_nodess:
+            for node in self._sort_by_dist(x, y, local_idx.nearest((x, y, x, y), 20)):
                 if node.id in ancestors:
                     continue
 
@@ -505,13 +491,7 @@ class Index(object):
 
         # Select the 3 nodes that make the smallest triangle
         # surrounding the target point
-        # NOTE:
-        # ここに時間かかっている
-        # poetry run python jageocoder reverse 136.901476 36.98889の場合、nodesの数が435件
-        # 435件の中から、3点を抽出するのはそりゃ時間かかるわ
-        print("3点node検索")
         nodes = DelaunayTriangle.select(x, y, nodes)
-        print(f"3点node結果: {nodes}")
 
         # Convert nodes to the dict format.
         results = []
@@ -530,7 +510,6 @@ class Index(object):
             registered.add(node.id)
 
         # Sort by distance
-        print("最終結果をsort")
         results = sorted(results, key=lambda r: r['dist'])
 
         return results
