@@ -319,18 +319,18 @@ class Index(object):
                 pbar.update(id - prev_id)
                 prev_id = id
                 node = node_table.get_record(pos=id)
-                print(f"全node id: {node.id}, name: {node.name}, x: {node.x}, y: {node.y}, level: {node.level}" )
                 if node.level > AddressLevel.AZA:
                     id = node.sibling_id
                     continue
                 elif node.level < AddressLevel.OAZA:
                     id += 1
                     continue
-                elif self._skip_index_no_lat_lon and node.x == AddressNode.DEFAULT_X_Y and node.y == AddressNode.DEFAULT_X_Y:
+                # TODO: ↓「999.9のprefixマッチしたら」に変更
+                elif self._is_not_index_node(node=node):
+                    print(f"indexに格納されないnode id: {node.id}, name: {node.name}, x: {node.x}, y: {node.y}, level: {node.level}" )
                     id += 1
                     continue
 
-                print(f"indexに格納されるid: {node.id}, name: {node.name}, x: {node.x}, y: {node.y}, level: {node.level}" )
                 file_idx.insert(
                     id=id,
                     coordinates=(node.x, node.y, node.x, node.y)
@@ -338,6 +338,10 @@ class Index(object):
                 id += 1
 
         return file_idx
+
+    def _is_not_index_node(self, node: AddressNode) -> bool:
+        return self._skip_index_no_lat_lon and int(node.x) == AddressNode.DEFAULT_X_Y_INT and int(node.y) == AddressNode.DEFAULT_X_Y_INT
+
 
     def load_rtree(self, treepath: os.PathLike) -> index.Rtree:
         """
