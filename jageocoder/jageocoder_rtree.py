@@ -326,7 +326,6 @@ class Index(object):
                     id += 1
                     continue
                 elif self._is_not_index_node(node=node):
-                    print(f"indexに格納されないnode id: {node.id}, name: {node.name}, x: {node.x}, y: {node.y}, level: {node.level}" )
                     id += 1
                     continue
 
