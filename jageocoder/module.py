@@ -403,7 +403,7 @@ def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
     """
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
-    from jageocoder.rtree import Index
+    from jageocoder.jageocoder_rtree import Index
 
     global _tree
     idx = Index(tree=_tree)

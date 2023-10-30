@@ -98,3 +98,14 @@ class TestReverseMethods(unittest.TestCase):
                 ["東京都", "八丈町", "宮ノ平"],
                 ["東京都", "八丈町", "中道"]),
         )
+    
+    def test_skip_index_no_lat_lon(self):
+        """
+        Test for the case wehre not include rtree index data without latitude and longitude.
+        """
+        results = jageocoder.reverse(
+            x=136.901476, y=36.98889,level=6)
+        longitudes = [x['candidate']['x'] for x in results]
+        latituds = [x['candidate']['y'] for x in results]
+        self.assertNotEqual(longitudes[0], (999.9000244140625))
+        self.assertNotEqual(latituds[0], (999.9000244140625))

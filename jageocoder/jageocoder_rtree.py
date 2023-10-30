@@ -323,6 +323,9 @@ class Index(object):
                 elif node.level < AddressLevel.OAZA:
                     id += 1
                     continue
+                elif self._is_not_index_node(node=node):
+                    id += 1
+                    continue
 
                 file_idx.insert(
                     id=id,
@@ -331,6 +334,10 @@ class Index(object):
                 id += 1
 
         return file_idx
+
+    def _is_not_index_node(self, node: AddressNode) -> bool:
+        return int(node.x) == AddressNode.DEFAULT_X_Y_INT and int(node.y) == AddressNode.DEFAULT_X_Y_INT
+
 
     def load_rtree(self, treepath: os.PathLike) -> index.Rtree:
         """
@@ -431,8 +438,7 @@ class Index(object):
         nodes = []
         ancestors = set()
         max_level = 0
-        for node in self._sort_by_dist(
-                x, y, self.idx.nearest((x, y, x, y), 10)):
+        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
             if node.id in ancestors:
                 continue
 
@@ -455,7 +461,10 @@ class Index(object):
                     if child_node.level > level:
                         child_id = child_node.parent.sibling_id
                         continue
-
+                    elif self._is_not_index_node(child_node):
+                        child_id += 1
+                        continue
+                    
                     local_idx.insert(
                         id=child_id,
                         coordinates=(
@@ -465,8 +474,7 @@ class Index(object):
 
             nodes = []
             ancestors = set()
-            for node in self._sort_by_dist(
-                    x, y, local_idx.nearest((x, y, x, y), 20)):
+            for node in self._sort_by_dist(x, y, local_idx.nearest((x, y, x, y), 20)):
                 if node.id in ancestors:
                     continue
 
