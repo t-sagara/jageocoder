@@ -315,7 +315,7 @@ class Index(object):
             while id < max_id:
                 pbar.update(id - prev_id)
                 prev_id = id
-                
+
                 node = node_table.get_record(pos=id)
                 if node.level > AddressLevel.AZA:
                     id = node.sibling_id
