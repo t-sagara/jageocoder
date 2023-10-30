@@ -397,7 +397,7 @@ def searchNode(query: str) -> List[Result]:
     return _tree.searchNode(query)
 
 
-def reverse(x: float, y: float, level: Optional[int] = None, skip_index_no_lat_lon: bool = False) -> dict:
+def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
     """
     Reverse geocoding.
     """
@@ -406,7 +406,7 @@ def reverse(x: float, y: float, level: Optional[int] = None, skip_index_no_lat_l
     from jageocoder.jageocoder_rtree import Index
 
     global _tree
-    idx = Index(tree=_tree, skip_index_no_lat_lon=skip_index_no_lat_lon)
+    idx = Index(tree=_tree)
     return idx.nearest(x=x, y=y, level=level)
 
 

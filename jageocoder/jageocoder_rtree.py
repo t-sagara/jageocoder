@@ -228,8 +228,6 @@ class Index(object):
     ----------
     tree: AddressTree
         The address tree to build rtree.
-    skip_index_no_lat_lon: bool
-        Flag that do not index node that has no lat lon
 
     Attributes
     ----------
@@ -242,10 +240,9 @@ class Index(object):
 
     geod = Geodesic.WGS84
 
-    def __init__(self, tree: AddressTree, skip_index_no_lat_lon: bool):
+    def __init__(self, tree: AddressTree):
         self._tree = tree
         self.idx = None
-        self._skip_index_no_lat_lon = skip_index_no_lat_lon
 
         treepath = os.path.join(tree.db_dir, "rtree")
         if os.path.exists(treepath + ".dat") and \
@@ -338,7 +335,7 @@ class Index(object):
         return file_idx
 
     def _is_not_index_node(self, node: AddressNode) -> bool:
-        return self._skip_index_no_lat_lon and int(node.x) == AddressNode.DEFAULT_X_Y_INT and int(node.y) == AddressNode.DEFAULT_X_Y_INT
+        return int(node.x) == AddressNode.DEFAULT_X_Y_INT and int(node.y) == AddressNode.DEFAULT_X_Y_INT
 
 
     def load_rtree(self, treepath: os.PathLike) -> index.Rtree:
