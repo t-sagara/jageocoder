@@ -125,7 +125,7 @@ def main():
             jageocoder.reverse(
                 x=float(args['<longitude>']),
                 y=float(args['<latitude>']),
-                level=int(args['--level'] or AddressLevel.AZA),
+                level=int(args['--level'] or AddressLevel.AZA)),
             ensure_ascii=False))
 
     elif args['download-dictionary']:
