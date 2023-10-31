@@ -130,7 +130,7 @@ class AddressNode(object):
 
     """
     ROOT_NODE_ID = 0
-    DEFAULT_X_Y_INT = 999
+    NO_COORDINATE_VALUE = 999.9
     NONAME = "."  # Must be smaller than numbers.
 
     def __init__(
@@ -170,6 +170,18 @@ class AddressNode(object):
 
         # Set relations
         self.table = None
+
+    def has_valid_coordinate_values(self) -> bool:
+        """
+        Check if it has valid coordinate values.
+
+        Returns
+        -------
+        bool
+            True if x and y are both valid coordinate values.
+        """
+        return self.x >= -180.0 and self.x <= 180.0 and \
+            self.y >= -90.0 and self.y <= 90.0
 
     def get_name(self, alt: Optional[str] = ''):
         """
@@ -228,15 +240,15 @@ class AddressNode(object):
         -------
         dict
         """
-        x = float(self.x or 999.9)
-        y = float(self.y or 999.9)
+        x = float(self.x or self.NO_COORDINATE_VALUE)
+        y = float(self.y or self.NO_COORDINATE_VALUE)
 
         return {
             "id": int(self.id),
             "name": str(self.name or ""),
             "nameIndex": str(self.name_index or ""),
-            "x": x if x <= 180.0 and x >= -180.0 else 999.9,
-            "y": y if y <= 90.0 and y >= -90.0 else 999.9,
+            "x": x if x <= 180.0 and x >= -180.0 else self.NO_COORDINATE_VALUE,
+            "y": y if y <= 90.0 and y >= -90.0 else self.NO_COORDINATE_VALUE,
             "level": int(self.level or 0),
             "priority": int(self.priority or 0),
             "note": str(self.note or ""),
@@ -252,8 +264,8 @@ class AddressNode(object):
         return AddressNode(
             id=cls.ROOT_NODE_ID,
             name="_root_",
-            x=999.9,
-            y=999.9,
+            x=cls.NO_COORDINATE_VALUE,
+            y=cls.NO_COORDINATE_VALUE,
             level=0,
             priority=0,
             note="",
