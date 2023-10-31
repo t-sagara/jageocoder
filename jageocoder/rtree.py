@@ -323,6 +323,9 @@ class Index(object):
                 elif node.level < AddressLevel.OAZA:
                     id += 1
                     continue
+                elif not node.has_valid_coordinate_values():
+                    id += 1
+                    continue
 
                 file_idx.insert(
                     id=id,
@@ -431,8 +434,7 @@ class Index(object):
         nodes = []
         ancestors = set()
         max_level = 0
-        for node in self._sort_by_dist(
-                x, y, self.idx.nearest((x, y, x, y), 10)):
+        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
             if node.id in ancestors:
                 continue
 
@@ -455,6 +457,9 @@ class Index(object):
                     if child_node.level > level:
                         child_id = child_node.parent.sibling_id
                         continue
+                    elif not child_node.has_valid_coordinate_values():
+                        child_id += 1
+                        continue
 
                     local_idx.insert(
                         id=child_id,
@@ -465,8 +470,7 @@ class Index(object):
 
             nodes = []
             ancestors = set()
-            for node in self._sort_by_dist(
-                    x, y, local_idx.nearest((x, y, x, y), 20)):
+            for node in self._sort_by_dist(x, y, local_idx.nearest((x, y, x, y), 20)):
                 if node.id in ancestors:
                     continue
 
