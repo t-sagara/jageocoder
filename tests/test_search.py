@@ -740,6 +740,16 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["徳島県", "三好市", "池田町中西", "ナガウチ", "274番地"]
         )
 
+    def test_search_following_no(self) -> None:
+        """
+        Do not include "の" following the address string in the address.
+        """
+        self._check(
+            query="東京都小金井市の住宅街",
+            match="東京都小金井市",
+            fullname=["東京都", "小金井市"]
+        )
+
 
 class TestSearchNodeMethods(unittest.TestCase):
 

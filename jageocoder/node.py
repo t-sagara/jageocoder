@@ -702,6 +702,10 @@ class AddressNode(object):
             if len(candidates) > 0:
                 new_candidates = []
                 for candidate in candidates:
+                    if candidate.node.id == self.id:
+                        new_candidates.append(candidate)
+                        continue
+
                     new_candidate = Result(
                         candidate.node,
                         index[0] + candidate.matched,
@@ -1087,6 +1091,7 @@ class AddressNode(object):
 
                         if pos == 0:
                             break
+
         else:  # strict mode
             # Consider omittable only those portions that can be omitted
             # with by Aza-master.
