@@ -122,7 +122,7 @@ class Converter(object):
         # Patterns that cannot be omitted as AZA names
         hyphens = re.escape(strlib.hyphen)
         self.re_not_ommisible_aza_patterns = re.compile(
-            r'(.{,15}?)(' +
+            r'([^。、，．0-9a-zA-Z\t\n\r\f\v]{,15}?)(' +
             rf'{numbers}[条線丁区番号{hyphens}]|' +
             rf'[{self.chiban_heads}]{numbers}|' +
             rf'{numbers}$' +
