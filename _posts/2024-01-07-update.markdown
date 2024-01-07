@@ -1,0 +1,14 @@
+---
+layout: post
+title:  "データ更新"
+date:   2024-01-07 14:30:00 +0900
+categories: Datafile update
+---
+
+v2.1 用住所データベースファイルを更新しました。
+
+https://www.info-proto.com/static/jageocoder/20240106/v2/
+
+- 浜松市の区再編の情報を反映しました。
+- 街区レベル・大字町丁目レベル位置参照情報の修正を反映しました。
+- 住居表示住所の更新情報を反映しました。
