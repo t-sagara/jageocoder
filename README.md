@@ -33,7 +33,7 @@ All other required packages will be installed automatically.
 
 ```sh
 pip install jageocoder
-wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v20.zip
+wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip
 jageocoder install-dictionary jukyo_all_v20.zip
 ```
 

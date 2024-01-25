@@ -36,7 +36,7 @@ Python 3.7 以降が必要です。
   [ここから](https://www.info-proto.com/static/jageocoder/latest/v2/)
   ダウンロードします
 
-    wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v20.zip
+    wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip
 
 - 辞書データベースをインストールします
     
