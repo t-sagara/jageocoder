@@ -1,8 +1,10 @@
 ---
 layout: page
-title: About
-permalink: /about/
+title: English
+permalink: /en/
 ---
+
+## About jageocoder
 
 This is a Python port of the Japanese-address geocoder used in CSIS at the University of Tokyo's "Address Matching Service" and GSI Maps.
 
