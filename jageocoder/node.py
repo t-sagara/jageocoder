@@ -507,12 +507,12 @@ class AddressNode(object):
         return new_node
 
     def search_child_with_criteria(
-            self,
-            pattern: str,
-            min_candidate: Optional[str] = None,
-            gt_candidate: Optional[str] = None,
-            max_level: Optional[int] = None,
-            require_coordinates: bool = False) -> List[AddressNode]:
+        self,
+        pattern: str,
+        min_candidate: Optional[str] = None,
+        gt_candidate: Optional[str] = None,
+        max_level: Optional[int] = None,
+    ) -> List[AddressNode]:
         """
         Search for children nodes that satisfy the specified conditions.
 
@@ -528,8 +528,6 @@ class AddressNode(object):
             that satisfies the condition as the name of a child node.
         max_level: int, optional
             Maximum level of child nodes; unlimited if None.
-        require_coordinates: bool [False]
-            If set to True, the child node must have valid coordinates.
 
         Returns
         -------
@@ -537,8 +535,7 @@ class AddressNode(object):
             A list of all child nodes that satisfy the specified condition.
         """
         logger.debug((
-            "Called with self:'{}'({}), pattern:{}, min:'{}', gt:'{}', "
-            "max_level: {}, require_coordinates: {}."
+            "Called with self:'{}'({}), pattern:{}, min:'{}', gt:'{}', max_level: {}."
         ).format(
             self.name,
             self.id,
@@ -546,7 +543,6 @@ class AddressNode(object):
             min_candidate,
             gt_candidate,
             max_level,
-            require_coordinates
         ))
         re_pattern = re.compile(pattern)
         address_node = self.table.get_record(pos=self.id)
@@ -598,12 +594,10 @@ class AddressNode(object):
 
             if re_pattern.match(candidate.name_index) and \
                     (max_level is None or candidate.level <= max_level):
-                if require_coordinates is False or candidate.y <= 90.0:
-                    children.append(candidate)
-                else:
+                if candidate.y > 90.0:
                     candidate = candidate.add_dummy_coordinates()
-                    if candidate.y <= 90.0:
-                        children.append(candidate)
+
+                children.append(candidate)
 
             next_pos = candidate.sibling_id
 
@@ -686,7 +680,7 @@ class AddressNode(object):
             min_candidate=min_candidate,
             gt_candidate=gt_candidate,
             max_level=max_level,
-            require_coordinates=tree.get_config('require_coordinates'))
+        )
 
         # Check if the index begins with an extra character of
         # the current node.
@@ -702,12 +696,17 @@ class AddressNode(object):
             if len(candidates) > 0:
                 new_candidates = []
                 for candidate in candidates:
+                    if candidate.node.id == self.id:
+                        new_candidates.append(candidate)
+                        continue
+
                     new_candidate = Result(
                         candidate.node,
                         index[0] + candidate.matched,
                         l_optional_prefix + candidate.nchars)
                     new_candidates.append(new_candidate)
 
+                new_candidates.append(Result(self, "", 0))
                 return new_candidates
 
             return []
@@ -738,6 +737,7 @@ class AddressNode(object):
 
             if len(new_candidates) > 0:
                 candidates += new_candidates
+                candidates.append(Result(self, "", 0))
 
         # Processes the region's own rules.
         parent_node = self.get_parent()
@@ -757,10 +757,11 @@ class AddressNode(object):
                     "child:{} match {} chars".format(child, offset))
                 processed_nodes.add(child.id)
                 logger.debug(f"{child.name}({child.id}) marked as processed")
-                for cand in child.search_recursive(
-                        tree=tree,
-                        index=rest_index,
-                        processed_nodes=processed_nodes):
+                new_candidates = child.search_recursive(
+                    tree=tree,
+                    index=rest_index,
+                    processed_nodes=processed_nodes)
+                for cand in new_candidates:
                     candidates.append(Result(
                         cand[0],
                         optional_prefix +
@@ -768,12 +769,15 @@ class AddressNode(object):
                         l_optional_prefix +
                         len(child.name_index) + len(cand[1])))
 
-        if len(candidates) == 0:
-            candidates += self.check_redirect(
-                tree, index, processed_nodes
-            )
+                if len(new_candidates) > 0:
+                    candidates.append(Result(self, "", 0))
 
-        # Search for subnodes with queries excludes Aza-name candidates
+        # Search for nodes with possible address changes.
+        candidates += self.check_redirect(
+            tree, index, processed_nodes
+        )
+
+        # Search for subnodes with queries excludes Aza-name candidates.
         omissible_index = None
         aza_skip = tree.get_config('aza_skip')
         if len(candidates) == 0 or \
@@ -818,6 +822,7 @@ class AddressNode(object):
                     processed_nodes=processed_nodes)
                 tree.set_config(aza_skip=aza_skip)
                 if sub_candidates[0].matched != '':
+                    added = 0
                     for cand in sub_candidates:
                         if cand.node.level < AddressLevel.BLOCK and \
                                 cand.node.name_index not in \
@@ -831,6 +836,10 @@ class AddressNode(object):
                             optional_prefix +
                             index[0:azalen] + cand.matched,
                             l_optional_prefix + cand.nchars))
+                        added += 1
+
+                    if added > 0:
+                        candidates.append(Result(self, "", 0))
 
         if False and len(candidates) == 0:
             # Search common names
@@ -879,6 +888,7 @@ class AddressNode(object):
         processed_nodes: Set[int]
     ) -> List[Result]:
         auto_redirect = tree.get_config('auto_redirect')
+        require_coordinates = tree.get_config('require_coordinates')
         if auto_redirect is False:
             return []
 
@@ -895,9 +905,12 @@ class AddressNode(object):
                 processed_nodes.add(self.id)
                 logger.debug(
                     f"{self.name}({self.id}) marked as processed")
-                tree.set_config(auto_redirect=False)
+                tree.set_config(auto_redirect=False, require_coordinates=False)
                 redirect_results = tree.search_by_trie(ref)
-                tree.set_config(auto_redirect=auto_redirect)
+                tree.set_config(
+                    auto_redirect=auto_redirect,
+                    require_coordinates=require_coordinates
+                )
                 for node_id, val in redirect_results.items():
                     if node_id in processed_nodes:
                         continue
@@ -1087,6 +1100,7 @@ class AddressNode(object):
 
                         if pos == 0:
                             break
+
         else:  # strict mode
             # Consider omittable only those portions that can be omitted
             # with by Aza-master.

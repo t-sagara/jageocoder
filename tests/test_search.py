@@ -553,7 +553,10 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="岩手県盛岡市東中野字立石８－１０",
-            fullname=["岩手県", "盛岡市", "東中野", "字立石", "8番地"])
+            fullname=[
+                ["岩手県", "盛岡市", "東中野", "字立石", "8番地"],
+                ["岩手県", "盛岡市", "東中野", "立石", "8番地"],
+            ])
 
         self._check(
             query="宮城県石巻市渡波字転石山１－６",
@@ -565,7 +568,7 @@ class TestSearchMethods(unittest.TestCase):
             query="北海道上川郡新得町字新得基線１",
             match="北海道上川郡新得町字新得基線１",
             fullname=[
-                ["北海道", "上川郡", "新得町", "", "字新得基線", "1番地"]
+                ["北海道", "上川郡", "新得町", "字新得基線", "1番地"]
             ])
 
         # Cases where the oaza-name directly under the city
@@ -705,6 +708,25 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["神奈川県", "相模原市", "緑区", "田名", "2179番地"]
         )
 
+    def test_redirect_multi(self):
+        """
+        Check the redirect feature.
+        - 「徳島県阿波郡市場町大字市場字上野段385-1」は H17.4.1 の合併で
+          「徳島県阿波市上野段385-1」に変更。
+        - 「徳島県阿波市上野段385-1」は H19.1.1 の住所変更で
+          「徳島県阿波市市場町市場字上野段385-1」に変更。
+        """
+        jageocoder.set_search_config(auto_redirect=True)
+        self._check(
+            query="徳島県阿波郡市場町大字市場字上野段385-1",
+            fullname=["徳島県", "阿波市", "市場町市場", "字上野段", "385番地", "1"]
+        )
+
+        self._check(
+            query="阿波市上野段385-1",
+            fullname=["徳島県", "阿波市", "市場町市場", "字上野段", "385番地", "1"]
+        )
+
     def test_aza_skip_false(self):
         """
         Check the process when the aza-skip option is set to false.
@@ -740,10 +762,20 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["徳島県", "三好市", "池田町中西", "ナガウチ", "274番地"]
         )
 
+    def test_search_following_no(self) -> None:
+        """
+        Do not include "の" following the address string in the address.
+        """
+        self._check(
+            query="東京都小金井市の住宅街",
+            match="東京都小金井市",
+            fullname=["東京都", "小金井市"]
+        )
+
 
 class TestSearchNodeMethods(unittest.TestCase):
 
-    @classmethod
+    @ classmethod
     def setUpClass(cls):
         jageocoder.init(mode="r")
 

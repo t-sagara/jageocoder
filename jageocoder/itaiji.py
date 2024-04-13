@@ -122,11 +122,11 @@ class Converter(object):
         # Patterns that cannot be omitted as AZA names
         hyphens = re.escape(strlib.hyphen)
         self.re_not_ommisible_aza_patterns = re.compile(
-            '(' +
+            r'([^。、，．0-9a-zA-Z\t\n\r\f\v]{,15}?)(' +
             rf'{numbers}[条線丁区番号{hyphens}]|' +
             rf'[{self.chiban_heads}]{numbers}|' +
             rf'{numbers}$' +
-            ')'
+            r')'
         )
 
         # Patterns that do not follow behind nodes at that level
@@ -475,11 +475,12 @@ class Converter(object):
         int
             Number of characters that can be omitted.
         """
-        m = self.re_not_ommisible_aza_patterns.search(string[pos:])
+        m = self.re_not_ommisible_aza_patterns.match(string[pos:])
         if m is None:
             return 0
 
-        n = string[pos:].find(m.group(0))
+        n = len(m.group(1))
+        # n = string[pos:].find(m.group(0))
         return n
 
         candidates = []

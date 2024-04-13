@@ -1223,10 +1223,10 @@ class AddressTree(object):
 
                 if node.y > 90.0 and self.get_config('require_coordinates'):
                     node = node.add_dummy_coordinates()
-                    if node.y > 90.0:
-                        logger.debug("Node {}({}) has no coordinates.".format(
-                            node.name, node.id))
-                        continue
+                    # if node.y > 90.0:
+                    #     logger.debug("Node {}({}) has no coordinates.".format(
+                    #         node.name, node.id))
+                    #     continue
 
                 if min_key == '' and node.level <= AddressLevel.WARD:
                     # To make the process quicker, once a node higher
@@ -1315,8 +1315,15 @@ class AddressTree(object):
 
                         if inside != 1:
                             msg = "Node {}({}) is not in the target area."
-                            logger.debug(msg.format(node.name, node.id))
+                            logger.debug(msg.format(
+                                cand.node.name, cand.node.id))
                             continue
+
+                    if self.get_config("require_coordinates") and cand.node.y > 90.0:
+                        logger.debug("Node {}({}) has no coordinates.".format(
+                            cand.node.name, cand.node.id
+                        ))
+                        continue
 
                     _len = offset + cand.nchars
                     _part = offset + len(cand.matched)
