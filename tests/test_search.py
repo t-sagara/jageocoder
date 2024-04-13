@@ -553,7 +553,10 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="岩手県盛岡市東中野字立石８－１０",
-            fullname=["岩手県", "盛岡市", "東中野", "字立石", "8番地"])
+            fullname=[
+                ["岩手県", "盛岡市", "東中野", "字立石", "8番地"],
+                ["岩手県", "盛岡市", "東中野", "立石", "8番地"],
+            ])
 
         self._check(
             query="宮城県石巻市渡波字転石山１－６",
@@ -772,7 +775,7 @@ class TestSearchMethods(unittest.TestCase):
 
 class TestSearchNodeMethods(unittest.TestCase):
 
-    @classmethod
+    @ classmethod
     def setUpClass(cls):
         jageocoder.init(mode="r")
 

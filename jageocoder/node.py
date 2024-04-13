@@ -772,12 +772,12 @@ class AddressNode(object):
                 if len(new_candidates) > 0:
                     candidates.append(Result(self, "", 0))
 
-        if len(candidates) == 0:
-            candidates += self.check_redirect(
-                tree, index, processed_nodes
-            )
+        # Search for nodes with possible address changes.
+        candidates += self.check_redirect(
+            tree, index, processed_nodes
+        )
 
-        # Search for subnodes with queries excludes Aza-name candidates
+        # Search for subnodes with queries excludes Aza-name candidates.
         omissible_index = None
         aza_skip = tree.get_config('aza_skip')
         if len(candidates) == 0 or \
