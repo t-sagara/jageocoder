@@ -117,6 +117,24 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["京都府", "京都市", "東山区",
                       "大和大路", "一丁目", "535番地"])
 
+    def test_nagano(self):
+        """
+        Tests of customary addresses in Nagano City.
+        """
+        self._check(
+            query="長野市新田町1137-5",
+            match="長野市新田町1137-",
+            level=7,
+            fullname=["長野県", "長野市", "大字南長野", "新田町", "1137番地"]
+        )
+
+        self._check(
+            query="長野県長野市七瀬中町161番地1",
+            match="長野県長野市七瀬中町161番地1",
+            level=8,
+            fullname=["長野県", "長野市", "大字鶴賀", "161番地", "1"]
+        )
+
     def test_oaza(self):
         """
         Test notations with and without "大字"
