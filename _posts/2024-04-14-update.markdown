@@ -1,0 +1,15 @@
+---
+layout: post
+title:  "データ更新"
+date:   2024-04-14 12:30:00 +0900
+categories: Datafile update
+---
+
+v2.1 用住所データベースファイルを更新しました。
+
+[https://www.info-proto.com/static/jageocoder/20240414/v2/](https://www.info-proto.com/static/jageocoder/20240414/v2/)
+
+- 街区レベル・大字町丁目レベル位置参照情報を令和5年度版に更新しました。
+- アドレス・ベース・レジストリの情報を 2024-03-16 版に更新しました。
+- 2005年4月1日以降の自治体合併情報を登録しました。
+- 長野市の慣例的な大字の省略に対応しました。
