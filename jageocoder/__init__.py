@@ -19,7 +19,7 @@ running the following steps.
     >>> jageocoder.searchNode('<Japanese-address>')
 """
 
-__version__ = '2.1.4'  # The package version
+__version__ = '2.1.5dev1'  # The package version
 __dictionary_version__ = '20230927'  # Compatible dictionary version
 __author__ = 'Takeshi Sagara <sagara@info-proto.com>'
 
@@ -41,7 +41,7 @@ __all__ = [
     'version',
     'dictionary_version',
     'installed_dictionary_version',
-    'instaleld_dictionary_readme',
+    'installed_dictionary_readme',
 ]
 
 from jageocoder.module import init, free, is_initialized, \

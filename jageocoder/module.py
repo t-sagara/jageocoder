@@ -397,9 +397,35 @@ def searchNode(query: str) -> List[Result]:
     return _tree.searchNode(query)
 
 
-def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
+def reverse(
+    x: float,
+    y: float,
+    level: Optional[int] = None,
+    as_dict: Optional[bool] = True
+) -> list:
     """
     Reverse geocoding.
+
+    Parameters
+    ----------
+    x: float
+        Longitude of the point.
+    y: float
+        Latitude of the point.
+    level: int, optional
+        Target node level.
+    as_dict: bool, default=True
+        If True, returns candidates as dict objects.
+
+    Returns
+    -------
+    list
+
+    Notes
+    -----
+    - The result list contains up to 3 nodes.
+    - Each element is a dict type with the following structure:
+        {"candidate":AddressNode, "dist":float} 
     """
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
@@ -407,7 +433,7 @@ def reverse(x: float, y: float, level: Optional[int] = None) -> dict:
 
     global _tree
     idx = Index(tree=_tree)
-    return idx.nearest(x=x, y=y, level=level)
+    return idx.nearest(x=x, y=y, level=level, as_dict=as_dict)
 
 
 def create_trie_index() -> None:

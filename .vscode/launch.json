@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Search noname oaza",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder",
             "args": [
@@ -17,7 +17,7 @@
         },
         {
             "name": "Install dictionary",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder",
             "args": [
@@ -28,7 +28,7 @@
         },
         {
             "name": "Search all results",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder",
             "args": [
@@ -43,7 +43,7 @@
         },
         {
             "name": "Python: Reverse test",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder",
             "args": [
@@ -57,7 +57,7 @@
         },
         {
             "name": "Python: Flask",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "flask",
             "env": {
@@ -74,7 +74,7 @@
         },
         {
             "name": "Search moved address",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "jageocoder",
             "args": [
@@ -91,7 +91,7 @@
         },
         {
             "name": "Python: Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
