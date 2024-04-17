@@ -24,16 +24,22 @@ class Result(object):
         It is used only for recursive search.
     """
 
-    def __init__(self,
-                 node: Optional[AddressNode] = None,
-                 matched: str = '',
-                 nchars: int = 0):
+    def __init__(
+        self,
+        node: Optional[AddressNode] = None,
+        matched: str = '',
+        nchars: int = 0
+    ):
         self.node = node
         self.matched = matched
         self.nchars = nchars
 
-    def set(self, node: AddressNode,
-            matched: str, nchars: int = 0) -> 'Result':
+    def set(
+        self,
+        node: AddressNode,
+        matched: str,
+        nchars: int = 0
+    ) -> 'Result':
         """
         Set node and matched string.
         """
@@ -65,9 +71,20 @@ class Result(object):
         return self.matched
 
     def get_matched_nchars(self) -> int:
+        """
+        Get the the number of matched characters.
+
+        Return
+        ------
+        int
+            Number of characters in the matched substring.
+        """
         return self.nchars
 
-    def __getitem__(self, pos) -> Union[AddressNode, str]:
+    def __getitem__(
+        self,
+        pos
+    ) -> Union[AddressNode, str]:
         if pos == 0:
             return self.node
         elif pos == 1:
@@ -77,7 +94,11 @@ class Result(object):
 
         raise IndexError()
 
-    def __setitem__(self, pos, val: Union[AddressNode, str]) -> None:
+    def __setitem__(
+        self,
+        pos,
+        val: Union[AddressNode, str]
+    ) -> None:
         from jageocoder.node import AddressNode
         if pos == 0 and isinstance(val, AddressNode):
             self.node = val
@@ -89,13 +110,32 @@ class Result(object):
         raise RuntimeError()
 
     def as_dict(self) -> dict:
+        """
+        Convert Result object to dict type for display.
+
+        Return
+        ------
+        A dict object containing the following elements;
+        - "node": AddressNode object converted to dict type.
+        - "matched": The substring matching the query.
+        """
         return {
             "node": self.node.as_dict(),
             "matched": self.matched,
-            # "nchars": self.nchars
         }
 
     def as_geojson(self) -> dict:
+        """
+        Convert Result to GeoJSON dict type for display.
+
+        Return
+        ------
+        A GeoJSON dict object containing the following elements;
+        - "type": Always "Feature".
+        - "geometry": A point type geometry containing latitude and longitude.
+        - "properties": Include in "matched" the substring that matched the query,
+            in addition to the attributes of the node.
+        """
         geojson = self.node.as_geojson()
         geojson['properties']['matched'] = self.matched
         return geojson
