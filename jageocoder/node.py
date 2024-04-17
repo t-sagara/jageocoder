@@ -201,6 +201,7 @@ class AddressNode(object):
     def dataset(self):
         """
         Get dataset record.
+
         """
         return self.table.datasets.get(id=self.priority)
 
@@ -395,6 +396,7 @@ class AddressNode(object):
         -------
         List[AddressNode]
             The list of the child nodes.
+
         """
         return self.get_children()
 

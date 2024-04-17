@@ -408,7 +408,8 @@ class Index(object):
         self,
         x: float,
         y: float,
-        level: Optional[int] = None
+        level: Optional[int] = None,
+        as_dict: Optional[bool] = True,
     ):
         """
         Search nearest nodes of the target point.
@@ -422,10 +423,13 @@ class Index(object):
         level: int, optional
             The level of the address ndoes to be retrieved as a result.
             If omitted, search down to the AZA level.
+        as_dict: bool, default=True
+            If False is specified, the addressNode object is stored
+            in the "candidate" field.
 
         Returns
         -------
-        [{"candidate":AddressNode, "dist":float}]
+        [{"candidate":AddressNode or dict, "dist":float}]
             Returns the results of retrieval up to 3 nodes.
         """
         level = level or AddressLevel.AZA
@@ -497,7 +501,7 @@ class Index(object):
                 continue
 
             results.append({
-                "candidate": node.as_dict(),
+                "candidate": node.as_dict() if as_dict else node,
                 "dist": self.distance(x, y, node.x, node.y)
             })
             registered.add(node.id)
