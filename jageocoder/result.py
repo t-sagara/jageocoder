@@ -115,9 +115,14 @@ class Result(object):
 
         Return
         ------
-        A dict object containing the following elements;
-        - "node": AddressNode object converted to dict type.
-        - "matched": The substring matching the query.
+        dict
+            A dict object containing the following elements;
+
+            "node"
+                AddressNode object converted to dict type.
+
+            "matched"
+                The substring matching the query.
         """
         return {
             "node": self.node.as_dict(),
@@ -130,11 +135,15 @@ class Result(object):
 
         Return
         ------
-        A GeoJSON dict object containing the following elements;
-        - "type": Always "Feature".
-        - "geometry": A point type geometry containing latitude and longitude.
-        - "properties": Include in "matched" the substring that matched the query,
-            in addition to the attributes of the node.
+        dict
+            A GeoJSON dict object containing the following elements;
+
+            "type"
+                Always "Feature".
+            "geometry"
+                A point type geometry containing latitude and longitude.
+            "properties"
+                Include in "matched" the substring that matched the query, in addition to the attributes of the node.
         """
         geojson = self.node.as_geojson()
         geojson['properties']['matched'] = self.matched
