@@ -1,0 +1,14 @@
+---
+layout: post
+title:  "データ更新"
+date:   2024-05-01 18:30:00 +0900
+categories: Datafile update
+---
+
+v2.1 用住所データベースファイルを更新しました。
+
+[https://www.info-proto.com/static/jageocoder/20240420/v2/](https://www.info-proto.com/static/jageocoder/20240429/v2/)
+
+- アドレス・ベース・レジストリの地番マスター 2024-04-26 版を追加しました。
+- ファイルサイズが非常に大きくなっていますのでご注意ください。
+- 地番は約2億件、うち座標付きが約9千万件含まれています。住所の正規化のために利用する場合、環境変数   ``JAGEOCODER_OPT_REQUIRE_COORDINATES`` を false にすると地番の検索率が高くなります。
