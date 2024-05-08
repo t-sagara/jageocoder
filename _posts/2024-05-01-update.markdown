@@ -7,7 +7,7 @@ categories: Datafile update
 
 v2.1 用住所データベースファイルを更新しました。
 
-[https://www.info-proto.com/static/jageocoder/20240420/v2/](https://www.info-proto.com/static/jageocoder/20240429/v2/)
+[https://www.info-proto.com/static/jageocoder/20240429/v2/](https://www.info-proto.com/static/jageocoder/20240429/v2/)
 
 - アドレス・ベース・レジストリの地番マスター 2024-04-26 版を追加しました。
 - ファイルサイズが非常に大きくなっていますのでご注意ください。
