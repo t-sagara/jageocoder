@@ -53,7 +53,11 @@ def get_db_dir(mode: str = 'r') -> Optional[Path]:
 
     db_dirs: List[Path] = []
     if 'JAGEOCODER_DB2_DIR' in os.environ:
-        db_dirs.append(Path(os.environ['JAGEOCODER_DB2_DIR']))
+        db_dir = os.environ.get('JAGEOCODER_DB2_DIR')
+        if db_dir.lower().startswith('http'):
+            return db_dir
+
+        db_dirs.append(Path(db_dir))
 
     db_dirs += [
         Path(sys.prefix) / 'jageocoder/db2/',
@@ -116,26 +120,26 @@ class AddressTree(object):
 
     Attributes
     ----------
-    db_path: str
-        Path to the sqlite3 database file.
-    dsn: str
-        RFC-1738 based database-url, so called "data source name".
-    trie_path: str
-        Path to the TRIE index file.
-    engine : sqlalchemy.engine.Engine
-        The database engine which is used to connect to the database.
-    conn : sqlalchemy.engine.Connection
-        The connection object which is used to communicate witht the database.
-    session : sqlalchemy.orm.Session
-        The session object used for a series of database operations.
-    root : AddressNode
-        The root node of the tree.
-    trie : AddressTrie
-        The TRIE index of the tree.
     mode: str
-        The mode in which this tree was opened.
+        Read (r) or Write (w).
+    db_dir: PathLike
+        Directory path where the database files are located.
+    address_nodes: AddressNodeTable
+        Table of address-nodes.
+    aza_masters: AzaMaster
+        Aza master table from the Address Base registry.
+    trie_nodes: TrieNode
+        Table of trie-nodes.
+    trie_path: PathLike
+        Path to the AddressTrie file.
+    debug: bool
+        Debug mode flag.
+    root: AddressTrie
+        The root-node of the address TRIE index.
     config: dict
-        Settings the search method in this tree.
+        Configuration parameters.
+    converter: itaiji.Converter
+        Converter object of character-variants.
     """
 
     def __init__(self,
@@ -198,6 +202,7 @@ class AddressTree(object):
 
         self.root = None
         self.trie = AddressTrie(self.trie_path)
+        self.reverse_index = None
 
         # Regular expression
         self.re_float = re.compile(r'^\-?\d+\.?\d*$')
@@ -1399,12 +1404,6 @@ class AddressTree(object):
         list:
             A list of AddressNode and matched substring pairs.
 
-        Note
-        ----
-        The `search_by_trie` function returns the standardized string
-        as the match string. In contrast, the `searchNode` function
-        returns the de-starndized string.
-
         Example
         -------
         >>> import jageocoder
@@ -1512,3 +1511,40 @@ class AddressTree(object):
             "get_record": AddressNodeTable.get_record.cache_info(),
         }
         return cache_info
+
+    def reverse(
+        self,
+        x: float,
+        y: float,
+        level: Optional[int] = None,
+        as_dict: Optional[bool] = True
+    ) -> list:
+        """
+        Reverse geocoding.
+
+        Parameters
+        ----------
+        x: float
+            Longitude of the point.
+        y: float
+            Latitude of the point.
+        level: int, optional
+            Target node level.
+        as_dict: bool, default=True
+            If True, returns candidates as dict objects.
+
+        Returns
+        -------
+        list
+
+        Notes
+        -----
+        - The result list contains up to 3 nodes.
+        - Each element is a dict type with the following structure:
+            {"candidate":AddressNode, "dist":float} 
+        """
+        if self.reverse_index is None:
+            from jageocoder.rtree import Index
+            self.reverse_index = Index(tree=self)
+
+        return self.reverse_index.nearest(x=x, y=y, level=level, as_dict=as_dict)

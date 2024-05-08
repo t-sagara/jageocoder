@@ -12,8 +12,8 @@ HELP = """
 Usage:
   {p} -h
   {p} -v
-  {p} search [-d] [--area=<area>] [--db-dir=<dir>] <address>
-  {p} reverse [-d] [--level=<level>] [--db-dir=<dir>] <longitude> <latitude>
+  {p} search [-d] [--area=<area>] [--db-dir=<dir>|--url=<url>] <address>
+  {p} reverse [-d] [--level=<level>] [--db-dir=<dir>|--url=<url>] <longitude> <latitude>
   {p} get-db-dir [-d]
   {p} download-dictionary [-d] <url>
   {p} install-dictionary [-d] [-y] [--db-dir=<dir>] <path>
@@ -27,6 +27,7 @@ Options:
   --area=<area>       検索対象地域の都道府県・市区町村名を指定します。
   --level=<level>     検索する住所レベルを指定します。
   --db-dir=<dir>      住所データベースのディレクトリを指定します。
+  --url=<url>         Jageocoderサーバのエンドポイント URL を指定します。
 
 Examples:
 
@@ -94,7 +95,7 @@ def main():
     logger.addHandler(console_handler)
 
     if args['search']:
-        jageocoder.init(db_dir=args['--db-dir'], mode='r')
+        jageocoder.init(db_dir=args['--db-dir'], mode='r', url=args['--url'])
         target_area = None
         if args.get('--area'):
             target_area = args['--area'].split(',')
@@ -120,7 +121,7 @@ def main():
 
     elif args['reverse']:
         from jageocoder.address import AddressLevel
-        jageocoder.init(db_dir=args['--db-dir'], mode='r')
+        jageocoder.init(db_dir=args['--db-dir'], mode='r', url=args['--url'])
         print(json.dumps(
             jageocoder.reverse(
                 x=float(args['<longitude>']),

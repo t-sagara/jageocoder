@@ -129,6 +129,14 @@ class Result(object):
             "matched": self.matched,
         }
 
+    @classmethod
+    def from_dict(cls, jsonable: dict):
+        from jageocoder.node import AddressNode
+        return Result(
+            node=AddressNode.from_dict(jsonable["node"]),
+            matched=jsonable["matched"],
+        )
+
     def as_geojson(self) -> dict:
         """
         Convert Result to GeoJSON dict type for display.

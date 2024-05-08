@@ -1,10 +1,8 @@
-# jageocoder - A Python Japanese geocoder
+# Jageocoder - A Python Japanese geocoder
 
-`jageocoder` は日本の住所用ジオコーダです。
-東京大学空間情報科学研究所の
-[「CSV アドレスマッチングサービス」](https://geocode.csis.u-tokyo.ac.jp/home/csv-admatch/)
-および国土地理院の [「地理院地図」](https://maps.gsi.go.jp/) で利用している
-C++ ジオコーダを Python に移植しました。
+`Jageocoder` は日本の住所用ジオコーダです。
+東京大学空間情報科学研究センターの
+[「CSV アドレスマッチングサービス」](https://geocode.csis.u-tokyo.ac.jp/home/csv-admatch/) および国土地理院の [「地理院地図」](https://maps.gsi.go.jp/) で利用している C++ ジオコーダ `DAMS` を Python に移植しました。
 
 # はじめに
 
@@ -13,9 +11,8 @@ C++ ジオコーダを Python に移植しました。
 ジオコーディング結果が得られます。
 
 ```python
-python
 >>> import jageocoder
->>> jageocoder.init()
+>>> jageocoder.init(url='https://jageocoder.info-proto.com/jsonrpc')
 >>> jageocoder.search('新宿区西新宿2-8-1')
 {'matched': '新宿区西新宿2-8-', 'candidates': [{'id': 5961406, 'name': '8番', 'x': 139.691778, 'y': 35.689627, 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}]}
 ```
@@ -24,43 +21,63 @@ python
 
 ## 事前準備
 
-Python 3.7 以降が必要です。
+Python 3.7 以降が動作する環境が必要です。
+
+その他の依存パッケージは自動的にインストールされます。
 
 ## インストール手順
 
-- `pip install jageocoder` でパッケージをインストールします
+`pip install jageocoder` でパッケージをインストールします
 
-    pip install jageocoder
+```
+pip install jageocoder
+```
 
-- 利用する辞書データベースファイルを
-  [ここから](https://www.info-proto.com/static/jageocoder/latest/v2/)
-  ダウンロードします
+Jageocoder を利用するには、同一マシン上に「辞書データベース」をインストールするか、 [jageocoder-server](https://t-sagara.github.io/jageocoder/server/) が提供する RPC サービスに接続する必要があります。
 
-    wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip
+### 辞書データベースをインストールする場合
+
+辞書データベースをインストールすると大量のデータも高速に処理できます。全国の住所を網羅するデータベースは 30GB 以上のストレージが必要です。
+
+- 利用する辞書データベースファイルを [ここから](https://www.info-proto.com/static/jageocoder/latest/v2/) ダウンロードします
+
+      wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip
 
 - 辞書データベースをインストールします
     
-    jageocoder install-dictionary jukyo_all_v20.zip
-
-辞書データベースはデフォルトで `{sys.prefix}/jageocoder/db2/` の下に
-作成されますが、ユーザが書き込み権限を持っていない場合には
-`{site.USER_DATA}/jageocoder/db2/` に作成します。
+      jageocoder install-dictionary jukyo_all_v21.zip
 
 辞書データベースが作成されたディレクトリを知る必要がある場合、
 以下のように `get-db-dir` コマンドを実行するか、スクリプト内で
 `jageocoder.get_db_dir()` メソッドを呼びだしてください。
 
-```sh
+```bash
 jageocoder get-db-dir
 ```
 
 上記以外の任意の場所に作成したい場合、住所辞書をインストールする前に
 環境変数 `JAGEOCODER_DB2_DIR` でディレクトリを指定してください。
 
-```sh
+```bash
 export JAGEOCODER_DB2_DIR='/usr/local/share/jageocoder/db2'
-jageocoder install-dictionary <辞書ファイル>
+jageocoder install-dictionary jukyo_all_v21.zip
 ```
+
+### Jageocoder サーバに接続する場合
+
+辞書データベースはサイズが大きいので、複数のマシンにインストールするとストレージを消費しますし、更新の手間もかかります。
+そこで各マシンに辞書データベースをインストールする代わりに、Jageocoder サーバに接続して検索処理を代行させることもできます。
+
+サーバを利用したい場合、環境変数 `JAGEOCODER_SERVER_URL` にサーバの
+エンドポイントを指定してください。
+公開デモンストレーション用サーバの場合は次の通りです。
+
+```bash
+export JAGEOCODER_SERVER_URL=https://jageocoder.info-proto.com/jsonrpc
+```
+
+ただし公開デモンストレーション用サーバはアクセスが集中すると負荷に耐えられないため、1秒1リクエストまでに制限しています。
+大量の処理を行いたい場合は [こちら](https://t-sagara.github.io/jageocoder/server/) を参照して独自 Jageocoder サーバを設置してください。エンドポイントはサーバの `/jsonrpc` になります。
 
 ## アンインストール手順
 
@@ -68,13 +85,13 @@ jageocoder install-dictionary <辞書ファイル>
 削除してください。ディレクトリごと削除しても構いませんが、
 `uninstall-dictionary` コマンドも利用できます。
 
-```sh
+```bash
 jageocoder uninstall-dictionary
 ```
 
 その後、 jageocoder パッケージを pip でアンインストールしてください。
 
-```sh
+```bash
 pip uninstall jageocoder
 ```
 
@@ -82,17 +99,17 @@ pip uninstall jageocoder
 
 ## コマンドラインから利用する
 
-jageocoder はライブラリとしてアプリケーションに組み込み、
-API を呼びだして利用することを想定していますが、テスト目的であれば
-以下のコマンドでジオコーディング結果を確認できます。
+Jageocoder はライブラリとしてアプリケーションに組み込み、API を呼びだして利用することを想定していますが、簡単なコマンドラインインタフェースも用意しています。
 
-```sh
+たとえば住所をジオコーディングしたい場合は次のコマンドを実行します。
+
+```bash
 jageocoder search 新宿区西新宿２－８－１
 ```
 
 利用可能なコマンド一覧は `--help` で確認してください。
 
-```sh
+```bash
 jageocoder --help
 ```
 
@@ -100,9 +117,16 @@ jageocoder --help
 
 まず jageocoder をインポートし、 `init()` で初期化します。
 
-```
+```python
 >>> import jageocoder
 >>> jageocoder.init()
+```
+
+`init()` のパラメータ `db_dir` で住所データベースがインストールされているディレクトリを指定できます。あるいは `url` で Jageocoder サーバのエンドポイント URL を指定できます。省略された場合は環境変数の値を利用します。
+
+```python
+>>> jageocoder.init(db_dir='/path/to/the/database')
+>>> jageocoder.init(url='https://your.jageocoder.server/jsonrpc')
 ```
 
 ### 住所から経緯度を調べる
@@ -114,7 +138,7 @@ jageocoder --help
 住所ノード (AddressNode) の情報が入っています
 （見やすくするために表示結果を整形しています）。
 
-```
+```python
 >>> jageocoder.search('新宿区西新宿２－８－１')
 {
   'matched': '新宿区西新宿２－８－',
@@ -139,8 +163,27 @@ jageocoder --help
 
 ### 経緯度から住所を調べる
 
-Version 2.0 より、経緯度から住所を検索する機能（リバースジオコーディング）は
-廃止しました。この機能が必要な場合は 1.x をご利用ください。
+地点の経緯度を指定し、その地点の住所を調べることができます
+（いわゆるリバースジオコーディング）。
+
+`reverse()` に調べたい地点の経度と緯度を渡すと、指定した地点を囲む最大3点の住所ノードを検索できます。
+
+```python
+>>> import jageocoder
+>>> jageocoder.init()
+>>> triangle = jageocoder.reverse(139.6917, 35.6896, level=7)
+>>> if len(triangle) > 0:
+...     print(triangle[0]['candidate']['fullname'])
+...
+['東京都', '新宿区', '西新宿', '二丁目', '8番']
+```
+
+上の例では ``level`` オプションパラメータに 7 を指定して、街区・地番レベルまで検索しています。
+
+> [!Note]
+>
+> リバースジオコーディング用のインデックスは、初めてリバースジオコーディングを実行した時に自動的に作成されます。
+この処理には長い時間がかかりますので、注意してください。
 
 ### 住所の属性情報を調べる
 
@@ -148,7 +191,7 @@ Version 2.0 より、経緯度から住所を検索する機能（リバース�
 この関数は `jageocoder.result.Result` 型のリストを返します。
 Result オブジェクトの node 要素から住所ノードにアクセスできます。
 
-```
+```python
 >>> results = jageocoder.searchNode('新宿区西新宿２－８－１')
 >>> len(results)
 1
@@ -166,7 +209,7 @@ Result オブジェクトの node 要素から住所ノードにアクセスで�
 Result および AddressNode オブジェクトの `as_geojson()` メソッドを
 利用すると GeoJSON 表現を取得できます。
 
-```
+```python
 >>> results[0].as_geojson()
 {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番'], 'matched': '新宿区西新宿２－８－'}}
 >>> results[0].node.as_geojson()
@@ -178,7 +221,7 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 自治体コードには JISX0402（5桁）と地方公共団体コード（6桁）があります。
 都道府県コード JISX0401（2桁）も取得できます。
 
-```
+```python
 >>> node.get_city_jiscode()  # 5桁コード
 '13104'
 >>> node.get_city_local_authority_code() # 6桁コード
@@ -191,7 +234,7 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 
 地理院地図と Google 地図へのリンク URL を生成します。
 
-```
+```python
 >>> node.get_gsimap_link()
 'https://maps.gsi.go.jp/#16/35.689627/139.691778/'
 >>> node.get_googlemap_link()
@@ -205,7 +248,7 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 
 今 `node` は '8番' を指しているので、親ノードは '二丁目' になります。
 
-```
+```python
 >>> parent = node.parent
 >>> parent.get_fullname()
 ['東京都', '新宿区', '西新宿', '二丁目']
@@ -225,7 +268,7 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 今 `parent` は '二丁目' を指しているので、子ノードは
 そこに含まれる街区符号（○番）になります。
 
-```
+```python
 >>> parent.children
 <sqlalchemy.orm.dynamic.AppenderQuery object at 0x7fbc08404b38>
 >>> [child.name for child in parent.children]
@@ -249,11 +292,7 @@ pytest
 
 ## 独自の辞書を作成したい場合
 
-辞書コンバータ `jageocoder-converter` を利用してください。
-Version 2.0 系列の辞書を作成するには、 jageocoder-converter も
-2.0 以降を利用する必要があります。
-
-[jageocoder-converter](https://github.com/t-sagara/jageocoder-converter)
+辞書コンバータ [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter) を利用してください。Version 2.0 系列の辞書を作成するには、 jageocoder-converter も 2.0 以降を利用する必要があります。
 
 ## 異体字を追加したい場合
 
@@ -267,24 +306,15 @@ Flask を利用したシンプルなウェブアプリのサンプルが
 
 次の手順を実行し、ポート 5000 にアクセスしてください。
 
-```
+```bash
 cd flask-demo
 pip install flask flask-cors
 bash run.sh
 ```
 
-## ToDo
-
-- 住所変更への対応
-
-    自治体統合などによる住所変更があった場合に、旧住所を新住所に
-    自動的に変換する機能は jageocoder では将来実装予定です。
-
 ## ご協力頂ける場合
 
-日本の住所表記は非常に多様なので、うまく変換できない場合には
-お知らせ頂けるとありがたいです。ロジックの改良提案も歓迎します。
-どのような住所がどう解析されるべきかをご連絡頂ければ幸いです。
+日本の住所表記は非常に多様なので、うまく変換できない場合にはお知らせ頂けるとありがたいです。ロジックの改良提案も歓迎します。どのような住所がどう解析されるべきかをご連絡頂ければ幸いです。
 
 ## 作成者
 
@@ -301,10 +331,7 @@ This project is licensed under [the MIT License](https://opensource.org/licenses
 
 ## 謝辞
 
-20年以上にわたり、アドレスマッチングサービスを継続するために
-所内ウェブサーバを利用させて頂いている
-東京大学空間情報科学研究センターに感謝いたします。
+20年以上にわたり、アドレスマッチングサービスを継続するために所内ウェブサーバを利用させて頂いている東京大学空間情報科学研究センターに感謝いたします。
 
 また、NIIの北本朝展教授には、比較的古い住所体系を利用している地域の
-大規模なサンプルのご提供と、解析結果の確認に多くのご協力を
-頂きましたことを感謝いたします。
+大規模なサンプルのご提供と、解析結果の確認に多くのご協力を頂きましたことを感謝いたします。

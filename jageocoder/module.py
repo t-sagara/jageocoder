@@ -9,6 +9,7 @@ from urllib.error import URLError
 import jageocoder
 from jageocoder.exceptions import JageocoderError
 from jageocoder.tree import AddressTree, get_db_dir
+from jageocoder.remote import RemoteTree
 from jageocoder.result import Result
 
 _tree = None  # The default AddressTree
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 def init(db_dir: Optional[os.PathLike] = None,
          mode: Optional[str] = 'r',
          debug: Optional[bool] = False,
+         url: Optional[str] = None,
          **kwargs) -> None:
     """
     Initialize the module-level AddressTree object `jageocoder.tree`
@@ -41,15 +43,44 @@ def init(db_dir: Optional[os.PathLike] = None,
         - In the case of 'r', if the database already exists, it will be used.
           Otherwise raise a JageocoderError exception.
 
-    debug: bool, Optional(default=False)
+    debug: bool, optional(default=False)
         Debugging flag.
+
+    url: str, optional
+        URL of the Jageocoder server endpoint.
+
+    Notes
+    -----
+    - If both 'db_dir' and 'url' are specified, 'db_dir' has priority.
+    - If both 'db_dir' and 'url' are omitted, it looks for a dictionary
+        installed in the jageocoder package dcirectory.
+        If not found, a 'JageocoderError' exception is thrown.
     """
     global _tree
 
     if _tree:
         del _tree
 
-    _tree = AddressTree(db_dir=db_dir, mode=mode, debug=debug)
+    _url = None
+    _db_dir = None
+    if db_dir is not None:
+        _db_dir = db_dir
+    elif url is not None and mode == 'r':
+        _url = url
+    elif os.environ.get('JAGEOCODER_DB2_DIR'):
+        _db_dir = get_db_dir(mode=mode)
+
+    if _db_dir is None and _url is None:
+        _url = os.environ.get('JAGEOCODER_SERVER_URL')
+
+    if _db_dir:
+        _tree = AddressTree(db_dir=_db_dir, mode=mode, debug=debug)
+    elif _url:
+        _tree = RemoteTree(url=_url, debug=debug)
+    else:
+        raise JageocoderError(
+            "Neither 'db_dir' nor 'url' could be determined.")
+
     set_search_config(**kwargs)
 
 
@@ -248,7 +279,10 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     logger.info('Dictionary has been uninstalled.')
 
 
-def installed_dictionary_version(db_dir: Optional[os.PathLike] = None) -> str:
+def installed_dictionary_version(
+    db_dir: Optional[os.PathLike] = None,
+    url: Optional[str] = None
+) -> str:
     """
     Get the installed dictionary version.
 
@@ -258,13 +292,19 @@ def installed_dictionary_version(db_dir: Optional[os.PathLike] = None) -> str:
         The directory where the database files has been installed.
         If omitted, it will be determined by `get_db_dir()`.
 
+    url: str, optional
+        URL of the Jageocoder server endpoint.        
+
     Returns
     -------
     str
-        The version string of the installed dicitionary.
+        The version string of the installed dicitionary or the server.
     """
     if db_dir is None:
-        db_dir = get_db_dir(mode='a')
+        if url is not None:
+            return RemoteTree(url=url).installed_dictionary_version()
+
+        db_dir = get_db_dir(mode='r')
 
     metadata_path = os.path.join(db_dir, "metadata.txt")
     if os.path.exists(metadata_path):
@@ -283,7 +323,10 @@ def installed_dictionary_version(db_dir: Optional[os.PathLike] = None) -> str:
     return version
 
 
-def installed_dictionary_readme(db_dir: Optional[os.PathLike] = None) -> str:
+def installed_dictionary_readme(
+    db_dir: Optional[os.PathLike] = None,
+    url: Optional[str] = None
+) -> str:
     """
     Get the content of README.txt attached to the installed dictionary.
 
@@ -293,13 +336,19 @@ def installed_dictionary_readme(db_dir: Optional[os.PathLike] = None) -> str:
         The directory where the database files has been installed.
         If omitted, it will be determined by `get_db_dir()`.
 
+    url: str, optional
+        URL of the Jageocoder server endpoint.        
+
     Returns
     -------
     str
         The content of the text.
     """
     if db_dir is None:
-        db_dir = get_db_dir(mode='a')
+        if url is not None:
+            return RemoteTree(url=url).installed_dictionary_readme()
+
+        db_dir = get_db_dir(mode='r')
 
     readme_path = os.path.join(db_dir, "README.md")
     if not os.path.exists(readme_path):
@@ -334,7 +383,6 @@ def search(query: str) -> dict:
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
-    # set_search_config(best_only=True)
     results = _tree.searchNode(query)
 
     if _tree.get_config('best_only'):
@@ -429,11 +477,9 @@ def reverse(
     """
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
-    from jageocoder.rtree import Index
 
     global _tree
-    idx = Index(tree=_tree)
-    return idx.nearest(x=x, y=y, level=level, as_dict=as_dict)
+    return _tree.reverse(x, y, level, as_dict)
 
 
 def create_trie_index() -> None:
@@ -446,6 +492,9 @@ def create_trie_index() -> None:
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
+    if isinstance(_tree, RemoteTree):
+        raise JageocoderError("Can't update TRIE index on remote server.")
+
     _tree.create_trie_index()
 
 

@@ -1,13 +1,13 @@
 API リファレンス
 ================
 
-jageocoder を Python コード内で利用するには、
+Jageocoder を Python コード内で利用するには、
 ほとんどの場合 :doc:`code_samples` に紹介したモジュールメソッドの
 :py:meth:`searchNode() <jageocoder.searchNode>`,
-:py:meth:`reverse() <jageocoder.reverse>` および
-:py:class:`jageocoder.node.AddressNode` クラスのメソッドで十分です。
+:py:meth:`reverse() <jageocoder.reverse>`、
+および :py:class:`jageocoder.node.AddressNode` クラスのメソッドで十分です。
 
-ここではより詳細な API のリファレンスを提供します。
+より詳細な情報が必要な場合は以下の各項を参照してください。
 
 .. toctree::
 
