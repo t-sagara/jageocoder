@@ -18,7 +18,7 @@
 
 .. code-block:: console
 
-   $ pip install jageocoder==2.1.6
+   $ pip install jageocoder==2.1.6.post1
 
 .. _server-or-dictionary:
 
