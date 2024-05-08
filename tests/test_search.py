@@ -157,12 +157,10 @@ class TestSearchMethods(unittest.TestCase):
             fullname=[["茨城県", "龍ケ崎市", "", "3751番地"]],
             level=7)
 
-        # Exclude this test, since this is a dictionary matter.
-        # self._check(
-        #     query="竜ヶ崎市3710番地",
-        #     match="竜ヶ崎市3710番地",
-        #     fullname=[["茨城県", "龍ケ崎市", "寺後", "3710番地"]],
-        #     level=7)
+        self._check(
+            query="龍ケ崎市寺後3710番地",
+            fullname=[["茨城県", "龍ケ崎市", "", "3710番地"]],
+            level=7)
 
     def test_oaza_not_in_dictionary(self):
         """
@@ -249,9 +247,10 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="鳥取県米子市福万619",
-            match="鳥取県米子市福万",
-            level=5,
-            fullname=["鳥取県", "米子市", "福万"])
+            fullname=[
+                ["鳥取県", "米子市", "福万"],
+                ["鳥取県", "米子市", "福万", "619番地"]]
+        )
 
     def test_kana_no_in_kana_string(self):
         """
@@ -320,13 +319,17 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="石川県小松市軽海町ノ１４－１",
-            match="石川県小松市軽海町ノ１４－",
-            level=7)
+            fullname=[
+                ["石川県", "小松市", "軽海町", "ノ", "14番地"],
+                ["石川県", "小松市", "軽海町", "ノ", "14番地", "1"]]
+        )
 
         self._check(
             query="石川県小松市軽海町ノ－１４－１",
-            match="石川県小松市軽海町ノ－１４－",
-            level=7)
+            fullname=[
+                ["石川県", "小松市", "軽海町", "ノ", "14番地"],
+                ["石川県", "小松市", "軽海町", "ノ", "14番地", "1"]]
+        )
 
     def test_aza_aza(self):
         """
@@ -386,13 +389,16 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="富山市水橋開発字文化",
-            match="富山市水橋開発",  # Not include '字'
-            fullname=["富山県", "富山市", "水橋開発"])
+            fullname=[
+                ["富山県", "富山市", "水橋開発"],
+                ["富山県", "富山市", "水橋開発", "字文化"]
+            ]
+        )
 
         self._check(
             query="富山市水橋開発町",
-            match="富山市水橋開発町",  # Not include '字'
-            fullname=["富山県", "富山市", "水橋開発町"])
+            fullname=["富山県", "富山市", "水橋開発町"],
+        )
 
     def test_alphabet_gaiku(self):
         """
@@ -560,7 +566,10 @@ class TestSearchMethods(unittest.TestCase):
         self._check(
             query="高知県安芸市赤野字シロケ谷尻甲２９９４",
             match="高知県安芸市赤野字シロケ谷尻甲",
-            fullname=["高知県", "安芸市", "赤野甲"])
+            fullname=[
+                ["高知県", "安芸市", "赤野甲"],
+                ["高知県", "安芸市", "赤野甲", "2994番地"],
+            ])
 
         # But do not omit Aza name which is match to the query.
         # If "鮫町骨沢" will be skipped, "青森県八戸市１"
@@ -573,12 +582,17 @@ class TestSearchMethods(unittest.TestCase):
             query="岩手県盛岡市東中野字立石８－１０",
             fullname=[
                 ["岩手県", "盛岡市", "東中野", "字立石", "8番地"],
+                ["岩手県", "盛岡市", "東中野", "字立石", "8番地", "10"],
                 ["岩手県", "盛岡市", "東中野", "立石", "8番地"],
+                ["岩手県", "盛岡市", "東中野", "立石", "8番地", "10"],
             ])
 
         self._check(
             query="宮城県石巻市渡波字転石山１－６",
-            fullname=["宮城県", "石巻市", "渡波", "字転石山", "1番地"])
+            fullname=[
+                ["宮城県", "石巻市", "渡波", "字転石山", "1番地"],
+                ["宮城県", "石巻市", "渡波", "字転石山", "1番地", "6"],
+            ])
 
         # If "字新得基線" will be skipped, "新得町１"
         # can be resolved to "字新得1番地"
@@ -618,8 +632,10 @@ class TestSearchMethods(unittest.TestCase):
 
         self._check(
             query="山形県酒田市京田２－１－１１",
-            match="山形県酒田市京田２－１－",
-            fullname=["山形県", "酒田市", "京田", "二丁目", "1番地"])
+            fullname=[
+                ["山形県", "酒田市", "京田", "二丁目", "1番地"],
+                ["山形県", "酒田市", "京田", "二丁目", "1番地", "11"],
+            ])
 
         self._check(
             query="宮城県仙台市青葉区芋沢字田尻６６",
@@ -650,9 +666,12 @@ class TestSearchMethods(unittest.TestCase):
         """
         self._check(
             query="奥州市水沢佐倉河字中半入川原１",
-            match="奥州市水沢佐倉河字中半入",
-            fullname=["岩手県", "奥州市", "水沢佐倉河", "中半入"]
-        )
+            fullname=[
+                ["岩手県", "奥州市", "水沢佐倉河", "中半入"],
+                ["岩手県", "奥州市", "水沢佐倉河", "中半入", "1番地"],
+                ["岩手県", "奥州市", "水沢佐倉河", "字中半入川原"],
+                ["岩手県", "奥州市", "水沢佐倉河", "字中半入川原", "1番地"],
+            ])
 
         # '大字', '字', '小字' can be omitted if other optional
         # characters were omitted such as '町'
@@ -752,14 +771,19 @@ class TestSearchMethods(unittest.TestCase):
         self._check(
             aza_skip=False,
             query="仙台市青葉区芋沢字大竹新田下１９",
-            fullname=["宮城県", "仙台市", "青葉区", "芋沢", "大竹新田下"]
-        )
+            fullname=[
+                ["宮城県", "仙台市", "青葉区", "芋沢", "大竹新田下"],
+                ["宮城県", "仙台市", "青葉区", "芋沢", "大竹新田下", "19番地"],
+            ])
 
         self._check(
             aza_skip=False,
             query="仙台市青葉区作並字岩谷堂西１６",
-            fullname=["宮城県", "仙台市", "青葉区", "作並", "字岩谷堂"]
-        )
+            fullname=[
+                ["宮城県", "仙台市", "青葉区", "作並", "字岩谷堂"],
+                ["宮城県", "仙台市", "青葉区", "作並", "字岩谷堂西"],
+                ["宮城県", "仙台市", "青葉区", "作並", "字岩谷堂西", "16番地"],
+            ])
 
     def test_infinite_recursion(self):
         """

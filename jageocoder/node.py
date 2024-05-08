@@ -8,7 +8,7 @@ import os
 import re
 from typing import List, Set, Tuple, Optional, Union, TYPE_CHECKING
 
-from PortableTab import BaseTable
+import PortableTab
 
 from jageocoder.address import AddressLevel
 from jageocoder.dataset import Dataset
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 default_itaiji_converter = Converter()  # With default settings
 
 
-class AddressNodeTable(BaseTable):
+class AddressNodeTable(PortableTab.BaseTable):
     """
     The address node table.
     """
@@ -90,10 +90,21 @@ class AddressNodeTable(BaseTable):
 
             return notes
 
-        self.create_trie_on("nameIndex")
-        self.create_trie_on(
-            attr="note",
-            func=_split_note)
+        if PortableTab.__version__ < '0.3.5':
+            self.create_trie_on("nameIndex")
+            self.create_trie_on(
+                attr="note",
+                func=_split_note)
+        else:
+            self.create_trie_on(
+                attr="nameIndex",
+                filter_func=lambda r: r.level <= AddressLevel.AZA
+            )
+            self.create_trie_on(
+                attr="note",
+                key_func=_split_note,
+                filter_func=lambda r: r.level <= AddressLevel.AZA
+            )
 
 
 class AddressNode(object):
@@ -1208,6 +1219,18 @@ class AddressNode(object):
             "note": self.note,
             "fullname": self.get_fullname(),
         }
+
+    @classmethod
+    def from_dict(cls, jsonable: dict):
+        return AddressNode(
+            id=jsonable["id"],
+            name=jsonable["name"],
+            x=jsonable["x"],
+            y=jsonable["y"],
+            level=jsonable["level"],
+            priority=jsonable["priority"],
+            note=jsonable["note"]
+        )
 
     def as_geojson(self):
         """

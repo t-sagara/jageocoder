@@ -31,6 +31,13 @@ class AddressTreeException(RuntimeError):
     pass
 
 
+class RemoteTreeException(AddressTreeException):
+    """
+    Custom exception classes sent out by jageocoder.remote submodule.
+    """
+    pass
+
+
 class AddressTrieError(RuntimeError):
     """
     Custom exception classes sent out by jageocoder.trie submodule.
