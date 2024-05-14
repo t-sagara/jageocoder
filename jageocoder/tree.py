@@ -326,8 +326,6 @@ class AddressTree(object):
             Category name such as 'jisx0402' or 'postcode'.
         value: str
             Target value.
-        levels: List[int], optional
-            The address levels of target nodes.
 
         Returns
         -------
@@ -346,15 +344,7 @@ class AddressTree(object):
         else:
             node_id = node
 
-        names = []
-        while node_id >= 0:
-            node = self.session.execute(
-                'SELECT parent_id, name FROM node WHERE id={}'.format(
-                    node_id)).one()
-            names.insert(0, node.name)
-            node_id = node.parent_id
-
-        return names
+        return node.get_fullname()
 
     def set_config(self, **kwargs):
         """
@@ -788,53 +778,6 @@ class AddressTree(object):
 
         return cur_node
 
-    def update_name_index(self) -> int:
-        """
-        Update `name_index` field using the standardizing logic
-        of the current version.
-
-        Note
-        ----
-        This method also updates the version information of
-        the dictionary.
-
-        Return
-        ------
-        int:
-            Number of records updated.
-        """
-        self.__not_in_readonly_mode()
-        counts = self.session.query(AddressNode).count()
-        pct = 0
-        pagesize = int(counts / 100) + 1
-        diffs = 0
-        for offset in range(0, counts, pagesize):
-            nodes = self.session.query(
-                AddressNode).offset(offset).limit(pagesize)
-            for node in nodes:
-                new_name_index = self.converter.standardize(node.name)
-                if node.name_index != new_name_index:
-                    logger.info((
-                        'The index of "{}" was updated from "{}" to "{}"'
-                    ).format(node.name, node.name_index, new_name_index))
-                    node.name_index = new_name_index
-                    self.session.add(node)
-                    diffs += 1
-
-            self.session.commit()
-            pct += 1
-            logger.info("Updated {pct}% ({offset}/{total})".format(
-                pct=pct, offset=offset + pagesize, total=counts))
-
-        logger.info("Update completed.")
-        # Update version
-        root_node = self.get_root()
-        root_node.note = jageocoder.dictionary_version()
-        self.session.add(root_node)
-        self.session.commit()
-
-        return diffs
-
     def get_trie_nodes(self) -> TrieNode:
         """
         Get the TRIE node table.
@@ -1045,92 +988,9 @@ class AddressTree(object):
                   errors='backslashreplace') as f:
             self.read_stream(f, do_update=do_update)
 
-    def read_stream(self, fp: TextIO,
-                    do_update: bool = False) -> None:
-        """
-        Add AddressNodes to the tree from a stream.
-
-        Parameters
-        ----------
-        fp : io.TextIO
-            Input text stream.
-        do_update : bool (default=False)
-            When an address with the same name already exists,
-            update it with the value of the new data
-            if 'do_update' is true, otherwise do nothing.
-        """
-        self.__not_in_readonly_mode()
-        nread = 0
-        stocked = []
-        prev_names = None
-        cache = LRU(maxsize=512)
-
-        reader = csv.reader(fp)
-        format_id = None
-
-        while True:
-            try:
-                args = reader.__next__()
-            except UnicodeDecodeError:
-                logger.error("Decode error at the next line of {}".format(
-                    prev_names))
-                exit(1)
-            except StopIteration:
-                break
-
-            if args is None:
-                break
-
-            if format_id is None:
-                format_id = self.check_line_format(args)
-
-            names, lon, lat, level, note = self.parse_line_args(
-                args, format_id)
-
-            if names[-1].startswith('!'):
-                names = names[0:-1]
-
-            if prev_names == names:
-                logger.debug("Skipping '{}".format(prev_names))
-                continue
-
-            prev_names = names
-
-            node = self.add_address(
-                names, do_update, cache=cache,
-                x=lon, y=lat, level=level, note=note)
-            nread += 1
-            if nread % 1000 == 0:
-                logger.info("- read {} lines.".format(nread))
-
-            if node is None:
-                # The node exists and not updated.
-                continue
-
-            stocked.append(node)
-            if len(stocked) > 10000:
-                logger.debug("Inserting into the database... ({} - {})".format(
-                    stocked[0].get_fullname(), stocked[-1].get_fullname()))
-                for node in stocked:
-                    self.session.add(node)
-
-                self.session.commit()
-                stocked.clear()
-
-        logger.debug("Finished reading the stream.")
-        if len(stocked) > 0:
-            logger.debug("Inserting into the database... ({} - {})".format(
-                stocked[0].get_fullname(), stocked[-1].get_fullname()))
-            for node in stocked:
-                self.session.add(node)
-
-            self.session.commit()
-
-        logger.debug("Done.")
-
     def search_by_tree(self, address_names: List[str]) -> AddressNode:
         """
-        Get the corresponding node id from the list of address element names,
+        Get the corresponding node from the list of address element names,
         recursively search for child nodes using the tree.
 
         For example, ['東京都','新宿区','西新宿','二丁目'] will search
@@ -1228,10 +1088,6 @@ class AddressTree(object):
 
                 if node.y > 90.0 and self.get_config('require_coordinates'):
                     node = node.add_dummy_coordinates()
-                    # if node.y > 90.0:
-                    #     logger.debug("Node {}({}) has no coordinates.".format(
-                    #         node.name, node.id))
-                    #     continue
 
                 if min_key == '' and node.level <= AddressLevel.WARD:
                     # To make the process quicker, once a node higher
@@ -1548,3 +1404,149 @@ class AddressTree(object):
             self.reverse_index = Index(tree=self)
 
         return self.reverse_index.nearest(x=x, y=y, level=level, as_dict=as_dict)
+
+    def search_by_machiaza_id(
+            self,
+            id: str
+    ) -> List[AddressNode]:
+        """
+        Finds the corresponding address nodes from the "machiaza-id" of
+        the address base registry.
+
+        Parameters
+        ----------
+        id: str
+            Machiaza-id.
+
+        Returns
+        -------
+        List[AddressNode]
+
+        Notes
+        -----
+        - If "id" is 12 characters, the first 5 characters are considered the JISX0402 code.
+        - If "id" is 13 characters, the first 6 characters are considered the lg-code.
+        - In either of the above cases, search for the address node whose machiaza-id
+            matches the rest 7 characters in the corresponding municipality.
+        - Otherwise, it searches for address nodes whose machiaza-id matches "id"
+            from all municipalities. In this case, aza_id must be 7 characters.
+        """
+        if len(id) == 12:
+            # jisx0402(5digits) + aza_id(7digits)
+            candidates = self.search_nodes_by_codes(
+                category="aza_id",
+                value=id[-7:])
+            nodes = [x for x in candidates if x.get_city_jiscode() == id[0:5]]
+        elif len(id) == 13:
+            # lasdec(6digits) + aza_id(7digits)
+            candidates = self.search_nodes_by_codes(
+                category="aza_id",
+                value=id[-7:])
+            nodes = [x for x in candidates
+                     if x.get_city_local_authority_code() == id[0:6]]
+        else:
+            nodes = self.search_nodes_by_codes(
+                category="aza_id",
+                value=id)
+
+        return nodes
+
+    def search_by_postcode(
+            self,
+            code: str
+    ) -> List[AddressNode]:
+        """
+        Finds the corresponding address node from a postcode.
+
+        Parameters
+        ----------
+        code: str
+            The postal code as defined by the Japan Post.
+
+        Returns
+        -------
+        List[AddressNode]
+
+        Notes
+        -----
+        - The "code" must be 7 characters.
+        """
+        if len(code) == 7:
+            # Postcode(7digits)
+            return self.search_nodes_by_codes(
+                category="postcode",
+                value=code)
+
+        return []
+
+    def search_by_prefcode(
+            self,
+            code: str
+    ) -> List[AddressNode]:
+        """
+        Finds the corresponding address nodes from the JISX0401 code
+        or the prefacture's local-government code.
+
+        Parameters
+        ----------
+        code: str
+            Prefacture code as defined in JISX0401, of local government code defined by MIC.
+
+        Returns
+        -------
+        List[AddressNode]
+
+        Notes
+        -----
+        - If "code" is 2 characters, the code is considered the JISX0401 code.
+        - If "code" is 6 characters, the code is considered the local-govenment code.
+        """
+        if len(code) == 2:
+            # jisx0401(2digits)
+            return self.search_nodes_by_codes(
+                category="jisx0401",
+                value=code)
+
+        elif len(code) == 6:
+            # lg-code(6digits)
+            return self.search_nodes_by_codes(
+                category="jisx0401",
+                value=code[0:2])
+
+        return []
+
+    def search_by_citycode(
+            self,
+            code: str
+    ) -> List[AddressNode]:
+        """
+        Finds the corresponding address nodes from the JISX0402 code
+        or the local-government code.
+
+        Parameters
+        ----------
+        code: str
+            City code as defined in JISX0402, of local government code defined by MIC.
+
+        Returns
+        -------
+        List[AddressNode]
+
+        Notes
+        -----
+        - If "code" is 5 characters, the code is considered the JISX0402 code.
+        - If "code" is 6 characters, the code is considered the local-govenment code.
+        """
+        if len(code) == 5:
+            # jisx0402(5digits)
+            return self.search_nodes_by_codes(
+                category="jisx0402",
+                value=code)
+
+        elif len(code) == 6:
+            # lg-code(6digits)
+            return self.search_nodes_by_codes(
+                category="jisx0402",
+                value=code[0:5])
+
+        return []

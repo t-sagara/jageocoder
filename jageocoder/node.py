@@ -1252,6 +1252,28 @@ class AddressNode(object):
             }
         }
 
+    def to_json(self):
+        """
+        Convert node to JSONable dict for data transfer.
+
+        Notes
+        -----
+        - Different from the 'as_dict' method, this method includes
+            all attributes in the database, such as 'parent_id'.
+        """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "name_index": self.name_index,
+            "x": self.x,
+            "y": self.y,
+            "level": self.level,
+            "priority": self.priority,
+            "note": self.note,
+            "parent_id": self.parent_id,
+            "sibling_id": self.sibling_id,
+        }
+
     def get_fullname(
         self,
         delimiter: Optional[str] = None,

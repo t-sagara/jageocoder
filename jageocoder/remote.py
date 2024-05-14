@@ -9,7 +9,7 @@ from jageocoder.address import AddressLevel
 from jageocoder.exceptions import RemoteTreeException
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
-from jageocoder.tree import LRU
+from jageocoder.tree import AddressTree, LRU
 
 
 _session = None
@@ -97,7 +97,7 @@ class RemoteNodeTable(object):
 
     def get_record(self, pos: int) -> AddressNode:
         """
-        Get the record at the specified position
+        Get the record at the specified position from the remote server
         and convert it to AddressNode object.
 
         Parameters
@@ -123,8 +123,56 @@ class RemoteNodeTable(object):
         self.cache[pos] = node
         return node
 
+    def search_records_on(
+            self,
+            attr: str,
+            value: str,
+            funcname: str = "get") -> list:
+        """
+        Search value from the table on the specified attribute on the remote server.
 
-class RemoteTree(object):
+        Paramters
+        ---------
+        attr: str
+            The name of target attribute.
+        value: str
+            The target value.
+        funcname: str
+            The name of search method.
+            - "get" searches for records that exactly match the value.
+            - "prefixes" searches for records that contained in the value.
+            - "keys" searches for records that containing the value.
+
+        Returns
+        -------
+        List[Record]
+            List of records.
+
+        Notes
+        -----
+        - TRIE index must be created on the column before searching.
+        - The TRIE index file will be automatically opened if it exists.
+        """
+        rpc_result = _json_request(
+            url=self.url,
+            method="node.search_records_on",
+            params={
+                "attr": attr,
+                "value": value,
+                "funcname": funcname,
+                "server": self.server_signature
+            },
+        )
+        nodes = []
+        for record in rpc_result:
+            node = AddressNode(**record)
+            node.table = self
+            nodes.append(node)
+
+        return nodes
+
+
+class RemoteTree(AddressTree):
     """
     The proxy class for remote server's address-tree structure.
 
@@ -352,3 +400,19 @@ class RemoteTree(object):
             results.append(r)
 
         return results
+
+    def search_by_machiaza_id(self, id: str) -> List[AddressNode]:
+        self.address_nodes.update_server_signature()
+        return super().search_by_machiaza_id(id)
+
+    def search_by_postcode(self, code: str) -> List[AddressNode]:
+        self.address_nodes.update_server_signature()
+        return super().search_by_postcode(code)
+
+    def search_by_prefcode(self, code: str) -> List[AddressNode]:
+        self.address_nodes.update_server_signature()
+        return super().search_by_prefcode(code)
+
+    def search_by_citycode(self, code: str) -> List[AddressNode]:
+        self.address_nodes.update_server_signature()
+        return super().search_by_citycode(code)
