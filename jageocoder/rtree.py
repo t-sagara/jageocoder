@@ -324,8 +324,10 @@ class Index(object):
                     id += 1
                     continue
                 elif not node.has_valid_coordinate_values():
-                    id += 1
-                    continue
+                    node = node.add_dummy_coordinates()
+                    if not node.has_valid_coordinate_values():
+                        id += 1
+                        continue
 
                 file_idx.insert(
                     id=id,
@@ -442,6 +444,9 @@ class Index(object):
             if node.id in ancestors:
                 continue
 
+            if not node.has_valid_coordinate_values():
+                node = node.add_dummy_coordinates()
+
             nodes.append(node)
             max_level = max(max_level, node.level)
             # Ancestor nodes of registering node are excluded.
@@ -462,8 +467,10 @@ class Index(object):
                         child_id = child_node.parent.sibling_id
                         continue
                     elif not child_node.has_valid_coordinate_values():
-                        child_id += 1
-                        continue
+                        child_node = child_node.add_dummy_coordinates()
+                        if not child_node.has_valid_coordinate_values():
+                            child_id += 1
+                            continue
 
                     local_idx.insert(
                         id=child_id,
@@ -478,6 +485,9 @@ class Index(object):
                 if node.id in ancestors:
                     continue
 
+                if not node.has_valid_coordinate_values():
+                    node = node.add_dummy_coordinates()
+
                 nodes.append(node)
                 # Ancestor nodes of registering node are excluded.
                 cur = node.parent
@@ -488,7 +498,8 @@ class Index(object):
 
         # Select the 3 nodes that make the smallest triangle
         # surrounding the target point
-        nodes = DelaunayTriangle.select(x, y, nodes)
+        # nodes = DelaunayTriangle.select(x, y, nodes)
+        nodes = nodes[0:3]
 
         # Convert nodes to the dict format.
         results = []

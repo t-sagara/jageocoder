@@ -212,9 +212,15 @@ class AddressNode(object):
     def dataset(self):
         """
         Get dataset record.
-
         """
         return self.table.datasets.get(id=self.priority)
+
+    @property
+    def levelname(self) -> str:
+        """
+        Get level by name.
+        """
+        return AddressLevel.levelname(self.level)
 
     @classmethod
     def from_record(cls, record) -> AddressNode:
@@ -1322,7 +1328,7 @@ class AddressNode(object):
 
         return nodes
 
-    def get_nodes_by_level(self):
+    def get_nodes_by_level(self) -> List[AddressNode | None]:
         """
         The method returns an array of this node and its upper nodes.
         The Nth node of the array contains the node corresponding
@@ -1530,6 +1536,7 @@ class AddressNode(object):
     def get_aza_names(
         self,
         tree: Optional[AddressTree] = None,
+        levelname: Optional[bool] = False,
     ) -> list:
         """
         Returns representation of Aza node containing this node.
@@ -1538,6 +1545,8 @@ class AddressNode(object):
         ----------
         tree: AddressTree, optional
             The tree containing this node.
+        levelname: bool, optional
+            If true, Returns the address level by name, not by number.
 
         Returns
         -------
@@ -1549,7 +1558,12 @@ class AddressNode(object):
         """
         aza_record = self.get_aza_record(tree)
         if aza_record:
-            return json.loads(aza_record.names)
+            results = json.loads(aza_record.names)
+            if levelname:
+                for i in range(len(results)):
+                    results[i][0] = AddressLevel.levelname(results[i][0])
+
+            return results
 
         return []
 

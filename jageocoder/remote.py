@@ -2,7 +2,7 @@ from functools import lru_cache
 import json
 import os
 import requests
-from typing import Any, List, Optional, Union
+from typing import Any, List, NoReturn, Optional, Union
 import uuid
 
 from jageocoder.address import AddressLevel
@@ -72,6 +72,7 @@ class RemoteNodeTable(object):
         self.datasets = RemoteDataset(url=url)
         self.cache = LRU()
         self.server_signature = None
+        self.mode = 'r'   # Always read only
 
     def update_server_signature(self) -> str:
         """
@@ -254,64 +255,31 @@ class RemoteTree(AddressTree):
             the new address is retrieved automatically.
         """
         for k, v in kwargs.items():
+            self.validate_config(key=k, value=v)
             self.config[k] = v
-
-    def get_config(
-            self,
-            keys: Union[str, List[str], None] = None
-    ) -> dict:
-        """
-        Get configurable parameter(s).
-
-        Parameters
-        ----------
-        keys: str, List[str], optional
-            If a name of parameter is specified, return its value.
-            Otherwise, a dict of specified key and its value pairs
-            will be returned.
-
-        Returns
-        -------
-        Any, or dict.
-        """
-        if keys is None:
-            return self.config
-
-        if isinstance(keys, str):
-            return self.config.get(keys)
-
-        results = {}
-        for key in keys:
-            if key in self.config:
-                results[key] = self.config[key]
-
-        return results
 
     def _close(self) -> None:
         if _session:
             del _session
             _session = None
 
-    def get_node_by_id(self, node_id: int) -> AddressNode:
-        """
-        Get the full node information by its id.
-
-        Parameters
-        ----------
-        node_id: int
-            The target node id.
-
-        Return
-        ------
-        AddressNode
-        """
-        return self.address_nodes.get_record(node_id)
+    def get_trie_nodes(self) -> NoReturn:
+        raise RemoteTreeException(
+            "This method is not available for RemoteTree."
+        )
 
     def installed_dictionary_version(self) -> str:
         return _json_request(
             url=self.url,
             method="jageocoder.installed_dictionary_version",
             params={},
+        )
+
+    def search_by_trie(
+            self, *args, **kwargs
+    ) -> NoReturn:
+        raise RemoteTreeException(
+            "This method is not available for RemoteTree."
         )
 
     def searchNode(self, query: str) -> List[Result]:

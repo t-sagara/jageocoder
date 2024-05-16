@@ -237,25 +237,6 @@ class AddressTree(object):
         # Itaiji converter
         self.converter = Converter()
 
-    def close(self) -> NoReturn:
-        raise RuntimeError("Unnecessary function close was called.")
-
-    def is_version_compatible(self) -> bool:
-        """
-        Check if the dictionary version is compatible with the package.
-
-        Returns
-        -------
-        bool
-            True if compatible, otherwize False.
-        """
-        current_dict_ver = self.get_version()
-        required_dict_ver = jageocoder.dictionary_version()
-        if current_dict_ver != required_dict_ver:
-            return False
-
-        return True
-
     def __not_in_readonly_mode(self) -> None:
         """
         Check if the dictionary is not opened in the read-only mode.
@@ -276,12 +257,9 @@ class AddressTree(object):
         AddressNode:
             The root node object.
         """
-        if self.root is None:
-            self.root = AddressNode.get(
-                tree=self,
-                pos=AddressNode.ROOT_NODE_ID)
-
-        return self.root
+        return self.get_node_by_id(
+            node_id=AddressNode.ROOT_NODE_ID
+        )
 
     def get_version(self) -> str:
         """
@@ -338,11 +316,10 @@ class AddressTree(object):
 
         return nodes
 
+    @deprecated("Use 'node.get_fullname()' instead of this method.")
     def get_node_fullname(self, node: Union[AddressNode, int]) -> List[str]:
-        if isinstance(node, AddressNode):
-            node_id = node.id
-        else:
-            node_id = node
+        if isinstance(node, int):
+            node = self.get_node_by_id(node)
 
         return node.get_fullname()
 
@@ -819,6 +796,8 @@ class AddressTree(object):
         notations that omit the name of the prefecture, or notations
         that omit the name of the prefecture and the city.
         """
+        self.__not_in_readonly_mode()
+
         # Build temporary lookup table
         logger.debug("Building temporary lookup table..")
         tmp_id_name_table = {}
@@ -887,6 +866,8 @@ class AddressTree(object):
         """
         Expand the index, including support for omission of county names.
         """
+        self.__not_in_readonly_mode()
+
         # Build temporary lookup table
         logger.debug("Building temporary town and village table..")
         tmp_id_name_table = {}
@@ -951,6 +932,8 @@ class AddressTree(object):
         then add the TrieNode to the database that maps
         the TRIE id to the node id.
         """
+        self.__not_in_readonly_mode()
+
         logger.debug("Creating mapping table from trie_id:node_id")
         trie_nodes = []
         for k, node_id_list in self.index_table.items():
@@ -966,6 +949,7 @@ class AddressTree(object):
 
         return trie_nodes
 
+    @deprecated("This method is obsolete in ver 2.")
     def read_file(self, path: os.PathLike,
                   do_update: bool = False) -> None:
         """
@@ -982,11 +966,7 @@ class AddressTree(object):
             if 'do_update' is true, otherwise do nothing.
         """
         raise AddressTreeException(
-            'This method is not available in read-only mode.')
-        logger.debug("Starting read_file...")
-        with open(path, 'r', encoding='utf-8',
-                  errors='backslashreplace') as f:
-            self.read_stream(f, do_update=do_update)
+            'This method is not available in version 2.')
 
     def search_by_tree(self, address_names: List[str]) -> AddressNode:
         """
@@ -1086,7 +1066,8 @@ class AddressTree(object):
             for node_id in trie_node.nodes:
                 node = self.get_address_node(id=node_id)
 
-                if node.y > 90.0 and self.get_config('require_coordinates'):
+                if not node.has_valid_coordinate_values() \
+                        and self.get_config('require_coordinates'):
                     node = node.add_dummy_coordinates()
 
                 if min_key == '' and node.level <= AddressLevel.WARD:
@@ -1180,7 +1161,8 @@ class AddressTree(object):
                                 cand.node.name, cand.node.id))
                             continue
 
-                    if self.get_config("require_coordinates") and cand.node.y > 90.0:
+                    if self.get_config("require_coordinates") \
+                            and not cand.node.has_valid_coordinate_values():
                         logger.debug("Node {}({}) has no coordinates.".format(
                             cand.node.name, cand.node.id
                         ))
@@ -1360,13 +1342,8 @@ class AddressTree(object):
         Collect notes from all address elements and create
         search table with index.
         """
+        self.__not_in_readonly_mode()
         self.address_nodes.create_indexes()
-
-    def get_cache_info(self) -> dict:
-        cache_info = {
-            "get_record": AddressNodeTable.get_record.cache_info(),
-        }
-        return cache_info
 
     def reverse(
         self,
