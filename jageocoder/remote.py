@@ -1,5 +1,6 @@
 from functools import lru_cache
 import json
+from logging import getLogger
 import os
 import requests
 from typing import Any, List, NoReturn, Optional, Union
@@ -12,6 +13,7 @@ from jageocoder.result import Result
 from jageocoder.tree import AddressTree, LRU
 
 
+logger = getLogger(__name__)
 _session = None
 
 
@@ -28,8 +30,13 @@ def _json_request(
         "id": str(uuid.uuid4()),
     }
     if _session is None:
+        logger.debug("Start a new HTTP session with the remote tree.")
         _session = requests.Session()
 
+    logger.debug(
+        "Send JSON-RPC request ---\n" +
+        json.dumps(payload, indent=2, ensure_ascii=False)
+    )
     response = _session.post(
         url=url,
         data=json.dumps(payload),
@@ -38,6 +45,11 @@ def _json_request(
 
     if "error" in response:
         raise RemoteTreeException(response["error"])
+
+    logger.debug(
+        "Receive JSON-RPC response ---\n" +
+        json.dumps(response["result"], indent=2, ensure_ascii=False)
+    )
 
     return response["result"]
 

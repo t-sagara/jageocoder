@@ -6,9 +6,8 @@
 
 # はじめに
 
-このパッケージは Python プログラムに住所ジオコーディング機能を提供します。
-`init()` で初期化し、 `search()` に住所文字列を渡すと、
-ジオコーディング結果が得られます。
+このパッケージは Python プログラムに住所ジオコーディングと逆ジオコーディング機能を提供します。
+`init()` で初期化し、 `search()` に住所文字列を渡すと、ジオコーディング結果が得られます。
 
 ```python
 >>> import jageocoder
@@ -277,22 +276,13 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 
 # 開発者向け情報
 
-## ユニットテスト
+## Documentation
 
-ユニットテストは pytest で行ないます。
-
-```sh
-pytest
-```
-
-`tests.test_search` テストには特殊な住所表記の例が含まれています。
-
-- 札幌市内の省略表記（例：「北三条西一丁目」を「北3西1」と表記）
-- 京都市内の通り名表記（例：「薮ノ内町」を「下立売通新町西入薮ノ内町」と表記）
+チュートリアルやリファレンスは [こちら](https://jageocoder.readthedocs.io/ja/latest/) 。
 
 ## 独自の辞書を作成したい場合
 
-辞書コンバータ [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter) を利用してください。Version 2.0 系列の辞書を作成するには、 jageocoder-converter も 2.0 以降を利用する必要があります。
+辞書コンバータ [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter) を利用してください。Version 2.x 系列の辞書を作成するには、 jageocoder-converter も 2.x 以降を利用する必要があります。
 
 ## 異体字を追加したい場合
 

@@ -498,8 +498,17 @@ class Index(object):
 
         # Select the 3 nodes that make the smallest triangle
         # surrounding the target point
-        # nodes = DelaunayTriangle.select(x, y, nodes)
-        nodes = nodes[0:3]
+        if len(nodes) == 0:
+            return []
+
+        if self.distance(x, y, nodes[0].x, nodes[0].y) < 1.0e-02:
+            # If the distance between the nearest point and the search point is
+            # less than 1 cm, it returns three points in order of distance.
+            # This is because the nearest point may not be included in
+            # the search results due to a calculation error.
+            nodes = nodes[0:3]
+        else:
+            nodes = DelaunayTriangle.select(x, y, nodes)
 
         # Convert nodes to the dict format.
         results = []

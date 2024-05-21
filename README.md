@@ -6,7 +6,7 @@ This is a Python port of the Japanese-address geocoder `DAMS` used in CSIS at th
 
 # Getting Started
 
-This package provides address-geocoding functionality for Python programs. The basic usage is to specify a dictionary with `init()` then call `search()` to get geocoding results.
+This package provides address-geocoding and reverse-geocoding functionality for Python programs. The basic usage is to specify a dictionary with `init()` then call `search()` to get geocoding results.
 
 ```python
 >>> import jageocoder
@@ -31,11 +31,11 @@ To use Jageocoder, you need to install the "Dictionary Database" on the same mac
 
 ### Install Dictionary Database
 
-Large amounts of data can be processed at high speed when a dictionary database is installed. A database covering addresses in Japan requires 30 GB or more of storage.
+When a dictionary database is installed, large amounts of data can be processed at high speed. A database covering addresses in Japan requires 25 GB or more of storage.
 
 - Download an address database file compatible with that version from [here](https://www.info-proto.com/static/jageocoder/latest/v2/)
 
-      wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip 
+      jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip 
 
 - Install the dictionary with `install-dictionary` command
 
@@ -260,6 +260,12 @@ the block number (○番) contained therein.
 >>> [child.name for child in parent.children]
 ['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
 ```
+
+# For developers
+
+## Documentation
+
+Tutorials and references are [here](https://jageocoder.readthedocs.io/ja/latest/).
 
 ## Create your own dictionary
 
