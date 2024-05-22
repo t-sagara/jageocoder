@@ -399,7 +399,7 @@ class Index(object):
         """
         results = []
         for node_id in id_list:
-            node = self._tree.get_address_node(id=node_id)
+            node = self._tree.get_node_by_id(node_id=node_id)
             dist = self.distance(node.x, node.y, lon, lat)
             results.append((node, dist))
 
@@ -440,7 +440,7 @@ class Index(object):
         nodes = []
         ancestors = set()
         max_level = 0
-        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
+        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 16)):
             if node.id in ancestors:
                 continue
 
@@ -449,12 +449,16 @@ class Index(object):
 
             nodes.append(node)
             max_level = max(max_level, node.level)
-            # Ancestor nodes of registering node are excluded.
+
+            # List ancestor nodes of registering node.
             cur = node.parent
             while cur is not None:
-                nodes = [node for node in nodes if node.id != cur.id]
+                # nodes = [node for node in nodes if node.id != cur.id]
                 ancestors.add(cur.id)
                 cur = cur.parent
+
+        # Exclude ancestor nodes
+        nodes = [node for node in nodes if node.id not in ancestors]
 
         if level > max_level:
             # Search points in the higher levels
@@ -462,11 +466,15 @@ class Index(object):
             for node in nodes:
                 child_id = node.id
                 while child_id < node.sibling_id:
-                    child_node = self._tree.get_address_node(id=child_id)
+                    child_node = self._tree.get_node_by_id(node_id=child_id)
                     if child_node.level > level:
                         child_id = child_node.parent.sibling_id
                         continue
                     elif not child_node.has_valid_coordinate_values():
+                        if child_node.level == level:
+                            child_id += 1
+                            continue
+
                         child_node = child_node.add_dummy_coordinates()
                         if not child_node.has_valid_coordinate_values():
                             child_id += 1
@@ -492,9 +500,11 @@ class Index(object):
                 # Ancestor nodes of registering node are excluded.
                 cur = node.parent
                 while cur is not None:
-                    nodes = [node for node in nodes if node.id != cur.id]
+                    # nodes = [node for node in nodes if node.id != cur.id]
                     ancestors.add(cur.id)
                     cur = cur.parent
+
+            nodes = [node for node in nodes if node.id not in ancestors]
 
         # Select the 3 nodes that make the smallest triangle
         # surrounding the target point

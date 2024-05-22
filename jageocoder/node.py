@@ -514,7 +514,7 @@ class AddressNode(object):
         """
         new_node = copy.copy(self)
         for child in self.iter_children():
-            if child.y <= 90.0:
+            if child.has_valid_coordinate_values():
                 new_node.x, new_node.y = child.x, child.y
                 logger.debug((
                     "Node {}({}) has no coordinates. "

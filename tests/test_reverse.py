@@ -3,6 +3,7 @@ import unittest
 
 import jageocoder
 from jageocoder.address import AddressLevel
+from jageocoder.node import AddressNode
 
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO)
@@ -81,8 +82,7 @@ class TestReverseMethods(unittest.TestCase):
         candidate_names = [x['candidate']['fullname'] for x in results]
         self.assertTrue(len(candidate_names) >= 1)
         self.assertTrue(
-            ["東京都", "小笠原村", "母島"] in candidate_names or
-            ["東京都", "小笠原村", "母島", "字西浦"] in candidate_names
+            candidate_names[0][-1] in ("母島", "字西浦", "西浦")
         )
 
     def test_hachijo(self):
@@ -107,7 +107,17 @@ class TestReverseMethods(unittest.TestCase):
         """
         results = jageocoder.reverse(
             x=136.901476, y=36.98889, level=6, as_dict=False)
-        longitudes = [x['candidate'].x for x in results]
-        latitudes = [x['candidate'].y for x in results]
-        self.assertTrue(longitudes[0] < 999.9)
-        self.assertTrue(latitudes[0] < 999.9)
+        for result in results:
+            candidate: AddressNode = result["candidate"]
+            self.assertTrue(candidate.has_valid_coordinate_values())
+
+    def test_noname_oaza(self):
+        results = jageocoder.reverse(
+            x=140.182312, y=35.9114227, level=8, as_dict=False)
+        candidate: AddressNode = results[0]["candidate"]
+        self.assertEqual(candidate.name, "3710番地")
+
+        results = jageocoder.reverse(
+            x=140.188034, y=35.9068260, level=8, as_dict=False)
+        candidate: AddressNode = results[0]["candidate"]
+        self.assertEqual(candidate.name, "4235番地")

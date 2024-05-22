@@ -285,11 +285,13 @@ class AddressTree(object):
         node_id: int
             The target node id.
 
-        Return
-        ------
+        Returns
+        -------
         AddressNode
         """
-        return self.address_nodes.get_record(node_id)
+        node = self.address_nodes.get_record(node_id)
+        node.tree = self
+        return node
 
     def search_nodes_by_codes(
             self,
@@ -965,6 +967,7 @@ class AddressTree(object):
 
         return results
 
+    @deprecated(reason="Use 'get_node_by_id'.", version="2.1.7")
     def get_address_node(self, id: int) -> AddressNode:
         """
         Get address node from the tree by its id.
