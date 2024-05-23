@@ -309,31 +309,66 @@ class Index(object):
         node_table: AddressNodeTable = self._tree.address_nodes
 
         max_id = node_table.count_records()
+
+        logger.info("Building RTree for reverse geocoding...")
         id = AddressNode.ROOT_NODE_ID
+        stack = []
         with tqdm(total=max_id, mininterval=0.5, ascii=True) as pbar:
             prev_id = 0
+            next_sibling_id = max_id
             while id < max_id:
                 pbar.update(id - prev_id)
                 prev_id = id
 
                 node = node_table.get_record(pos=id)
-                if node.level > AddressLevel.AZA:
-                    id = node.sibling_id
-                    continue
-                elif node.level < AddressLevel.OAZA:
+                if node.level <= AddressLevel.CITY:
                     id += 1
                     continue
-                elif not node.has_valid_coordinate_values():
-                    node = node.add_dummy_coordinates()
-                    if not node.has_valid_coordinate_values():
-                        id += 1
-                        continue
 
-                file_idx.insert(
-                    id=id,
-                    coordinates=(node.x, node.y, node.x, node.y)
-                )
+                if node.level <= AddressLevel.AZA:
+                    stack.append([
+                        node.id, node.sibling_id,
+                        set(), set(), set(), set()
+                    ])
+                    next_sibling_id = min(next_sibling_id, node.sibling_id)
+
+                if not node.has_valid_coordinate_values():
+                    node = node.add_dummy_coordinates()
+
                 id += 1
+
+                if node.has_valid_coordinate_values():
+                    for i in range(len(stack) - 1, -1, -1):
+                        r = stack[i]
+                        r[2].add(node.x)
+                        r[3].add(node.y)
+                        r[4].add(node.x)
+                        r[5].add(node.y)
+                        if len(r[2]) > 100:
+                            r[2] = {min(r[2]), }
+                            r[3] = {min(r[3]), }
+                            r[4] = {max(r[4]), }
+                            r[5] = {max(r[5]), }
+
+                if id >= next_sibling_id:
+                    for i in range(len(stack) - 1, -1, -1):
+                        r = stack[i]
+                        if id >= r[1]:
+                            if len(r[2]) > 0:
+                                file_idx.insert(
+                                    id=r[0],
+                                    coordinates=(
+                                        min(r[2]), min(r[3]),
+                                        max(r[4]), max(r[5]),
+                                    ),
+                                )
+
+                            del stack[i]
+
+                    if len(stack) > 0:
+                        next_sibling_id = min([r[1] for r in stack])
+                    else:
+                        next_sibling_id = max_id
 
         return file_idx
 
@@ -372,7 +407,7 @@ class Index(object):
         while node.level > AddressLevel.AZA:
             node = node.parent
 
-        return node.id in self.idx.nearest((node.x, node.y, node.x, node.y), 2)
+        return len(tuple(self.idx.intersection((node.x, node.y, node.x, node.y)))) > 0
 
     def _sort_by_dist(
         self,
@@ -398,7 +433,7 @@ class Index(object):
             The sorted list of address nodes.
         """
         results = []
-        for node_id in id_list:
+        for node_id in set(id_list):
             node = self._tree.get_node_by_id(node_id=node_id)
             dist = self.distance(node.x, node.y, lon, lat)
             results.append((node, dist))
@@ -436,60 +471,12 @@ class Index(object):
         """
         level = level or AddressLevel.AZA
 
-        # Search nodes by Rtree Index
-        nodes = []
-        ancestors = set()
-        max_level = 0
-        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 16)):
-            if node.id in ancestors:
-                continue
-
-            if not node.has_valid_coordinate_values():
-                node = node.add_dummy_coordinates()
-
-            nodes.append(node)
-            max_level = max(max_level, node.level)
-
-            # List ancestor nodes of registering node.
-            cur = node.parent
-            while cur is not None:
-                # nodes = [node for node in nodes if node.id != cur.id]
-                ancestors.add(cur.id)
-                cur = cur.parent
-
-        # Exclude ancestor nodes
-        nodes = [node for node in nodes if node.id not in ancestors]
-
-        if level > max_level:
-            # Search points in the higher levels
-            local_idx = index.Rtree()  # Create local rtree on memory
-            for node in nodes:
-                child_id = node.id
-                while child_id < node.sibling_id:
-                    child_node = self._tree.get_node_by_id(node_id=child_id)
-                    if child_node.level > level:
-                        child_id = child_node.parent.sibling_id
-                        continue
-                    elif not child_node.has_valid_coordinate_values():
-                        if child_node.level == level:
-                            child_id += 1
-                            continue
-
-                        child_node = child_node.add_dummy_coordinates()
-                        if not child_node.has_valid_coordinate_values():
-                            child_id += 1
-                            continue
-
-                    local_idx.insert(
-                        id=child_id,
-                        coordinates=(
-                            child_node.x, child_node.y,
-                            child_node.x, child_node.y))
-                    child_id += 1
-
+        if level <= AddressLevel.AZA:
             nodes = []
             ancestors = set()
-            for node in self._sort_by_dist(x, y, local_idx.nearest((x, y, x, y), 20)):
+            max_level = 0
+            candidates = set(self.idx.nearest((x, y, x, y), 20))
+            for node in self._sort_by_dist(x, y, candidates):
                 if node.id in ancestors:
                     continue
 
@@ -497,14 +484,90 @@ class Index(object):
                     node = node.add_dummy_coordinates()
 
                 nodes.append(node)
-                # Ancestor nodes of registering node are excluded.
+                max_level = max(max_level, node.level)
+
+                # List ancestor nodes of registering node.
                 cur = node.parent
                 while cur is not None:
                     # nodes = [node for node in nodes if node.id != cur.id]
                     ancestors.add(cur.id)
                     cur = cur.parent
 
+            # Exclude ancestor nodes
             nodes = [node for node in nodes if node.id not in ancestors]
+
+        else:
+            # Search nodes by Rtree Index
+            nodes = []
+            ancestors = set()
+            max_level = 0
+            candidates = set(self.idx.intersection((x, y, x, y)))
+            for node in self._sort_by_dist(x, y, candidates):
+                if node.id in ancestors:
+                    continue
+
+                if not node.has_valid_coordinate_values():
+                    node = node.add_dummy_coordinates()
+
+                nodes.append(node)
+                max_level = max(max_level, node.level)
+
+                # List ancestor nodes of registering node.
+                cur = node.parent
+                while cur is not None:
+                    # nodes = [node for node in nodes if node.id != cur.id]
+                    ancestors.add(cur.id)
+                    cur = cur.parent
+
+            # Exclude ancestor nodes
+            nodes = [node for node in nodes if node.id not in ancestors]
+
+            if level > max_level:
+                # Search points in the higher levels
+                local_idx = index.Rtree()  # Create local rtree on memory
+                for node in nodes:
+                    child_id = node.id
+                    while child_id < node.sibling_id:
+                        child_node = self._tree.get_node_by_id(
+                            node_id=child_id)
+                        if child_node.level > level:
+                            child_id = child_node.parent.sibling_id
+                            continue
+                        elif not child_node.has_valid_coordinate_values():
+                            if child_node.level == level:
+                                child_id += 1
+                                continue
+
+                            child_node = child_node.add_dummy_coordinates()
+                            if not child_node.has_valid_coordinate_values():
+                                child_id += 1
+                                continue
+
+                        local_idx.insert(
+                            id=child_id,
+                            coordinates=(
+                                child_node.x, child_node.y,
+                                child_node.x, child_node.y))
+                        child_id += 1
+
+                nodes = []
+                ancestors = set()
+                for node in self._sort_by_dist(x, y, local_idx.nearest((x, y, x, y), 20)):
+                    if node.id in ancestors:
+                        continue
+
+                    if not node.has_valid_coordinate_values():
+                        node = node.add_dummy_coordinates()
+
+                    nodes.append(node)
+                    # Ancestor nodes of registering node are excluded.
+                    cur = node.parent
+                    while cur is not None:
+                        # nodes = [node for node in nodes if node.id != cur.id]
+                        ancestors.add(cur.id)
+                        cur = cur.parent
+
+                nodes = [node for node in nodes if node.id not in ancestors]
 
         # Select the 3 nodes that make the smallest triangle
         # surrounding the target point
