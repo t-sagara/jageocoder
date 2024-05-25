@@ -27,6 +27,14 @@ class TestReverseMethods(unittest.TestCase):
         self.assertEqual(candidate_names[1], ["東京都", "多摩市", "愛宕", "四丁目"])
         self.assertEqual(candidate_names[2], ["東京都", "多摩市", "豊ケ丘", "一丁目"])
 
+    def test_endless_pattern(self):
+        results = jageocoder.reverse(
+            y=35.689472, x=139.69175, level=7, as_dict=False
+        )
+        nearest_node = results[0]["candidate"]
+        self.assertTrue(isinstance(nearest_node, jageocoder.node.AddressNode))
+        self.assertEqual(nearest_node.dataset["title"], "街区レベル位置参照情報")
+
     def test_block_level(self):
         """
         Test reverse lookup of an address from coordinates in general conditions
@@ -121,3 +129,15 @@ class TestReverseMethods(unittest.TestCase):
             x=140.188034, y=35.9068260, level=8, as_dict=False)
         candidate: AddressNode = results[0]["candidate"]
         self.assertEqual(candidate.name, "4235番地")
+
+    def test_kyoto_cityhall(self) -> None:
+        results = jageocoder.reverse(
+            x=135.768188, y=35.0115738, level=8)
+        candidate = results[0]["candidate"]
+        self.assertEqual(candidate["name"], "488番地")
+
+    def test_kyoto_edgecase(self) -> None:
+        results = jageocoder.reverse(
+            x=135.7586754, y=35.0203540, level=8, as_dict=False)
+        candidate = results[0]["candidate"]
+        self.assertEqual(candidate.get_city_name(), "上京区")

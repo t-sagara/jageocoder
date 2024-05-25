@@ -10,8 +10,8 @@ class TestRemoteMethods(unittest.TestCase):
     def setUpClass(cls):
         url = os.environ.get("JAGEOCODER_SERVER_URL")
         if url is None:
-            url = "https://jageocoder.info-proto.com/jsonrpc"
-            # url = "http://jageocoder:5000/jsonrpc"
+            # url = "https://jageocoder.info-proto.com/jsonrpc"
+            url = "http://jageocoder:5000/jsonrpc"
 
         jageocoder.init(url=url)
 
