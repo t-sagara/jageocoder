@@ -141,3 +141,8 @@ class TestReverseMethods(unittest.TestCase):
             x=135.7586754, y=35.0203540, level=8, as_dict=False)
         candidate = results[0]["candidate"]
         self.assertEqual(candidate.get_city_name(), "上京区")
+
+    def test_remove_edaban(self) -> None:
+        results = jageocoder.reverse(
+            x=139.4287109375, y=35.6257438659668, level=8
+        )

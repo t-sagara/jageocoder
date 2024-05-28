@@ -421,6 +421,9 @@ class Index(object):
         results = []
         for node_id in set(id_list):
             node = self._tree.get_node_by_id(node_id=node_id)
+            if not node.has_valid_coordinate_values():
+                node = node.add_dummy_coordinates()
+
             key = (node.x, node.y)
             if key in node_map:
                 node_map[key].append(node)
@@ -540,12 +543,19 @@ class Index(object):
                         n = len(candidates)
                         if n > k:
                             delnode = candidates[k].node
-                            del node_map[(delnode.x, delnode.y)]
                             del candidates[k]
+                            delkey = (delnode.x, delnode.y)
+                            node_map[delkey].remove(delnode)
+                            if len(node_map[delkey]) == 0:
+                                del node_map[delkey]
+
                         elif n > min_k and candidates[min_k].dist > max_dist:
                             delnode = candidates[min_k].node
-                            del node_map[(delnode.x, delnode.y)]
                             del candidates[min_k]
+                            delkey = (delnode.x, delnode.y)
+                            node_map[delkey].remove(delnode)
+                            if len(node_map[delkey]) == 0:
+                                del node_map[delkey]
 
             return (candidates, node_map)
 
