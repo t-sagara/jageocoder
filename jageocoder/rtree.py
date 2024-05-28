@@ -1,4 +1,5 @@
 from abc import ABC
+import copy
 from logging import getLogger
 import os
 from typing import Iterable, List, Optional, Tuple
@@ -323,63 +324,27 @@ class Index(object):
 
         logger.info("Building RTree for reverse geocoding...")
         id = AddressNode.ROOT_NODE_ID
-        stack = []
         with tqdm(total=max_id, mininterval=0.5, ascii=True) as pbar:
             prev_id = 0
-            next_sibling_id = max_id
             while id < max_id:
                 pbar.update(id - prev_id)
                 prev_id = id
 
                 node = node_table.get_record(pos=id)
-                if node.level <= AddressLevel.WARD:
+                if node.level <= AddressLevel.WARD or node.level > AddressLevel.BLOCK:
                     id += 1
                     continue
-
-                if node.level <= AddressLevel.AZA:
-                    stack.append([
-                        node.id, node.sibling_id,
-                        set(), set(), set(), set()
-                    ])
-                    next_sibling_id = min(next_sibling_id, node.sibling_id)
 
                 if not node.has_valid_coordinate_values():
                     node = node.add_dummy_coordinates()
 
-                id += 1
-
                 if node.has_valid_coordinate_values():
-                    for i in range(len(stack) - 1, -1, -1):
-                        r = stack[i]
-                        r[2].add(node.x)
-                        r[3].add(node.y)
-                        r[4].add(node.x)
-                        r[5].add(node.y)
-                        if len(r[2]) > 100:
-                            r[2] = {min(r[2]), }
-                            r[3] = {min(r[3]), }
-                            r[4] = {max(r[4]), }
-                            r[5] = {max(r[5]), }
+                    file_idx.insert(
+                        id=id,
+                        coordinates=(node.x, node.y, node.x, node.y),
+                    )
 
-                if id >= next_sibling_id:
-                    for i in range(len(stack) - 1, -1, -1):
-                        r = stack[i]
-                        if id >= r[1]:
-                            if len(r[2]) > 0:
-                                file_idx.insert(
-                                    id=r[0],
-                                    coordinates=(
-                                        min(r[2]), min(r[3]),
-                                        max(r[4]), max(r[5]),
-                                    ),
-                                )
-
-                            del stack[i]
-
-                    if len(stack) > 0:
-                        next_sibling_id = min([r[1] for r in stack])
-                    else:
-                        next_sibling_id = max_id
+                id += 1
 
         return file_idx
 
@@ -412,22 +377,29 @@ class Index(object):
         """
         node_table = self._tree.address_nodes
         node = node_table.get_record(pos=node_table.count_records() // 2)
-        while node.level < AddressLevel.OAZA:
-            node = node_table.get_record(pos=node.id + 1)
 
-        while node.level > AddressLevel.AZA:
-            node = node.parent
+        while True:
+            while node.level < AddressLevel.BLOCK:
+                node = node_table.get_record(pos=node.id + 1)
 
-        results = tuple(self.idx.intersection(
-            (node.x, node.y, node.x, node.y)))
+            while node.level > AddressLevel.BLOCK:
+                node = node.parent
+
+            if node.has_valid_coordinate_values():
+                break
+
+            node = node_table.get_record(pos=node.sibling_id)
+
+        results = tuple(self.idx.nearest((node.x, node.y, node.x, node.y), 20))
         return len(results) > 0 and node.id in results
 
     def _sort_by_dist(
         self,
         lon: float,
         lat: float,
-        id_list: Iterable[int]
-    ) -> List[NodeDist]:
+        id_list: Iterable[int],
+        node_map: Optional[dict] = None,
+    ) -> Tuple[List[NodeDist], dict]:
         """
         Sort nodes by real(projected) distance from the target point.
 
@@ -442,17 +414,23 @@ class Index(object):
 
         Returns
         -------
-        List[NodeDist]
-            The sorted list of (distance, address node).
+        Tuple[List[NodeDist], dict]
+            The sorted list of (distance, address node) and a node map.
         """
+        node_map = node_map or {}
         results = []
         for node_id in set(id_list):
             node = self._tree.get_node_by_id(node_id=node_id)
-            dist = self.distance(node.x, node.y, lon, lat)
-            results.append(NodeDist(dist, node))
+            key = (node.x, node.y)
+            if key in node_map:
+                node_map[key].append(node)
+            else:
+                node_map[key] = [node]
+                dist = self.distance(node.x, node.y, lon, lat)
+                results.append(NodeDist(dist, node))
 
         results.sort(key=lambda x: x.dist)
-        return results
+        return (results, node_map)
 
     def nearest(
         self,
@@ -572,39 +550,18 @@ class Index(object):
             return (candidates, node_map)
 
         level = level or AddressLevel.AZA
-        node_map = None
-        if level <= AddressLevel.AZA:
-            # Retrieve top k-nearest nodes using the R-tree index.
-            nearests = self.idx.nearest((x, y, x, y), 20)
-            node_dists = _remove_parent_nodes(
-                self._sort_by_dist(x, y, nearests))
 
-        else:
-            # Retrieve all OAZA and AZA nodes containing the specified point.
-            intersections = set(self.idx.intersection((x, y, x, y)))
-            aza_node_dists = _remove_parent_nodes(
-                self._sort_by_dist(x, y, intersections))
-            if len(aza_node_dists) == 0:
-                nearests = self.idx.nearest((x, y, x, y), 20)
-                aza_node_dists = _remove_parent_nodes(
-                    self._sort_by_dist(x, y, nearests))
+        # Retrieve top k-nearest nodes using the R-tree index.
+        nearests = self.idx.nearest((x, y, x, y), 20)
+        node_dists, node_map = self._sort_by_dist(x, y, nearests)
+        node_dists = _remove_parent_nodes(node_dists)
 
+        if level > AddressLevel.BLOCK:
             candidates, node_map = _get_k_nearest_child_nodes(
-                aza_node_dists, min_k=1)
-
-            # Retrieve OAZA and AZA nodes that do not contain the specified point
-            # but are adjacent to it.
-            edge_node = candidates[-1].node
-            delta = ((x - edge_node.x) * (x - edge_node.x) +
-                     (y - edge_node.y) * (y - edge_node.y)) ** 0.5
-            borders = set(self.idx.intersection(
-                (x - delta, y - delta, x + delta, y + delta))).difference(intersections)
-            aza_node_dists = _remove_parent_nodes(
-                self._sort_by_dist(x, y, borders))
-            candidates, node_map = _get_k_nearest_child_nodes(
-                aza_node_dists,
-                candidates=candidates,
-                node_map=node_map)
+                node_dists,
+                candidates=copy.copy(node_dists),
+                node_map=node_map,
+                min_k=1)
 
             node_dists = _remove_parent_nodes(candidates)
 
@@ -641,6 +598,8 @@ class Index(object):
             while node.level > level:
                 node = node.parent
                 dist = None
+                if not node.has_valid_coordinate_values():
+                    node.x, node.y = v.node.x, v.node.y
 
             if node.id in registered:
                 continue
