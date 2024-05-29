@@ -184,6 +184,30 @@ class RemoteNodeTable(object):
 
         return nodes
 
+    def search_ids_on(
+        self,
+        attr: str,
+        value: str,
+    ) -> list:
+        """
+        Search id from the table on the specified attribute on the remote server.
+
+        Paramters
+        ---------
+        attr: str
+            The name of target attribute.
+        value: str
+            The target value.
+
+        Returns
+        -------
+        List[Record]
+            List of records.
+        """
+        nodes = self.search_records_on(attr, value)
+        ids = [node.id for node in nodes]
+        return ids
+
 
 class RemoteTree(AddressTree):
     """

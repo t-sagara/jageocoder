@@ -1,17 +1,14 @@
 from collections import OrderedDict
-import csv
-import json
 from logging import getLogger
 import os
 from pathlib import Path
 import re
 import site
 import sys
-from typing import Any, Union, List, Set, NoReturn, Optional, TextIO
+from typing import Any, Union, List, Set, Optional
 
 from deprecated import deprecated
 
-import jageocoder
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.exceptions import AddressTreeException
@@ -317,6 +314,31 @@ class AddressTree(object):
             attr="note", value=pattern)  # exact match
 
         return nodes
+
+    def search_ids_by_codes(
+            self,
+            category: str,
+            value: str) -> List[AddressNode]:
+        """
+        Search node ids by category and value.
+
+        Parameters
+        ----------
+        category: str
+            Category name such as 'jisx0402' or 'postcode'.
+        value: str
+            Target value.
+
+        Returns
+        -------
+        List[int]
+        """
+        ids = []
+        pattern = '{}:{}'.format(category, value)
+        ids = self.address_nodes.search_ids_on(
+            attr="note", value=pattern)  # exact match
+
+        return ids
 
     @deprecated("Use 'node.get_fullname()' instead of this method.")
     def get_node_fullname(self, node: Union[AddressNode, int]) -> List[str]:
@@ -1174,17 +1196,30 @@ class AddressTree(object):
         """
         if len(id) == 12:
             # jisx0402(5digits) + aza_id(7digits)
-            candidates = self.search_nodes_by_codes(
+            citynode = self.search_by_citycode(code=id[0:5])
+            if len(citynode) == 0:
+                return []
+
+            citynode = citynode[0]
+            candidates = self.search_ids_by_codes(
                 category="aza_id",
                 value=id[-7:])
-            nodes = [x for x in candidates if x.get_city_jiscode() == id[0:5]]
+            nodes = [self.address_nodes.get_record(x)
+                     for x in candidates
+                     if x >= citynode.id and x < citynode.sibling_id]
         elif len(id) == 13:
             # lasdec(6digits) + aza_id(7digits)
-            candidates = self.search_nodes_by_codes(
+            citynode = self.search_by_citycode(code=id[0:6])
+            if len(citynode) == 0:
+                return []
+
+            citynode = citynode[0]
+            candidates = self.search_ids_by_codes(
                 category="aza_id",
                 value=id[-7:])
-            nodes = [x for x in candidates
-                     if x.get_city_local_authority_code() == id[0:6]]
+            nodes = [self.address_nodes.get_record(x)
+                     for x in candidates
+                     if x >= citynode.id and x < citynode.sibling_id]
         else:
             nodes = self.search_nodes_by_codes(
                 category="aza_id",

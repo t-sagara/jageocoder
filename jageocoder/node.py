@@ -70,6 +70,30 @@ class AddressNodeTable(PortableTab.BaseTable):
         node.table = self
         return node
 
+    def search_ids_on(
+        self,
+        attr: str,
+        value: str,
+    ) -> list:
+        """
+        Search id list from the table on the specified attribute.
+
+        Paramters
+        ---------
+        attr: str
+            The name of target attribute.
+        value: str
+            The target value.
+
+        Returns
+        -------
+        List[int]
+            List of node ids.
+        """
+        trie = self.open_trie_on(attr)
+        positions = trie.get(value, [])
+        return [p[0] for p in positions]
+
     def create_indexes(self) -> None:
         """
         Create TRIE index on "name" and "note" columns.
