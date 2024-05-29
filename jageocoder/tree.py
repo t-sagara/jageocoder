@@ -849,7 +849,7 @@ class AddressTree(object):
             key = index[0:offset]
             rest_index = index[offset:]
             for node_id in trie_node.nodes:
-                node = self.get_address_node(id=node_id)
+                node = self.get_node_by_id(node_id=node_id)
 
                 if not node.has_valid_coordinate_values() \
                         and self.get_config('require_coordinates'):
