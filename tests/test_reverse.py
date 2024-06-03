@@ -75,10 +75,10 @@ class TestReverseMethods(unittest.TestCase):
         candidate_names = [x['candidate']['fullname'] for x in results]
         self.assertTrue(len(candidate_names) >= 2)
         self.assertTrue(
-            ["千葉県", "銚子市", "海鹿島町", "5245番地"] in candidate_names
+            ["千葉県", "銚子市", "海鹿島町", "5244番地"] in candidate_names
         )
         self.assertTrue(
-            ["千葉県", "銚子市", "海鹿島町", "5244番地"] in candidate_names
+            ["千葉県", "銚子市", "海鹿島町", "5254番地"] in candidate_names
         )
 
     def test_island(self):
@@ -110,13 +110,17 @@ class TestReverseMethods(unittest.TestCase):
 
     def test_skip_index_no_lat_lon(self):
         """
-        Test for the case wehre not include rtree index data
+
+        Test for the case where not include rtree index data
         without latitude and longitude.
         """
         results = jageocoder.reverse(
             x=136.901476, y=36.98889, level=6, as_dict=False)
         for result in results:
             candidate: AddressNode = result["candidate"]
+            if not candidate.has_valid_coordinate_values():
+                candidate = candidate.add_dummy_coordinates()
+
             self.assertTrue(candidate.has_valid_coordinate_values())
 
     def test_noname_oaza(self):
