@@ -74,7 +74,7 @@ def init(db_dir: Optional[os.PathLike] = None,
     if _db_dir is None and _url is None:
         if os.environ.get('JAGEOCODER_DB2_DIR'):
             _db_dir = get_db_dir(mode=mode)
-        elif os.environ.get('JAGEOCODER_SERVER_URL'):
+        elif os.environ.get('JAGEOCODER_SERVER_URL') and mode == 'r':
             _url = os.environ.get('JAGEOCODER_SERVER_URL')
 
     # Search local database
