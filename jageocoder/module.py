@@ -63,16 +63,25 @@ def init(db_dir: Optional[os.PathLike] = None,
 
     _url = None
     _db_dir = None
+
+    # Check parameters
     if db_dir is not None:
         _db_dir = db_dir
     elif url is not None and mode == 'r':
         _url = url
-    elif os.environ.get('JAGEOCODER_DB2_DIR'):
+
+    # Check environmental variables
+    if _db_dir is None and _url is None:
+        if os.environ.get('JAGEOCODER_DB2_DIR'):
+            _db_dir = get_db_dir(mode=mode)
+        elif os.environ.get('JAGEOCODER_SERVER_URL'):
+            _url = os.environ.get('JAGEOCODER_SERVER_URL')
+
+    # Search local database
+    if _db_dir is None and _url is None:
         _db_dir = get_db_dir(mode=mode)
 
-    if _db_dir is None and _url is None:
-        _url = os.environ.get('JAGEOCODER_SERVER_URL')
-
+    # Initialize tree object
     if _db_dir:
         _tree = AddressTree(db_dir=_db_dir, mode=mode, debug=debug)
     elif _url:
