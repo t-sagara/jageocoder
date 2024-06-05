@@ -1512,6 +1512,17 @@ class AddressNode(object):
 
         return ''
 
+    def get_machiaza_id(self) -> str:
+        """
+        Returns the MachiAza ID defined by JDA address-base-registry
+        containing this node.
+
+        Note
+        ----
+        - This method is an alias for 'get_aza_id'.
+        """
+        return self.get_aza_id()
+
     def get_aza_code(self) -> str:
         """
         Returns the 'AZA-code' concatinated with the city-code

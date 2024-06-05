@@ -9,6 +9,7 @@ from typing import Any, Union, List, Set, Optional
 
 from deprecated import deprecated
 
+import jaconv
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.exceptions import AddressTreeException
@@ -1168,6 +1169,15 @@ class AddressTree(object):
 
         return self.reverse_index.nearest(x=x, y=y, level=level, as_dict=as_dict)
 
+    @classmethod
+    def _clean_numerical_string(cls, code: str) -> str:
+        """
+        Clean numeric string.
+        """
+        code = jaconv.zen2han(code, kana=False, ascii=False, digit=True)
+        code = re.sub(r'\D', '', code)
+        return code
+
     def search_by_machiaza_id(
             self,
             id: str
@@ -1194,6 +1204,7 @@ class AddressTree(object):
         - Otherwise, it searches for address nodes whose machiaza-id matches "id"
             from all municipalities. In this case, aza_id must be 7 characters.
         """
+        id = self._clean_numerical_string(id)
         if len(id) == 12:
             # jisx0402(5digits) + aza_id(7digits)
             citynode = self.search_by_citycode(code=id[0:5])
@@ -1247,6 +1258,7 @@ class AddressTree(object):
         -----
         - The "code" must be 7 characters.
         """
+        code = self._clean_numerical_string(code)
         if len(code) == 7:
             # Postcode(7digits)
             return self.search_nodes_by_codes(
@@ -1277,6 +1289,7 @@ class AddressTree(object):
         - If "code" is 2 characters, the code is considered the JISX0401 code.
         - If "code" is 6 characters, the code is considered the local-govenment code.
         """
+        code = self._clean_numerical_string(code)
         if len(code) == 2:
             # jisx0401(2digits)
             return self.search_nodes_by_codes(
@@ -1313,6 +1326,7 @@ class AddressTree(object):
         - If "code" is 5 characters, the code is considered the JISX0402 code.
         - If "code" is 6 characters, the code is considered the local-govenment code.
         """
+        code = self._clean_numerical_string(code)
         if len(code) == 5:
             # jisx0402(5digits)
             return self.search_nodes_by_codes(

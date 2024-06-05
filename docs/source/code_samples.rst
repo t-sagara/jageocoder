@@ -247,13 +247,18 @@ JISX0402 で規定されている市区町村コード（5桁）を取得でき�
 
 **アドレス・ベース・レジストリ**
 
+:py:meth:`get_machiaza_id() <jageocoder.node.AddressNode.get_machiaza_id>` メソッドで、
+この住所に対応するアドレス・ベース・レジストリの町字ID (7桁) を取得できます。
 :py:meth:`get_aza_code() <jageocoder.node.AddressNode.get_aza_code>` メソッドで、
-この住所に対応するアドレス・ベース・レジストリの町字コードを取得できます。
+この住所に対応するアドレス・ベース・レジストリから計算した町字レベルのコード
+(市区町村コード 5桁 + 町字ID 7桁) を取得できます。
 :py:meth:`get_aza_names() <jageocoder.node.AddressNode.get_aza_names()>` メソッドで
 町字レベルの名称（漢字表記、カナ表記、英字表記）を取得できます。
 
 .. code-block:: python
 
+   >>> node.get_machiaza_id()
+   '0023002'
    >>> node.get_aza_code()
    '131040023002'
    >>> node.get_aza_names()
@@ -325,3 +330,75 @@ AddressNode の属性 :py:attr:`children <jageocoder.node.AddressNode.children>`
 
 AddressNode のメソッドのより詳しい説明は API リファレンスの
 :doc:`api_node` を参照してください。
+
+住所の属性から住所を検索する
+----------------------------
+
+郵便番号や自治体コードなどの属性から住所を検索することができます。
+
+.. note::
+
+   属性から住所を検索する機能は v2.1.7 で追加されました。
+
+**郵便番号から住所を検索する**
+
+:py:meth:`search_by_postcode() <jageocoder.search_by_postcode>`
+メソッドで指定した郵便番号に対応する住所を検索し、
+:py:class:`AddressNode <jageocoder.node.AddressNode>` のリストを返します。
+
+.. code-block:: python
+
+   >>> import jageocoder
+   >>> jageocoder.init()
+   >>> jageocoder.search_by_postcode('1600023')
+   [{'id': 80225155, 'name': '八丁目', 'x': 139.6924591064453, 'y': 35.695777893066406, 'level': 6, 'priority': 2, 'note': 'aza_id:0023008/postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '八丁目']}, {'id': 80223785, 'name': '七丁目', 'x': 139.69723510742188, 'y': 35.695579528808594, 'level': 6, 'priority': 2, 'note': 'aza_id:0023007/postcode:1600023', 'fullname': ['東京都', '新宿区', ' 西新宿', '七丁目']}, {'id': 80222872, 'name': '六丁目', 'x': 139.6909637451172, 'y': 35.693424224853516, 'level': 6, 'priority': 2, 'note': 'aza_id:0023006/postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '六丁目']}, {'id': 80216496, 'name': '一丁目', 'x': 139.69749450683594, 'y': 35.69038391113281, 'level': 6, 'priority': 2, 'note': 'aza_id:0023001/postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '一丁目']}, {'id': 80217553, 'name': '二丁目', 'x': 139.6917724609375, 'y': 35.689449310302734, 'level': 6, 'priority': 2, 'note': 'aza_id:0023002/postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '二 丁目']}, {'id': 80221464, 'name': '五丁目', 'x': 139.68556213378906, 'y': 35.69288635253906, 'level': 6, 'priority': 2, 'note': 'aza_id:0023005/postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '五丁目']}, {'id': 80218874, 'name': '四丁目', 'x': 139.6876220703125, 'y': 35.687538146972656, 'level': 6, 'priority': 2, 'note': 'aza_id:0023004/postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '四丁目']}, {'id': 80217662, 'name': '三丁目', 'x': 139.68917846679688, 'y': 35.68452835083008, 'level': 6, 'priority': 2, 'note': 'aza_id:0023003/postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '三丁目']}]
+   >>> jageocoder.search_by_postcode('1600023')[0].get_fullname()
+   ['東京都', '新宿区', '西新宿', '八丁目']
+
+**都道府県コードから住所を検索する**
+
+:py:meth:`search_by_prefcode() <jageocoder.search_by_prefcode>`
+メソッドで指定した都道府県コードに対応する住所を検索し、
+:py:class:`AddressNode <jageocoder.node.AddressNode>`
+のリストを返します。
+
+都道府県コードは JISX0401 (2桁) または団体コード (6桁) で指定してください。
+
+.. code-block:: python
+
+   >>> jageocoder.search_by_prefcode('13')
+   [{'id': 77147240, 'name': '東京都', 'x': 139.6917724609375, 'y': 35.68962860107422, 'level': 1, 'priority': 1, 'note': 'lasdec:130001/jisx0401:13', 'fullname': ['東京都']}]
+
+**市区町村コードから住所を検索する**
+
+:py:meth:`search_by_citycode() <jageocoder.search_by_citycode>`
+メソッドで指定した市区町村コードに対応する住所を検索し、
+:py:class:`AddressNode <jageocoder.node.AddressNode>`
+のリストを返します。
+
+市区町村コードは JISX0402 (5桁) または団体コード (6桁) で指定してください。
+
+.. code-block:: python
+
+   >>> jageocoder.search_by_citycode('13104')
+   [{'id': 80117136, 'name': '新宿区', 'x': 139.70346069335938, 'y': 35.69388961791992, 'level': 3, 'priority': 1, 'note': 'geoshape_city_id:13104A1968/jisx0402:13104/postcode:1600000', 'fullname': ['東京都', '新宿区']}]
+
+**町字IDから住所を検索する**
+
+:py:meth:`search_by_machiaza_id() <jageocoder.search_by_machiaza_id>`
+メソッドで指定した町字IDに対応する住所を検索し、
+:py:class:`AddressNode <jageocoder.node.AddressNode>`
+のリストを返します。
+
+町字IDはアドレス・ベース・レジストリで定義されている 7桁の数字で指定できますが、
+その場合は全国の自治体が対象になります。
+
+対象市区町村を限定したい場合は先頭に市区町村コード (JISX0402 5桁または団体コード6桁)
+を追加して 12桁 または 13桁 の数字を指定してください。
+
+.. code-block:: python
+
+   >>> [x.get_fullname('') for x in jageocoder.search_by_machiaza_id('0023002')]
+   ['北海道北広島市白樺町二丁目', '山口県光市中島田二丁目', ... '東京都大田区西六郷二丁目', '福岡県福岡市博多区上牟田二丁目']
+   >>> jageocoder.search_by_machiaza_id('131040023002')
+   [{'id': 80217553, 'name': '二丁目', 'x': 139.6917724609375, 'y': 35.689449310302734, 'level': 6, 'priority': 2, 'note': 'aza_id:0023002/postcode:1600023', 'fullname': ['東京都', '新宿区', '西新宿', '二丁目']}]

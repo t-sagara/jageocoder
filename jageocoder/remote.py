@@ -204,8 +204,17 @@ class RemoteNodeTable(object):
         List[Record]
             List of records.
         """
-        nodes = self.search_records_on(attr, value)
-        ids = [node.id for node in nodes]
+        rpc_result = _json_request(
+            url=self.url,
+            method="node.search_records_on",
+            params={
+                "attr": attr,
+                "value": value,
+                "funcname": "get",
+                "server": self.server_signature
+            },
+        )
+        ids = [record["id"] for record in rpc_result]
         return ids
 
 
