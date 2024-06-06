@@ -150,3 +150,5 @@ class TestReverseMethods(unittest.TestCase):
         results = jageocoder.reverse(
             x=139.4287109375, y=35.6257438659668, level=8
         )
+        candidate = results[0]["candidate"]
+        self.assertTrue(candidate["level"] > AddressLevel.OAZA)

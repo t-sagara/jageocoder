@@ -1161,7 +1161,7 @@ class AddressTree(object):
         -----
         - The result list contains up to 3 nodes.
         - Each element is a dict type with the following structure:
-            {"candidate":AddressNode, "dist":float} 
+            {"candidate":AddressNode, "dist":float}
         """
         if self.reverse_index is None:
             from jageocoder.rtree import Index
