@@ -63,16 +63,25 @@ def init(db_dir: Optional[os.PathLike] = None,
 
     _url = None
     _db_dir = None
+
+    # Check parameters
     if db_dir is not None:
         _db_dir = db_dir
     elif url is not None and mode == 'r':
         _url = url
-    elif os.environ.get('JAGEOCODER_DB2_DIR'):
+
+    # Check environmental variables
+    if _db_dir is None and _url is None:
+        if os.environ.get('JAGEOCODER_DB2_DIR'):
+            _db_dir = get_db_dir(mode=mode)
+        elif os.environ.get('JAGEOCODER_SERVER_URL') and mode == 'r':
+            _url = os.environ.get('JAGEOCODER_SERVER_URL')
+
+    # Search local database
+    if _db_dir is None and _url is None:
         _db_dir = get_db_dir(mode=mode)
 
-    if _db_dir is None and _url is None:
-        _url = os.environ.get('JAGEOCODER_SERVER_URL')
-
+    # Initialize tree object
     if _db_dir:
         _tree = AddressTree(db_dir=_db_dir, mode=mode, debug=debug)
     elif _url:
@@ -293,7 +302,7 @@ def installed_dictionary_version(
         If omitted, it will be determined by `get_db_dir()`.
 
     url: str, optional
-        URL of the Jageocoder server endpoint.        
+        URL of the Jageocoder server endpoint.
 
     Returns
     -------
@@ -337,7 +346,7 @@ def installed_dictionary_readme(
         If omitted, it will be determined by `get_db_dir()`.
 
     url: str, optional
-        URL of the Jageocoder server endpoint.        
+        URL of the Jageocoder server endpoint.
 
     Returns
     -------
@@ -473,13 +482,127 @@ def reverse(
     -----
     - The result list contains up to 3 nodes.
     - Each element is a dict type with the following structure:
-        {"candidate":AddressNode, "dist":float} 
+        {"candidate":AddressNode, "dist":float}
     """
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")
 
     global _tree
     return _tree.reverse(x, y, level, as_dict)
+
+
+def search_by_machiaza_id(
+        id: str
+) -> list:
+    """
+    Finds the corresponding address nodes from the "machiaza-id" of
+    the address base registry.
+
+    Parameters
+    ----------
+    id: str
+        Machiaza-id.
+
+    Returns
+    -------
+    List[AddressNode]
+
+    Notes
+    -----
+    - If "id" is 12 characters, the first 5 characters are considered the JISX0402 code.
+    - If "id" is 13 characters, the first 6 characters are considered the lg-code.
+    - In either of the above cases, search for the address node whose machiaza-id
+        matches the rest 7 characters in the corresponding municipality.
+    - Otherwise, it searches for address nodes whose machiaza-id matches "id"
+        from all municipalities. In this case, aza_id must be 7 characters.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    global _tree
+    return _tree.search_by_machiaza_id(id)
+
+
+def search_by_postcode(
+        code: str
+) -> list:
+    """
+    Finds the corresponding address node from a postcode.
+
+    Parameters
+    ----------
+    code: str
+        The postal code as defined by the Japan Post.
+
+    Returns
+    -------
+    List[AddressNode]
+
+    Notes
+    -----
+    - The "code" must be 7 characters.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    global _tree
+    return _tree.search_by_postcode(code)
+
+
+def search_by_prefcode(
+        code: str
+) -> list:
+    """
+    Finds the corresponding address nodes from the JISX0401 code
+    or the prefacture's local-government code.
+
+    Parameters
+    ----------
+    code: str
+        Prefacture code as defined in JISX0401, of local government code defined by MIC.
+
+    Returns
+    -------
+    List[AddressNode]
+
+    Notes
+    -----
+    - If "code" is 2 characters, the code is considered the JISX0401 code.
+    - If "code" is 6 characters, the code is considered the local-govenment code.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    global _tree
+    return _tree.search_by_prefcode(code)
+
+
+def search_by_citycode(
+        code: str
+) -> list:
+    """
+    Finds the corresponding address nodes from the JISX0402 code
+    or the local-government code.
+
+    Parameters
+    ----------
+    code: str
+        City code as defined in JISX0402, of local government code defined by MIC.
+
+    Returns
+    -------
+    List[AddressNode]
+
+    Notes
+    -----
+    - If "code" is 5 characters, the code is considered the JISX0402 code.
+    - If "code" is 6 characters, the code is considered the local-govenment code.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    global _tree
+    return _tree.search_by_citycode(code)
 
 
 def create_trie_index() -> None:

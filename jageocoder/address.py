@@ -31,6 +31,49 @@ class AddressLevel(object):
     BLD = 8
 
     @classmethod
+    def levelname(cls, level: int) -> str:
+        """
+        Returns the Japanese notation of the address level.
+
+        Parameters
+        ----------
+        level: int
+            The address level.
+
+        Returns
+        -------
+        str
+        """
+        if level == cls.PREF:
+            return "都道府県"
+
+        if level == cls.COUNTY:
+            return "郡"
+
+        if level == cls.CITY:
+            return "市町村・特別区"
+
+        if level == cls.WARD:
+            return "政令市の区"
+
+        if level == cls.OAZA:
+            return "町域・大字"
+
+        if level == cls.AZA:
+            return "丁目・小字"
+
+        if level == cls.BLOCK:
+            return "街区・道路・地番"
+
+        if level == cls.BLD:
+            return "建物・枝番"
+
+        if level == cls.UNDEFINED:
+            return "未定義"
+
+        return "不明"
+
+    @classmethod
     def guess(cls, name, parent, trigger):
         """
         Guess the level of the address element.

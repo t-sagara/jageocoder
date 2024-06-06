@@ -15,6 +15,16 @@ from jageocoder.node import AddressNode, AddressNodeTable
 logger = getLogger(__name__)
 
 
+class NodeDist(object):
+
+    def __init__(self, dist: float, node: AddressNode) -> None:
+        self.dist = dist
+        self.node = node
+
+    def __repr__(self) -> str:
+        return f"NodeDist({self.dist}, {self.node})"
+
+
 class DelaunayTriangle(ABC):
 
     @classmethod
@@ -131,8 +141,8 @@ class DelaunayTriangle(ABC):
         cls,
         x: float,
         y: float,
-        nodes: List[AddressNode]
-    ) -> List[AddressNode]:
+        nodes: List[NodeDist]
+    ) -> List[NodeDist]:
         """
         Select the 3 nodes that make the smallest triangle
         surrounding the target point.
@@ -143,13 +153,14 @@ class DelaunayTriangle(ABC):
             The longitude of the target point.
         y: float
             The latitude of the target point.
-        nodes: List[AddressNode]
-            The candidate nodes.
+        nodes: List[NodeDist]
+            The candidate list of (distance, node).
 
         Returns
         -------
-        List[AddressNode]
-            Up to 3 nodes surrounding the target point.
+        List[NodeDist]
+            Up to 3 nodes surrounding the target point
+            and their distance.
         """
         def kval(t: Tuple[int, int, int]) -> int:
             sval = sorted(t)
@@ -161,9 +172,9 @@ class DelaunayTriangle(ABC):
                 for p2 in range(p1 + 1, len(nodes)):
                     if cls.p_contained_triangle(
                         (x, y),
-                        (nodes[p0].x, nodes[p0].y),
-                        (nodes[p1].x, nodes[p1].y),
-                        (nodes[p2].x, nodes[p2].y)
+                        (nodes[p0].node.x, nodes[p0].node.y),
+                        (nodes[p1].node.x, nodes[p1].node.y),
+                        (nodes[p2].node.x, nodes[p2].node.y)
                     ):
                         triangle = [p0, p1, p2]
                         break
@@ -187,10 +198,10 @@ class DelaunayTriangle(ABC):
                 continue
 
             if cls.p_contained_circumcircle(
-                (nodes[i].x, nodes[i].y),
-                (nodes[triangle[0]].x, nodes[triangle[0]].y),
-                (nodes[triangle[1]].x, nodes[triangle[1]].y),
-                (nodes[triangle[2]].x, nodes[triangle[2]].y)
+                (nodes[i].node.x, nodes[i].node.y),
+                (nodes[triangle[0]].node.x, nodes[triangle[0]].node.y),
+                (nodes[triangle[1]].node.x, nodes[triangle[1]].node.y),
+                (nodes[triangle[2]].node.x, nodes[triangle[2]].node.y)
             ):
                 new_triangle = None
                 for j in range(3):
@@ -202,9 +213,9 @@ class DelaunayTriangle(ABC):
 
                     if cls.p_contained_triangle(
                         (x, y),
-                        (nodes[tt[0]].x, nodes[tt[0]].y),
-                        (nodes[tt[1]].x, nodes[tt[1]].y),
-                        (nodes[tt[2]].x, nodes[tt[2]].y)
+                        (nodes[tt[0]].node.x, nodes[tt[0]].node.y),
+                        (nodes[tt[1]].node.x, nodes[tt[1]].node.y),
+                        (nodes[tt[2]].node.x, nodes[tt[2]].node.y)
                     ):
                         new_triangle = tt
                         break
@@ -309,6 +320,9 @@ class Index(object):
         node_table: AddressNodeTable = self._tree.address_nodes
 
         max_id = node_table.count_records()
+        registered_coordinates = set()
+
+        logger.info("Building RTree for reverse geocoding...")
         id = AddressNode.ROOT_NODE_ID
         with tqdm(total=max_id, mininterval=0.5, ascii=True) as pbar:
             prev_id = 0
@@ -317,20 +331,70 @@ class Index(object):
                 prev_id = id
 
                 node = node_table.get_record(pos=id)
-                if node.level > AddressLevel.AZA:
-                    id = node.sibling_id
-                    continue
-                elif node.level < AddressLevel.OAZA:
-                    id += 1
-                    continue
-                elif not node.has_valid_coordinate_values():
+                if node.level <= AddressLevel.WARD:
+                    registered_coordinates.clear()
                     id += 1
                     continue
 
-                file_idx.insert(
-                    id=id,
-                    coordinates=(node.x, node.y, node.x, node.y)
-                )
+                if node.sibling_id == node.id + 1:
+                    # The node has no child nodes
+
+                    if not node.has_valid_coordinate_values():
+                        id += 1
+                        continue
+
+                    key = (node.x, node.y)
+                    if key in registered_coordinates:
+                        id += 1
+                        continue
+
+                    file_idx.insert(
+                        id=id,
+                        coordinates=(node.x, node.y, node.x, node.y),
+                    )
+                    registered_coordinates.add(key)
+                    id += 1
+                    continue
+
+                # The node has 1 or more child nodes
+                if node.level == AddressLevel.BLOCK:
+                    # Get BDR of child nodes
+                    bdr = None
+                    for child_id in range(node.id + 1, node.sibling_id):
+                        child_node = node_table.get_record(child_id)
+                        if not child_node.has_valid_coordinate_values():
+                            continue
+
+                        if bdr is None:
+                            bdr = (child_node.x, child_node.y,
+                                   child_node.x, child_node.y)
+                        else:
+                            bdr = (
+                                min(child_node.x, bdr[0]),
+                                min(child_node.y, bdr[1]),
+                                max(child_node.x, bdr[2]),
+                                max(child_node.y, bdr[3]),
+                            )
+
+                    if bdr:
+                        file_idx.insert(
+                            id=id,
+                            coordinates=bdr,
+                        )
+                    else:
+                        # All child nodes have invalid coordinate values
+                        key = (node.x, node.y)
+                        if node.has_valid_coordinate_values() and \
+                                key not in registered_coordinates:
+                            file_idx.insert(
+                                id=id,
+                                coordinates=(node.x, node.y, node.x, node.y),
+                            )
+                            registered_coordinates.add(key)
+
+                    id = node.sibling_id
+                    continue
+
                 id += 1
 
         return file_idx
@@ -364,20 +428,28 @@ class Index(object):
         """
         node_table = self._tree.address_nodes
         node = node_table.get_record(pos=node_table.count_records() // 2)
-        while node.level < AddressLevel.OAZA:
-            node = node_table.get_record(pos=node.id + 1)
 
-        while node.level > AddressLevel.AZA:
-            node = node.parent
+        while True:
+            while node.level < AddressLevel.BLOCK:
+                node = node_table.get_record(pos=node.id + 1)
 
-        return node.id in self.idx.nearest((node.x, node.y, node.x, node.y), 2)
+            while node.level > AddressLevel.BLOCK:
+                node = node.parent
+
+            if node.has_valid_coordinate_values():
+                break
+
+            node = node_table.get_record(pos=node.sibling_id)
+
+        results = tuple(self.idx.nearest((node.x, node.y, node.x, node.y), 20))
+        return len(results) > 0 and node.id in results
 
     def _sort_by_dist(
         self,
         lon: float,
         lat: float,
-        id_list: Iterable[int]
-    ) -> List[AddressNode]:
+        nodes: Iterable[AddressNode],
+    ) -> List[NodeDist]:
         """
         Sort nodes by real(projected) distance from the target point.
 
@@ -387,22 +459,24 @@ class Index(object):
             The longitude of the target point.
         lat: float
             The latitude of the target point.
-        id_list: Iterable[int]
-            The list of node-id.
+        nodes: Iterable[AddressNode]
+            The list of candidate node.
 
         Returns
         -------
-        List[AddressNode]
-            The sorted list of address nodes.
+        List[NodeDist]
+            The sorted list of (distance, address node).
         """
         results = []
-        for node_id in id_list:
-            node = self._tree.get_address_node(id=node_id)
-            dist = self.distance(node.x, node.y, lon, lat)
-            results.append((node, dist))
+        for node in nodes:
+            if not node.has_valid_coordinate_values():
+                continue
 
-        results.sort(key=lambda x: x[1])
-        return [x[0] for x in results]
+            dist = self.distance(node.x, node.y, lon, lat)
+            results.append(NodeDist(dist, node))
+
+        results.sort(key=lambda x: x.dist)
+        return results
 
     def nearest(
         self,
@@ -434,66 +508,43 @@ class Index(object):
         """
         level = level or AddressLevel.AZA
 
-        # Search nodes by Rtree Index
-        nodes = []
-        ancestors = set()
-        max_level = 0
-        for node in self._sort_by_dist(x, y, self.idx.nearest((x, y, x, y), 10)):
-            if node.id in ancestors:
-                continue
+        # Retrieve top k-nearest nodes using the R-tree index.
+        # If the node registered in the index is an intermediate node,
+        # expand its leaf nodes.
+        candidates = []
+        nearests = self.idx.nearest((x, y, x, y), 20, objects=True)
+        for item in nearests:
+            node = self._tree.get_node_by_id(item.id)
+            if item.bbox[0] == item.bbox[2] and item.bbox[1] == item.bbox[3]:
+                candidates.append(node)
+            else:
+                for child_id in range(node.id + 1, node.sibling_id):
+                    child_node = self._tree.get_node_by_id(child_id)
+                    if child_node.sibling_id == child_id + 1 and \
+                            child_node.has_valid_coordinate_values():
+                        candidates.append(child_node)
 
-            nodes.append(node)
-            max_level = max(max_level, node.level)
-            # Ancestor nodes of registering node are excluded.
-            cur = node.parent
-            while cur is not None:
-                nodes = [node for node in nodes if node.id != cur.id]
-                ancestors.add(cur.id)
-                cur = cur.parent
-
-        if level > max_level:
-            # Search points in the higher levels
-            local_idx = index.Rtree()  # Create local rtree on memory
-            for node in nodes:
-                child_id = node.id
-                while child_id < node.sibling_id:
-                    child_node = self._tree.get_address_node(id=child_id)
-                    if child_node.level > level:
-                        child_id = child_node.parent.sibling_id
-                        continue
-                    elif not child_node.has_valid_coordinate_values():
-                        child_id += 1
-                        continue
-
-                    local_idx.insert(
-                        id=child_id,
-                        coordinates=(
-                            child_node.x, child_node.y,
-                            child_node.x, child_node.y))
-                    child_id += 1
-
-            nodes = []
-            ancestors = set()
-            for node in self._sort_by_dist(x, y, local_idx.nearest((x, y, x, y), 20)):
-                if node.id in ancestors:
-                    continue
-
-                nodes.append(node)
-                # Ancestor nodes of registering node are excluded.
-                cur = node.parent
-                while cur is not None:
-                    nodes = [node for node in nodes if node.id != cur.id]
-                    ancestors.add(cur.id)
-                    cur = cur.parent
+        node_dists = self._sort_by_dist(x, y, candidates)
 
         # Select the 3 nodes that make the smallest triangle
         # surrounding the target point
-        nodes = DelaunayTriangle.select(x, y, nodes)
+        if len(node_dists) == 0:
+            return []
+
+        if len(node_dists) <= 3 or node_dists[0].dist < 1.0e-02:
+            # If the distance between the nearest point and the search point is
+            # less than 1 cm, it returns three points in order of distance.
+            # This is because the nearest point may not be included in
+            # the search results due to a calculation error.
+            node_dists = node_dists[0:3]
+        else:
+            node_dists = DelaunayTriangle.select(x, y, node_dists)
 
         # Convert nodes to the dict format.
         results = []
         registered = set()
-        for node in nodes:
+        for v in node_dists:
+            dist, node = v.dist, v.node
             while node.level > level:
                 node = node.parent
 
@@ -502,11 +553,8 @@ class Index(object):
 
             results.append({
                 "candidate": node.as_dict() if as_dict else node,
-                "dist": self.distance(x, y, node.x, node.y)
+                "dist": dist
             })
             registered.add(node.id)
-
-        # Sort by distance
-        results = sorted(results, key=lambda r: r['dist'])
 
         return results

@@ -70,6 +70,30 @@ class AddressNodeTable(PortableTab.BaseTable):
         node.table = self
         return node
 
+    def search_ids_on(
+        self,
+        attr: str,
+        value: str,
+    ) -> list:
+        """
+        Search id list from the table on the specified attribute.
+
+        Paramters
+        ---------
+        attr: str
+            The name of target attribute.
+        value: str
+            The target value.
+
+        Returns
+        -------
+        List[int]
+            List of node ids.
+        """
+        trie = self.open_trie_on(attr)
+        positions = trie.get(value, [])
+        return [p[0] for p in positions]
+
     def create_indexes(self) -> None:
         """
         Create TRIE index on "name" and "note" columns.
@@ -212,9 +236,15 @@ class AddressNode(object):
     def dataset(self):
         """
         Get dataset record.
-
         """
         return self.table.datasets.get(id=self.priority)
+
+    @property
+    def levelname(self) -> str:
+        """
+        Get level by name.
+        """
+        return AddressLevel.levelname(self.level)
 
     @classmethod
     def from_record(cls, record) -> AddressNode:
@@ -508,7 +538,7 @@ class AddressNode(object):
         """
         new_node = copy.copy(self)
         for child in self.iter_children():
-            if child.y <= 90.0:
+            if child.has_valid_coordinate_values():
                 new_node.x, new_node.y = child.x, child.y
                 logger.debug((
                     "Node {}({}) has no coordinates. "
@@ -1252,6 +1282,28 @@ class AddressNode(object):
             }
         }
 
+    def to_json(self):
+        """
+        Convert node to JSONable dict for data transfer.
+
+        Notes
+        -----
+        - Different from the 'as_dict' method, this method includes
+            all attributes in the database, such as 'parent_id'.
+        """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "name_index": self.name_index,
+            "x": self.x,
+            "y": self.y,
+            "level": self.level,
+            "priority": self.priority,
+            "note": self.note,
+            "parent_id": self.parent_id,
+            "sibling_id": self.sibling_id,
+        }
+
     def get_fullname(
         self,
         delimiter: Optional[str] = None,
@@ -1300,7 +1352,7 @@ class AddressNode(object):
 
         return nodes
 
-    def get_nodes_by_level(self):
+    def get_nodes_by_level(self) -> List[AddressNode | None]:
         """
         The method returns an array of this node and its upper nodes.
         The Nth node of the array contains the node corresponding
@@ -1460,6 +1512,17 @@ class AddressNode(object):
 
         return ''
 
+    def get_machiaza_id(self) -> str:
+        """
+        Returns the MachiAza ID defined by JDA address-base-registry
+        containing this node.
+
+        Note
+        ----
+        - This method is an alias for 'get_aza_id'.
+        """
+        return self.get_aza_id()
+
     def get_aza_code(self) -> str:
         """
         Returns the 'AZA-code' concatinated with the city-code
@@ -1508,6 +1571,7 @@ class AddressNode(object):
     def get_aza_names(
         self,
         tree: Optional[AddressTree] = None,
+        levelname: Optional[bool] = False,
     ) -> list:
         """
         Returns representation of Aza node containing this node.
@@ -1516,6 +1580,8 @@ class AddressNode(object):
         ----------
         tree: AddressTree, optional
             The tree containing this node.
+        levelname: bool, optional
+            If true, Returns the address level by name, not by number.
 
         Returns
         -------
@@ -1527,7 +1593,12 @@ class AddressNode(object):
         """
         aza_record = self.get_aza_record(tree)
         if aza_record:
-            return json.loads(aza_record.names)
+            results = json.loads(aza_record.names)
+            if levelname:
+                for i in range(len(results)):
+                    results[i][0] = AddressLevel.levelname(results[i][0])
+
+            return results
 
         return []
 
