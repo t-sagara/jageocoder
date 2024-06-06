@@ -302,7 +302,7 @@ def installed_dictionary_version(
         If omitted, it will be determined by `get_db_dir()`.
 
     url: str, optional
-        URL of the Jageocoder server endpoint.        
+        URL of the Jageocoder server endpoint.
 
     Returns
     -------
@@ -346,7 +346,7 @@ def installed_dictionary_readme(
         If omitted, it will be determined by `get_db_dir()`.
 
     url: str, optional
-        URL of the Jageocoder server endpoint.        
+        URL of the Jageocoder server endpoint.
 
     Returns
     -------
@@ -482,7 +482,7 @@ def reverse(
     -----
     - The result list contains up to 3 nodes.
     - Each element is a dict type with the following structure:
-        {"candidate":AddressNode, "dist":float} 
+        {"candidate":AddressNode, "dist":float}
     """
     if not is_initialized():
         raise JageocoderError("Not initialized. Call 'init()' first.")

@@ -1,7 +1,7 @@
 モジュールメソッド
 ==================
 
-Jageocoder モジュールのメソッドは、以下の3つのグループに分類できます。
+Jageocoder モジュールのメソッドは、以下の5つのグループに分類されます。
 
 住所辞書データベースのインストールや削除などの管理を行なう
    :py:meth:`jageocoder.download_dictionary`,
@@ -19,13 +19,20 @@ Jageocoder モジュールのメソッドは、以下の3つのグループに�
    :py:meth:`jageocoder.get_module_tree`,
    :py:meth:`jageocoder.version`
 
-検索機能を提供する
+ジオコーディング機能を提供する
    :py:meth:`jageocoder.set_search_config`,
    :py:meth:`jageocoder.get_search_config`,
    :py:meth:`jageocoder.search`,
    :py:meth:`jageocoder.searchNode`,
+
+リバースジオコーディング機能を提供する
    :py:meth:`jageocoder.reverse`
 
+属性から住所を検索する
+   :py:meth:`jageocoder.search_by_postcode`,
+   :py:meth:`jageocoder.search_by_prefcode`,
+   :py:meth:`jageocoder.search_by_citycode`,
+   :py:meth:`jageocoder.search_by_machiaza_id`
 
 .. automodule:: jageocoder
    :members:
