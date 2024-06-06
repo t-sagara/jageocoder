@@ -17,7 +17,7 @@ layout: home
 
 - [デモンストレーション](https://jageocoder.info-proto.com/)
     - ジオコーディング機能を提供するウェブアプリ jageocoder-server のデモサイトです。
-    - 秒間1リクエストの制限がありますが WebAPI も利用できます。
+    - 秒間 64KB の速度制限がありますが WebAPI も利用できます。
 - [コード GitHub](https://github.com/t-sagara/jageocoder)
     - Python パッケージとして利用するためのコードをダウンロードできます。
     - 不具合報告もこちらにお願いします。
