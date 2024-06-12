@@ -428,7 +428,6 @@ class Index(object):
         """
         node_table = self._tree.address_nodes
         node = node_table.get_record(pos=node_table.count_records() // 2)
-
         while True:
             while node.level < AddressLevel.BLOCK:
                 node = node_table.get_record(pos=node.id + 1)
@@ -441,8 +440,19 @@ class Index(object):
 
             node = node_table.get_record(pos=node.sibling_id)
 
-        results = tuple(self.idx.nearest((node.x, node.y, node.x, node.y), 20))
-        return len(results) > 0 and node.id in results
+        results = tuple(self.idx.nearest((node.x, node.y, node.x, node.y), 1, objects=True))
+        if len(results) == 0:
+            return False
+
+        item = results[0]
+        target_node = node_table.get_record(item.id)
+        target_bbox = item.bbox
+        res = target_node.x >= target_bbox[0] \
+            and target_node.y >= target_bbox[1] \
+            and target_node.x <= target_bbox[2] \
+            and target_node.y <= target_bbox[3]
+
+        return res
 
     def _sort_by_dist(
         self,
