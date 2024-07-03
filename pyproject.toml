@@ -20,7 +20,7 @@ classifiers = [
 include = ["itaiji_dic.json", "islands.json"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">=3.8,<4.0"
 certifi = ">=2023.7.22"
 cryptography = ">=42.0.4"
 deprecated = "^1.2.13"
@@ -31,10 +31,10 @@ jaconv = "^0.3.4"
 marisa-trie = ">=0.7.8"
 pycapnp = "*"
 portabletab = ">=0.3.3"
-requests = "*"
+requests = ">=2.32.0"
 rtree = "^1.0.0"
 tqdm = "^4.00.0"
-urllib3 = ">=2.0.6"
+urllib3 = ">=2.2.2"
 
 [tool.poetry.group.dev.dependencies]
 twine = "^4.0.2"
