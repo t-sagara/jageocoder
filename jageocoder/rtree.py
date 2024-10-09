@@ -166,24 +166,52 @@ class DelaunayTriangle(ABC):
             sval = sorted(t)
             return sval[0] * 10000 + sval[1] * 100 + sval[2]
 
-        triangle = None
-        for p0 in range(len(nodes) - 2):
-            for p1 in range(p0 + 1, len(nodes) - 1):
-                for p2 in range(p1 + 1, len(nodes)):
-                    if cls.p_contained_triangle(
-                        (x, y),
-                        (nodes[p0].node.x, nodes[p0].node.y),
-                        (nodes[p1].node.x, nodes[p1].node.y),
-                        (nodes[p2].node.x, nodes[p2].node.y)
-                    ):
-                        triangle = [p0, p1, p2]
-                        break
+        def side(
+                ab: Tuple[float, float], ap: Tuple[float, float]) -> float:
+            """
+            Get the outer product of vector ab and vector ap.
+            """
+            return ab[0] * ap[1] - ab[1] * ap[0]
 
-                if triangle is not None:
+        triangle = None
+        p0, p1 = 0, 1
+        a = nodes[p0].node
+        ap = (x - a.x, y - a.y)
+
+        # Find point b that does not fall on the line between p(x, y) and a.
+        for p1 in range(1, len(nodes) - 2):
+            b = nodes[p1].node
+            ab = (b.x - a.x, b.y - a.y)
+            side_p = side(ab, ap)
+
+            if abs(side_p) > 1.0e-10:
+                break
+
+        else:
+            b = None
+
+        # Find q where triangle abq surrounds point p.
+        if b is not None:
+            for p2 in range(p1 + 1, len(nodes)):
+                q = nodes[p2].node
+                aq = (q.x - a.x, q.y - a.y)
+                side_q = side(ab, aq)
+                if side_p * side_q < 0.0 or \
+                        (side_p < 0 and side_q > side_p) or \
+                        (side_p > 0 and side_q < side_p):
+                    continue
+
+                if cls.p_contained_triangle(
+                    (x, y),
+                    (a.x, a.y),
+                    (b.x, b.y),
+                    (q.x, q.y)
+                ):
+                    triangle = [p0, p1, p2]
                     break
 
-            if triangle is not None:
-                break
+            else:
+                triangle = None
 
         if triangle is None:
             # If the triangle containing the target cannot
@@ -440,7 +468,8 @@ class Index(object):
 
             node = node_table.get_record(pos=node.sibling_id)
 
-        results = tuple(self.idx.nearest((node.x, node.y, node.x, node.y), 1, objects=True))
+        results = tuple(self.idx.nearest(
+            (node.x, node.y, node.x, node.y), 1, objects=True))
         if len(results) == 0:
             return False
 
