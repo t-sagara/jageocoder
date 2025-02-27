@@ -821,6 +821,22 @@ class TestSearchByCodeMethods(unittest.TestCase):
     def setUpClass(cls):
         jageocoder.init(mode="r")
 
+    def test_search_set_config(self):
+        jageocoder.set_search_config(target_area='14152')
+        result = jageocoder.search(query="中央区中央1-1-1")
+        self.assertTrue(len(result["matched"]) == 10)
+        self.assertTrue(len(result["candidates"]) == 1)
+
+        jageocoder.set_search_config(target_area=['13', '14152'])
+        result = jageocoder.search(query="中央区中央1-1-1")
+        self.assertTrue(len(result["matched"]) == 10)
+        self.assertTrue(len(result["candidates"]) == 1)
+
+        jageocoder.set_search_config(target_area=['東京都', '相模原市'])
+        result = jageocoder.search(query="中央区中央1-1-1")
+        self.assertTrue(len(result["matched"]) == 10)
+        self.assertTrue(len(result["candidates"]) == 1)
+
     def test_search_machiaza(self):
         results = jageocoder.search_by_machiaza_id(id='1310410023002')
         self.assertEqual(len(results), 1)

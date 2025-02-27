@@ -2,9 +2,11 @@ from __future__ import annotations
 import json
 from logging import getLogger
 import os
-import requests
+import re
 from typing import Any, List, NoReturn, Optional
 import uuid
+
+import requests
 
 from jageocoder.address import AddressLevel
 from jageocoder.exceptions import RemoteTreeException
@@ -249,8 +251,8 @@ class RemoteTree(AddressTree):
 
         - target_area: List[str] (Default = [])
             Specify the areas to be searched.
-            The area can be specified by the list of name of the node
-            (such as prefecture name or city name), or JIS code.
+            The area can be specified by the list of JIS code of the node.
+            Note: Can't specify by node names when using remote server, currently.
 
         - auto_redirect: bool (default = True)
             When this option is set and the retrieved node has a
@@ -260,6 +262,38 @@ class RemoteTree(AddressTree):
         for k, v in kwargs.items():
             self.validate_config(key=k, value=v)
             self.config[k] = v
+
+    def validate_config(self, key: str, value: Any) -> None:
+        """
+        Validate configuration key and parameters.
+
+        Parameters
+        ----------
+        key: str
+            The name of the parameter.
+        value: str, int, bool, None
+            The value to be set to the parameter.
+
+        Notes
+        -----
+        If the key-value pair is not valid, raise RuntimeError.
+        """
+        if key == 'target_area':
+            if value in (None, []):
+                return
+
+            if isinstance(value, str):
+                value = [value]
+
+            for v in value:
+                if re.match(r'\d{2}', v) or re.match(r'\d{5}', v):
+                    return
+
+                msg = "'{}' is not a valid value for {}.".format(v, key)
+                raise RuntimeError(msg)
+
+        else:
+            return
 
     def json_request(
             self,

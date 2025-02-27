@@ -402,22 +402,26 @@ class AddressTree(object):
             if value in (None, []):
                 return
 
-            if re.match(r'\d{2}', value) or re.match(r'\d{5}', value):
-                return
+            if isinstance(value, str):
+                value = [value]
 
-            # Check if the value is a name of node in the database.
-            std = self.converter.standardize(value)
-            candidates = self.trie.common_prefixes(std)
-            if std in candidates:
-                trie_node_id = candidates[std]
-                for node_id in self.trie_nodes.get_record(
-                        pos=trie_node_id).nodes:
-                    node = self.address_nodes.get_record(pos=node_id)
-                    if node.name == value:
-                        return
+            for v in value:
+                if re.match(r'\d{2}', v) or re.match(r'\d{5}', v):
+                    return
 
-            msg = "'{}' is not a valid value for {}.".format(value, key)
-            raise RuntimeError(msg)
+                # Check if the value is a name of node in the database.
+                std = self.converter.standardize(v)
+                candidates = self.trie.common_prefixes(std)
+                if std in candidates:
+                    trie_node_id = candidates[std]
+                    for node_id in self.trie_nodes.get_record(
+                            pos=trie_node_id).nodes:
+                        node = self.address_nodes.get_record(pos=node_id)
+                        if node.name == v:
+                            return
+
+                msg = "'{}' is not a valid value for {}.".format(v, key)
+                raise RuntimeError(msg)
 
         else:
             return

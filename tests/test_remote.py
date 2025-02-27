@@ -29,6 +29,20 @@ class TestRemoteMethods(unittest.TestCase):
         node = result["candidates"][0]
         self.assertTrue(isinstance(node, dict))
 
+    def test_search_set_config(self):
+        jageocoder.set_search_config(target_area='14152')
+        result = jageocoder.search(query="中央区中央1-1-1")
+        self.assertTrue(len(result["matched"]) == 10)
+        self.assertTrue(len(result["candidates"]) == 1)
+
+        jageocoder.set_search_config(target_area=['13', '14152'])
+        result = jageocoder.search(query="中央区中央1-1-1")
+        self.assertTrue(len(result["matched"]) == 10)
+        self.assertTrue(len(result["candidates"]) == 1)
+
+        with self.assertRaises(RuntimeError):
+            jageocoder.set_search_config(target_area=['東京都', '相模原市'])
+
     def test_search_node(self):
         results = jageocoder.searchNode(query="新宿区西新宿２丁目８−１")
         self.assertEqual(type(results[0]), jageocoder.result.Result)
