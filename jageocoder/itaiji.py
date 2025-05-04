@@ -536,7 +536,7 @@ class Converter(object):
         if strlib.is_hyphen(c):
             return 1
 
-        if c != 'ノ' or pos >= len(string) + 1:
+        if c != 'ノ' or pos >= len(string) - 1:
             return 0
 
         nc = string[pos + 1]  # The character next to 'ノ'

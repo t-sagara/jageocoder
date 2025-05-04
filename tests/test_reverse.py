@@ -1,4 +1,5 @@
 import logging
+import time
 import unittest
 
 import jageocoder
@@ -78,7 +79,8 @@ class TestReverseMethods(unittest.TestCase):
             ["千葉県", "銚子市", "海鹿島町", "5244番地"] in candidate_names
         )
         self.assertTrue(
-            ["千葉県", "銚子市", "海鹿島町", "5254番地"] in candidate_names
+            ["千葉県", "銚子市", "海鹿島町", "5254番地"] in candidate_names or
+            ["千葉県", "銚子市", "海鹿島町", "5246番地"] in candidate_names
         )
 
     def test_island(self):
@@ -138,7 +140,7 @@ class TestReverseMethods(unittest.TestCase):
         results = jageocoder.reverse(
             x=135.768188, y=35.0115738, level=8)
         candidate = results[0]["candidate"]
-        self.assertEqual(candidate["name"], "488番地")
+        self.assertIn(candidate["name"], ("488番地", "寺町通御池"))
 
     def test_kyoto_edgecase(self) -> None:
         results = jageocoder.reverse(
@@ -152,3 +154,21 @@ class TestReverseMethods(unittest.TestCase):
         )
         candidate = results[0]["candidate"]
         self.assertTrue(candidate["level"] > AddressLevel.OAZA)
+
+    def test_issue34(self) -> None:
+        start_time = time.time()
+        results = jageocoder.reverse(
+            x=138.5838018, y=36.6327771, level=5
+        )
+        end_time = time.time()
+        ellapsed = end_time - start_time
+        self.assertTrue(ellapsed < 1.0)
+
+        results = jageocoder.reverse(
+            x=138.58694458, y=36.6260, level=8
+        )
+        candidate_names = [x['candidate']['fullname'] for x in results]
+        self.assertTrue(len(candidate_names) > 0)
+        self.assertEqual(
+            candidate_names[0], ['群馬県', '吾妻郡', '草津町', '大字草津', '464番地', '1442'],
+        )

@@ -18,6 +18,7 @@ Usage:
   {p} download-dictionary [-d] <url>
   {p} install-dictionary [-d] [-y] [--db-dir=<dir>] <path>
   {p} uninstall-dictionary [-d] [--db-dir=<dir>]
+  {p} list-datasets [-d] [--db-dir=<dir>|--url=<url>]
 
 Options:
   -h --help           このヘルプメッセージを表示します.
@@ -65,6 +66,10 @@ Examples:
 - 住所データベースをアンインストールします。
 
   {p} uninstall-dictionary
+
+- 住所データベースに含まれるデータセット一覧を表示します。
+
+  {p} list-datasets
 """.format(p='jageocoder')  # noqa: E501
 
 
@@ -156,9 +161,14 @@ def main():
     elif args['uninstall-dictionary']:
         jageocoder.uninstall_dictionary(
             db_dir=args['--db-dir'])
-    elif args['migrate-dictionary']:
-        jageocoder.migrate_dictionary(
-            db_dir=args['--db-dir'])
+        exit(0)
+
+    elif args['list-datasets']:
+        jageocoder.init(db_dir=args['--db-dir'], mode='r', url=args['--url'])
+        datasets = list(jageocoder.get_datasets().values())
+        datasets.sort(key=lambda x: x["id"])
+        print(json.dumps(datasets, indent=2, ensure_ascii=False))
+        exit(0)
 
 
 if __name__ == '__main__':

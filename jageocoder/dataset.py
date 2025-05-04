@@ -50,3 +50,9 @@ class Dataset(BaseTable):
             self.load_records()
 
         return self._map[id]
+
+    def get_all(self) -> dict:
+        if self._map is None:
+            self.load_records()
+
+        return self._map

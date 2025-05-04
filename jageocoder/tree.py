@@ -12,6 +12,7 @@ from deprecated import deprecated
 import jaconv
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
+from jageocoder.dataset import Dataset
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import Converter
 from jageocoder.node import AddressNode, AddressNodeTable
@@ -245,6 +246,18 @@ class AddressTree(object):
             raise AddressTreeException(
                 'This method is not available in read-only mode.')
 
+    @property
+    def datasets(self) -> List[Dataset]:
+        """
+        Get list of datasets installed in the dictionary.
+
+        Returns
+        -------
+        List[Dataset]:
+            List of datasets.
+        """
+        return self.address_nodes.datasets.get_all()
+
     def get_root(self) -> AddressNode:
         """
         Get the root-node of the tree.
@@ -402,22 +415,26 @@ class AddressTree(object):
             if value in (None, []):
                 return
 
-            if re.match(r'\d{2}', value) or re.match(r'\d{5}', value):
-                return
+            if isinstance(value, str):
+                value = [value]
 
-            # Check if the value is a name of node in the database.
-            std = self.converter.standardize(value)
-            candidates = self.trie.common_prefixes(std)
-            if std in candidates:
-                trie_node_id = candidates[std]
-                for node_id in self.trie_nodes.get_record(
-                        pos=trie_node_id).nodes:
-                    node = self.address_nodes.get_record(pos=node_id)
-                    if node.name == value:
-                        return
+            for v in value:
+                if re.match(r'\d{2}', v) or re.match(r'\d{5}', v):
+                    return
 
-            msg = "'{}' is not a valid value for {}.".format(value, key)
-            raise RuntimeError(msg)
+                # Check if the value is a name of node in the database.
+                std = self.converter.standardize(v)
+                candidates = self.trie.common_prefixes(std)
+                if std in candidates:
+                    trie_node_id = candidates[std]
+                    for node_id in self.trie_nodes.get_record(
+                            pos=trie_node_id).nodes:
+                        node = self.address_nodes.get_record(pos=node_id)
+                        if node.name == v:
+                            return
+
+                msg = "'{}' is not a valid value for {}.".format(v, key)
+                raise RuntimeError(msg)
 
         else:
             return
@@ -567,192 +584,6 @@ class AddressTree(object):
         - Todo: If the trie index is not created, create.
         """
         return TrieNode(db_dir=self.db_dir)
-
-    '''
-    def create_trie_index(self) -> None:
-        """
-        Create the TRIE index from the tree.
-        """
-        self.__not_in_readonly_mode()
-        self.index_table = {}
-        logger.debug("Collecting labels for the trie index...")
-        self._get_index_table()
-        self._extend_index_table()
-
-        logger.debug("Building Trie...")
-        self.trie = AddressTrie(self.trie_path, self.index_table)
-        self.trie.save()
-
-        records = self._set_index_table()
-        # Create and write TrieNode table
-        self.trie_nodes = TrieNode(db_dir=self.db_dir)
-        self.trie_nodes.create()
-        self.trie_nodes.append_records(records)
-
-    def _get_index_table(self) -> None:
-        """
-        Collect the names of all address elements
-        to be registered in the TRIE index.
-        The collected notations will be stored in `tree.index_table`.
-
-        Generates notations that describe everything from the name of
-        the prefecture to the name of the oaza without abbreviation,
-        notations that omit the name of the prefecture, or notations
-        that omit the name of the prefecture and the city.
-        """
-        self.__not_in_readonly_mode()
-
-        # Build temporary lookup table
-        logger.debug("Building temporary lookup table..")
-        tmp_id_name_table = {}
-        pos = AddressNode.ROOT_NODE_ID + 1
-        while pos < self.address_nodes.count_records():
-            node = self.address_nodes.get_record(pos=pos)
-            if node.level <= AddressLevel.OAZA:
-                tmp_id_name_table[node.id] = node
-                if node.level < AddressLevel.OAZA:
-                    pos += 1
-                else:
-                    pos = node.sibling_id
-
-            else:
-                parent = self.address_nodes.get_record(pos=node.parent_id)
-                if parent.level < AddressLevel.OAZA:
-                    pos += 1
-                else:
-                    pos = parent.sibling_id
-
-                continue
-
-        logger.debug("  {} records found.".format(
-            len(tmp_id_name_table)))
-
-        # Create index_table
-        self.index_table = {}
-        for k, v in tmp_id_name_table.items():
-            node_prefixes = []
-            cur_node = v
-            while True:
-                node_prefixes.insert(0, cur_node.name)
-                if cur_node.parent_id == AddressNode.ROOT_NODE_ID:
-                    break
-
-                if cur_node.parent_id not in tmp_id_name_table:
-                    raise RuntimeError(
-                        ('The parent_id:{} of node:{} is not'.format(
-                            cur_node.parent_id, cur_node),
-                         ' in the tmp_id_table'))
-
-                cur_node = tmp_id_name_table[cur_node.parent_id]
-
-            for i in range(len(node_prefixes)):
-                label = ''.join(node_prefixes[i:])
-                label_standardized = self.converter.standardize(
-                    label)
-                if label_standardized in self.index_table:
-                    self.index_table[label_standardized].append(v.id)
-                else:
-                    self.index_table[label_standardized] = [v.id]
-
-            # Also register variant notations for node labels
-            for candidate in self.converter.standardized_candidates(
-                    v.name_index):
-                if candidate == v.name_index:
-                    # The original notation has been already registered
-                    continue
-
-                if candidate in self.index_table:
-                    self.index_table[candidate].append(v.id)
-                else:
-                    self.index_table[candidate] = [v.id]
-
-    def _extend_index_table(self) -> None:
-        """
-        Expand the index, including support for omission of county names.
-        """
-        self.__not_in_readonly_mode()
-
-        # Build temporary lookup table
-        logger.debug("Building temporary town and village table..")
-        tmp_id_name_table = {}
-        pos = AddressNode.ROOT_NODE_ID + 1
-        while pos < self.address_nodes.count_records():
-            node = self.address_nodes.get_record(pos=pos)
-            if node.level <= AddressLevel.CITY:
-                tmp_id_name_table[node.id] = node
-                pos += 1
-            else:
-                parent = self.address_nodes.get_record(pos=node.parent_id)
-                pos = parent.sibling_id
-                continue
-
-        logger.debug("  {} records found.".format(
-            len(tmp_id_name_table)))
-
-        # Extend index_table
-        with open(Path(__file__).parent / "aliases.json") as f:
-            aliases = json.load(f)
-
-        for k, v in tmp_id_name_table.items():
-            if v.parent_id == AddressNode.ROOT_NODE_ID:
-                continue
-
-            alternatives = []
-            parent_node = tmp_id_name_table[v.parent_id]
-            if parent_node.level == AddressLevel.PREF:
-                parents = [parent_node.name]
-            else:
-                pref_node = tmp_id_name_table[parent_node.parent_id]
-                parents = [pref_node.name, parent_node.name]
-
-            if v.name in aliases:
-                for candidate in aliases[v.name]:
-                    for i in range(len(parents) + 1):
-                        alternatives.append(parents[i:] + [candidate])
-
-            if len(parents) > 1:
-                alternatives.append([parents[0], v.name])
-                if v.name in aliases:
-                    for candidate in aliases[v.name]:
-                        alternatives.append([parents[0], candidate])
-
-            for alternative in alternatives:
-                logger.debug("Extend index by adding '{}'".format(
-                    '/'.join(alternative)))
-                label = "".join(alternative)
-                label_standardized = self.converter.standardize(label)
-                if label_standardized in self.index_table:
-                    self.index_table[label_standardized].append(v.id)
-                else:
-                    self.index_table[label_standardized] = [v.id]
-
-    def _set_index_table(self) -> list:
-        """
-        Map all the id of the TRIE index (TRIE id) to the node id.
-
-        Collect notations recursively the names of all address elements
-        which was registered in the TRIE index, retrieve
-        the id of each notations in the TRIE index,
-        then add the TrieNode to the database that maps
-        the TRIE id to the node id.
-        """
-        self.__not_in_readonly_mode()
-
-        logger.debug("Creating mapping table from trie_id:node_id")
-        trie_nodes = []
-        for k, node_id_list in self.index_table.items():
-            trie_id = self.trie.get_id(k)
-            if len(trie_nodes) <= trie_id:
-                trie_nodes += [None for _ in range(
-                    trie_id - len(trie_nodes) + 1)]
-
-            trie_nodes[trie_id] = {
-                "id": trie_id,
-                "nodes": node_id_list,
-            }
-
-        return trie_nodes
-    '''
 
     def search_by_tree(self, address_names: List[str]) -> AddressNode:
         """

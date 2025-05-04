@@ -2,9 +2,11 @@ from __future__ import annotations
 import json
 from logging import getLogger
 import os
-import requests
+import re
 from typing import Any, List, NoReturn, Optional
 import uuid
+
+import requests
 
 from jageocoder.address import AddressLevel
 from jageocoder.exceptions import RemoteTreeException
@@ -21,21 +23,51 @@ class RemoteDataset(object):
     def __init__(self, tree: RemoteTree) -> None:
         self.tree = tree
         self.records = {}
-        self._map = {}
+        self._map = None
 
     def load_record(self, id: int) -> None:
         rpc_result = self.tree.json_request(
             method="dataset.get",
             params={"id": id},
         )
+        if self._map is None:
+            self._map = {}
+
         self._map[rpc_result["id"]] = rpc_result
         return rpc_result
 
+    def load_records(self) -> None:
+        rpc_result = self.tree.json_request(
+            method="dataset.get_all",
+            params=[],
+        )
+        self._map = rpc_result
+        return rpc_result
+
     def get(self, id: int) -> dict:
+        if self._map is None:
+            try:
+                self.load_records()
+            except RemoteTreeException:
+                self._map = {}
+
         if id in self._map:
             return self._map[id]
 
-        return self.load_record(id=id)
+        try:
+            dataset = self.load_record(id)
+            self._map[id] = dataset
+            return dataset
+        except RemoteTreeException:
+            pass
+
+        raise KeyError(f"'{id}' is not in the dataset keys.")
+
+    def get_all(self) -> dict:
+        if self._map is None:
+            self.load_records()
+
+        return self._map
 
 
 class RemoteNodeTable(object):
@@ -249,8 +281,8 @@ class RemoteTree(AddressTree):
 
         - target_area: List[str] (Default = [])
             Specify the areas to be searched.
-            The area can be specified by the list of name of the node
-            (such as prefecture name or city name), or JIS code.
+            The area can be specified by the list of JIS code of the node.
+            Note: Can't specify by node names when using remote server, currently.
 
         - auto_redirect: bool (default = True)
             When this option is set and the retrieved node has a
@@ -260,6 +292,38 @@ class RemoteTree(AddressTree):
         for k, v in kwargs.items():
             self.validate_config(key=k, value=v)
             self.config[k] = v
+
+    def validate_config(self, key: str, value: Any) -> None:
+        """
+        Validate configuration key and parameters.
+
+        Parameters
+        ----------
+        key: str
+            The name of the parameter.
+        value: str, int, bool, None
+            The value to be set to the parameter.
+
+        Notes
+        -----
+        If the key-value pair is not valid, raise RuntimeError.
+        """
+        if key == 'target_area':
+            if value in (None, []):
+                return
+
+            if isinstance(value, str):
+                value = [value]
+
+            for v in value:
+                if re.match(r'\d{2}', v) or re.match(r'\d{5}', v):
+                    return
+
+                msg = "'{}' is not a valid value for {}.".format(v, key)
+                raise RuntimeError(msg)
+
+        else:
+            return
 
     def json_request(
             self,
