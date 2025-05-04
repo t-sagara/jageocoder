@@ -23,21 +23,51 @@ class RemoteDataset(object):
     def __init__(self, tree: RemoteTree) -> None:
         self.tree = tree
         self.records = {}
-        self._map = {}
+        self._map = None
 
     def load_record(self, id: int) -> None:
         rpc_result = self.tree.json_request(
             method="dataset.get",
             params={"id": id},
         )
+        if self._map is None:
+            self._map = {}
+
         self._map[rpc_result["id"]] = rpc_result
         return rpc_result
 
+    def load_records(self) -> None:
+        rpc_result = self.tree.json_request(
+            method="dataset.get_all",
+            params=[],
+        )
+        self._map = rpc_result
+        return rpc_result
+
     def get(self, id: int) -> dict:
+        if self._map is None:
+            try:
+                self.load_records()
+            except RemoteTreeException:
+                self._map = {}
+
         if id in self._map:
             return self._map[id]
 
-        return self.load_record(id=id)
+        try:
+            dataset = self.load_record(id)
+            self._map[id] = dataset
+            return dataset
+        except RemoteTreeException:
+            pass
+
+        raise KeyError(f"'{id}' is not in the dataset keys.")
+
+    def get_all(self) -> dict:
+        if self._map is None:
+            self.load_records()
+
+        return self._map
 
 
 class RemoteNodeTable(object):

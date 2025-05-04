@@ -886,7 +886,7 @@ class TestSearchByCodeMethods(unittest.TestCase):
 
 class TestSearchNodeMethods(unittest.TestCase):
 
-    @ classmethod
+    @classmethod
     def setUpClass(cls):
         jageocoder.init(mode="r")
 
@@ -903,6 +903,7 @@ class TestSearchNodeMethods(unittest.TestCase):
         self.assertEqual(node.get_pref_jiscode(), '13')
         self.assertEqual(node.get_pref_local_authority_code(), '130001')
         self.assertEqual(node.get_postcode(), '2060033')
+        self.assertEqual(type(node.dataset), dict)
 
     def test_node_range(self):
         """

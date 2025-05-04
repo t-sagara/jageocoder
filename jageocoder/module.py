@@ -288,6 +288,28 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     logger.info('Dictionary has been uninstalled.')
 
 
+def get_datasets() -> dict[int, dict]:
+    """
+    Get the datasets in the installed dictionary.
+
+    Parameters
+    ----------
+    db_dir: os.PathLike, optional
+        The directory where the database files has been installed.
+        If omitted, it will be determined by `get_db_dir()`.
+
+    Returns
+    -------
+    dict[int, dict]
+        The map of the datasets with their ids as keys.
+    """
+    if not is_initialized():
+        raise JageocoderError("Not initialized. Call 'init()' first.")
+
+    global _tree
+    return _tree.datasets
+
+
 def installed_dictionary_version(
     db_dir: Optional[os.PathLike] = None,
     url: Optional[str] = None

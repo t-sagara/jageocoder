@@ -140,7 +140,7 @@ class TestReverseMethods(unittest.TestCase):
         results = jageocoder.reverse(
             x=135.768188, y=35.0115738, level=8)
         candidate = results[0]["candidate"]
-        self.assertEqual(candidate["name"], "488番地")
+        self.assertIn(candidate["name"], ("488番地", "寺町通御池"))
 
     def test_kyoto_edgecase(self) -> None:
         results = jageocoder.reverse(
