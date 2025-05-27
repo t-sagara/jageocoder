@@ -19,7 +19,7 @@ This package provides address-geocoding and reverse-geocoding functionality for 
 
 ## Prerequisites
 
-Requires Python 3.8 or later.
+Requires Python 3.9 or later and 3.12 or earlier.
 
 All other required packages will be installed automatically.
 

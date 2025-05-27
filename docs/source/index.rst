@@ -18,13 +18,13 @@ Jageocoder ドキュメント
 動作環境
 --------
 
-Python 3.8 以上がインストールされた Linux, Windows, MacOS で動作します。
+Python 3.9 以上、3.12 以下がインストールされた Linux, Windows, MacOS で動作します。
 
 
 ライセンス表示
 --------------
 
-Copyright (c) 2021-2024 Takeshi SAGARA 相良 毅
+Copyright (c) 2021-2025 Takeshi SAGARA 相良 毅
 
 `MIT ライセンス <https://opensource.org/licenses/mit-license.php>`_
 で利用できます。
