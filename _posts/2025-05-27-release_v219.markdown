@@ -1,0 +1,20 @@
+---
+layout: post
+title:  "新バージョンリリース: v2.1.9"
+date:   2025-05-29 14:00:00+0900
+categories: Package update
+---
+
+*jageocoder v2.1.9* をリリースしました。
+
+依存するパッケージの脆弱性を回避するため、
+サポートが切れた Python 3.8 への対応を終了しました。
+このバージョンでは Python 3.9 以降、3.12 以下に対応しています。
+
+詳細は [Jageocoder ドキュメント](https://jageocoder.readthedocs.io/) を
+ご覧ください。
+
+また、 *jageocoder-server* も v1.0.11 にアップデートしています。
+こちらは主に [jageocoder-dbtool](https://github.com/geonlp-platform/jageocoder-dbtool)
+を利用して独自に作成した住所データファイルを利用するために必要な
+機能拡張を行っています。
