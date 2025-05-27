@@ -838,13 +838,13 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "portabletab"
-version = "0.3.7"
+version = "0.3.7.post1"
 description = "Python package for serializing tables in portable format with Capnp."
 optional = false
-python-versions = "<3.13,>=3.10"
+python-versions = "<3.13,>=3.9"
 files = [
-    {file = "portabletab-0.3.7-py3-none-any.whl", hash = "sha256:9d48bcfda2a2a16ee59a7b694827115c055ee3230b28d14e5c570dd0390e69fe"},
-    {file = "portabletab-0.3.7.tar.gz", hash = "sha256:1ea6ad117603e2366e7b36e824b85a990ff3a638d855ce55495c07159592f1de"},
+    {file = "portabletab-0.3.7.post1-py3-none-any.whl", hash = "sha256:f8f3b02b01f8d31a3753cf433af972d65b1827a27d933262333c6ebebbfbaf42"},
+    {file = "portabletab-0.3.7.post1.tar.gz", hash = "sha256:d3ca9744d882a38ceb7fdd782df66def68108a2a7ead6e401e8bad1758b211e8"},
 ]
 
 [package.dependencies]
@@ -1114,13 +1114,13 @@ jeepney = ">=0.6"
 
 [[package]]
 name = "setuptools"
-version = "80.8.0"
+version = "80.9.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "setuptools-80.8.0-py3-none-any.whl", hash = "sha256:95a60484590d24103af13b686121328cc2736bee85de8936383111e421b9edc0"},
-    {file = "setuptools-80.8.0.tar.gz", hash = "sha256:49f7af965996f26d43c8ae34539c8d99c5042fbff34302ea151eaa9c207cd257"},
+    {file = "setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922"},
+    {file = "setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c"},
 ]
 
 [package.extras]
@@ -1160,6 +1160,7 @@ babel = ">=2.9"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
 docutils = ">=0.18.1,<0.22"
 imagesize = ">=1.3"
+importlib-metadata = {version = ">=4.8", markers = "python_version < \"3.10\""}
 Jinja2 = ">=3.0"
 packaging = ">=21.0"
 Pygments = ">=2.14"
@@ -1526,5 +1527,5 @@ type = ["pytest-mypy"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.10,<3.13"
-content-hash = "2edf130cf355864780e44a9bd5c0bdb2ac1926faceae792f51e1fe8fb6b309e2"
+python-versions = ">3.9.0,<3.9.1 || >3.9.1,<3.13"
+content-hash = "d2e355ecdbbbf3d040927a56a484b4bc9e1df98ab602ef12a9bd202608f74dbf"
