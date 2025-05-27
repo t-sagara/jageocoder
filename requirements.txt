@@ -12,7 +12,7 @@ PortableTab==0.3.7
 pycapnp==2.0.0
 pycparser==2.22
 requests==2.32.3
-Rtree==1.4.0
+rtree==1.4.0
 tqdm==4.67.1
 urllib3==2.4.0
 wrapt==1.17.2
