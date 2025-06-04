@@ -13,13 +13,13 @@ class TestCodeMethods(unittest.TestCase):
     def setUpClass(cls):
         jageocoder.init(mode='r')
         query = '札幌市中央区北1西2'
-        cls.node_sapporo = jageocoder.searchNode(query)[0][0]
+        cls.node_sapporo = jageocoder.searchNode(query)[0].get_node()
         query = '長崎市尾上町３－１'
-        cls.node_nagasaki = jageocoder.searchNode(query)[0][0]
+        cls.node_nagasaki = jageocoder.searchNode(query)[0].get_node()
         query = '富山市新総曲輪１－７'
-        cls.node_toyama = jageocoder.searchNode(query)[0][0]
+        cls.node_toyama = jageocoder.searchNode(query)[0].get_node()
         query = '多摩市'
-        cls.node_tama = jageocoder.searchNode(query)[0][0]
+        cls.node_tama = jageocoder.searchNode(query)[0].get_node()
 
     def test_pref_name(self):
         """
@@ -93,7 +93,7 @@ class TestCodeMethods(unittest.TestCase):
         """
         k1, v1 = ('test', 'test string:-)')
         notes = self.node_tama.get_notes()
-        notes = notes + tuple([tuple([k1, v1])])
+        notes = list(notes) + [(k1, v1)]
         self.node_tama.set_notes(notes)
         self.assertTrue('test:test string\\:-)' in self.node_tama.note)
         notes = self.node_tama.get_notes()

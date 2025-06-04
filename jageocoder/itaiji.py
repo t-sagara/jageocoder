@@ -49,7 +49,7 @@ class Converter(object):
         cls.trans_z2h = str.maketrans(
             {chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
 
-    def __init__(self, options: dict = None):
+    def __init__(self, options: Optional[dict] = None):
         """
         Initialize the converter.
 
@@ -219,10 +219,13 @@ class Converter(object):
         if level not in self.re_non_trailing_patterns:
             return False
 
-        return self.re_non_trailing_patterns[level].match(index)
+        return self.re_non_trailing_patterns[level].match(index) is not None
 
-    def standardize(self, notation: Union[str, None],
-                    keep_numbers: bool = False) -> str:
+    def standardize(
+        self,
+        notation: Optional[str],
+        keep_numbers: bool = False
+    ) -> str:
         """
         Standardize an address notation.
 
@@ -243,7 +246,7 @@ class Converter(object):
 
         """
         if notation is None or len(notation) == 0:
-            return notation
+            return ""
 
         l_optional_prefix = self.check_optional_prefixes(notation)
         notation = notation[l_optional_prefix:]
@@ -255,9 +258,9 @@ class Converter(object):
         # 4. HIRAGANA with KATAKANA
         # 5. Other exceptions
         notation = notation.translate(
-            self.trans_itaiji).translate(
-            self.trans_z2h).upper()
-        notation = jaconv.hira2kata(notation)
+            self.trans_itaiji).translate(  # type: ignore
+            self.trans_z2h).upper()        # type: ignore
+        notation = str(jaconv.hira2kata(notation))
         notation = notation.replace('通リ', '通')
 
         new_notation = ""

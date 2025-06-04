@@ -1,6 +1,6 @@
 from logging import getLogger
 import re
-from typing import Union
+from typing import Optional, Union
 
 logger = getLogger(__name__)
 
@@ -156,7 +156,7 @@ class Strlib(object):
 
         return False
 
-    def get_number(self, string: str, expected: int = None) -> dict:
+    def get_number(self, string: str, expected: Optional[int] = None) -> dict:
         """
         Parses a string as a number.
 

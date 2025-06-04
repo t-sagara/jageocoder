@@ -2,9 +2,10 @@ from __future__ import annotations
 import datetime
 import json
 from logging import getLogger
+from typing import Optional
 import re
 
-from PortableTab import BaseTable
+from PortableTab import AbstractTable
 
 from jageocoder.address import AddressLevel
 from jageocoder.itaiji import converter as itaiji_converter
@@ -12,7 +13,7 @@ from jageocoder.itaiji import converter as itaiji_converter
 logger = getLogger(__name__)
 
 
-class AzaMaster(BaseTable):
+class AzaMaster(AbstractTable):
     """
     The mater table of Cho-Aza data from the address-base registry.
 
@@ -38,18 +39,15 @@ class AzaMaster(BaseTable):
     """
 
     __tablename__ = "aza_master"
-    __schema__ = """
-        struct AzaMaster {
-            code @0 :Text;
-            names @1 :Text;
-            namesIndex @2 :Text;
-            azaClass @3 :UInt8;
-            isJukyo @4 :Bool;
-            startCountType @5 :UInt8;
-            postcode @6 :Text;
-        }
-        """
-    __record_type__ = "AzaMaster"
+    __schema__ = """{
+            "code": "",
+            "names": "",
+            "namesIndex": "",
+            "azaClass": 0,
+            "isJukyo": false,
+            "startCountType": 0,
+            "postcode": ""
+        }"""
 
     re_optional = re.compile(
         r'({})'.format(
@@ -208,9 +206,11 @@ class AzaMaster(BaseTable):
         - This method uses sequential search so it is very slow.
         """
         st_name = self.__class__.standardize_aza_name(elements)
-        for i in range(self.count_records):
-            record = self.get_record(pos=i)
-            if record.names_index == st_name:
+        for record in self.get_records_by_pos(
+            from_pos=0,
+            to_pos=self.count_records()
+        ):
+            if record["namesIndex"] == st_name:
                 return record
 
         logger.debug("'{}' is not in the aza_master table.".format(
@@ -220,7 +220,7 @@ class AzaMaster(BaseTable):
     def search_by_code(
         self,
         code: str,
-    ):
+    ) -> Optional[dict]:
         """
         Search AzaMaster record by azacode.
 
@@ -239,7 +239,7 @@ class AzaMaster(BaseTable):
             code = code[0:5] + code[6:]
 
         for record in self.search_records_on(attr="code", value=code):
-            if record.code == code:
+            if record["code"] == code:
                 return record
 
         logger.debug("'{}' is not in the aza_master table.".format(code))
@@ -269,12 +269,12 @@ class AzaMaster(BaseTable):
         search_range = (0, self.count_records())
         while search_range[0] < search_range[1]:
             pos = int((search_range[0] + search_range[1]) / 2)
-            record = self.get_record(pos=pos)
-            if record.code == code:
+            record = self.get_record_by_id(id=pos + 1)
+            if record["code"] == code:
                 return pos
-            elif record.code > code:
+            elif record["code"] > code:
                 new_range = (search_range[0], pos)
-            elif record.code < code:
+            elif record["code"] < code:
                 new_range = (pos, search_range[1])
 
             if new_range == search_range:

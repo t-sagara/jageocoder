@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 import site
 import sys
-from typing import Any, Union, List, Set, Optional
+from typing import Any, Dict, Union, List, Set, Optional
 
 from deprecated import deprecated
 
@@ -22,7 +22,7 @@ from jageocoder.trie import AddressTrie, TrieNode
 logger = getLogger(__name__)
 
 
-def get_db_dir(mode: str = 'r') -> Optional[Path]:
+def get_db_dir(mode: Optional[str] = 'r') -> Optional[Path]:
     """
     Get the database directory.
 
@@ -52,16 +52,12 @@ def get_db_dir(mode: str = 'r') -> Optional[Path]:
 
     db_dirs: List[Path] = []
     if 'JAGEOCODER_DB2_DIR' in os.environ:
-        db_dir = os.environ.get('JAGEOCODER_DB2_DIR')
-        if db_dir.lower().startswith('http'):
-            return db_dir
-
+        db_dir = os.environ.get('JAGEOCODER_DB2_DIR', "")
         db_dirs.append(Path(db_dir))
 
-    db_dirs += [
-        Path(sys.prefix) / 'jageocoder/db2/',
-        Path(site.USER_BASE) / 'jageocoder/db2/',
-    ]
+    db_dirs.append(Path(sys.prefix) / 'jageocoder/db2/')
+    if site.USER_BASE is not None:
+        db_dirs.append(Path(site.USER_BASE) / 'jageocoder/db2/')
 
     for db_dir in db_dirs:
         path = db_dir / 'address_node'
@@ -143,7 +139,7 @@ class AddressTree(object):
 
     def __init__(self,
                  db_dir: Optional[os.PathLike] = None,
-                 mode: str = 'a',
+                 mode: Optional[str] = 'a',
                  debug: Optional[bool] = None):
         """
         The initializer
@@ -246,8 +242,11 @@ class AddressTree(object):
             raise AddressTreeException(
                 'This method is not available in read-only mode.')
 
+    def get_address_nodes(self) -> AddressNodeTable:
+        return self.address_nodes
+
     @property
-    def datasets(self) -> List[Dataset]:
+    def datasets(self) -> Dict[int, dict]:
         """
         Get list of datasets installed in the dictionary.
 
@@ -256,7 +255,7 @@ class AddressTree(object):
         List[Dataset]:
             List of datasets.
         """
-        return self.address_nodes.datasets.get_all()
+        return self.get_address_nodes().datasets.get_all()
 
     def get_root(self) -> AddressNode:
         """
@@ -300,7 +299,8 @@ class AddressTree(object):
         -------
         AddressNode
         """
-        node = self.address_nodes.get_record(node_id)
+        # pos is zero origin but id is 1 origin.
+        node = self.address_nodes.get_record(id=node_id)
         node.tree = self
         return node
 
@@ -326,13 +326,15 @@ class AddressTree(object):
         pattern = '{}:{}'.format(category, value)
         nodes = self.address_nodes.search_records_on(
             attr="note", value=pattern)  # exact match
+        for node in nodes:
+            node.tree = self
 
         return nodes
 
     def search_ids_by_codes(
             self,
             category: str,
-            value: str) -> List[AddressNode]:
+            value: str) -> List[int]:
         """
         Search node ids by category and value.
 
@@ -347,7 +349,7 @@ class AddressTree(object):
         -------
         List[int]
         """
-        ids = []
+        ids: List[int] = []
         pattern = '{}:{}'.format(category, value)
         ids = self.address_nodes.search_ids_on(
             attr="note", value=pattern)  # exact match
@@ -359,7 +361,12 @@ class AddressTree(object):
         if isinstance(node, int):
             node = self.get_node_by_id(node)
 
-        return node.get_fullname()
+        result = node.get_fullname(delimiter=None)
+        if isinstance(result, str):
+            raise AddressTreeException(
+                "'node.get_fullname' returns str when delimiter is None.")
+
+        return result
 
     def set_config(self, **kwargs):
         """
@@ -427,8 +434,8 @@ class AddressTree(object):
                 candidates = self.trie.common_prefixes(std)
                 if std in candidates:
                     trie_node_id = candidates[std]
-                    for node_id in self.trie_nodes.get_record(
-                            pos=trie_node_id).nodes:
+                    for node_id in self.trie_nodes.get_record_by_id(
+                            id=trie_node_id).get("nodes", []):
                         node = self.address_nodes.get_record(pos=node_id)
                         if node.name == v:
                             return
@@ -664,7 +671,7 @@ class AddressTree(object):
         logger.debug("Trie: {}".format(','.join(keys)))
 
         min_key = ''
-        processed_nodes: Set[int] = processed_nodes or set()
+        processed_nodes = processed_nodes or set()
         resolved_node_ids: Set[int] = set()
 
         for k in keys:
@@ -673,14 +680,14 @@ class AddressTree(object):
                     k, min_key))
                 continue
 
-            trie_id = candidates[k]
+            trie_id = candidates[k] + 1  # id = pos + 1
             logger.debug("Trie_id of key '{}' = {}".format(
                 k, trie_id))
-            trie_node = self.trie_nodes.get_record(pos=trie_id)
+            trie_node = self.trie_nodes.get_record_by_id(id=trie_id)
             offset = self.converter.match_len(index, k)
             key = index[0:offset]
             rest_index = index[offset:]
-            for node_id in trie_node.nodes:
+            for node_id in trie_node["nodes"]:
                 node = self.get_node_by_id(node_id=node_id)
 
                 if not node.has_valid_coordinate_values() \
@@ -746,7 +753,8 @@ class AddressTree(object):
                             )
                             break
 
-                    noname_child = node.table.get_record(pos=node.id + 1)
+                    # node.table.get_record(pos=node.id + 1)
+                    noname_child = self.get_node_by_id(node.id + 1)
                     if noname_child.name == AddressNode.NONAME and \
                             noname_child.id not in processed_nodes:
                         processed_nodes.add(noname_child.id)
@@ -760,29 +768,29 @@ class AddressTree(object):
                                 results_by_node.append(result)
                                 logger.debug(
                                     "Found '{}'({}) in NONAME Oaza.".format(
-                                        result.node.name, result.node.id
+                                        result.get_node().name,
+                                        result.get_node().id,
                                     ))
 
                     self.set_config(aza_skip=aza_skip)
 
                 for cand in results_by_node:
+                    n = cand.get_node()
                     if len(target_area) > 0:
                         for area in target_area:
-                            inside = cand.node.is_inside(area)
+                            inside = n.is_inside(area)
                             if inside == 1:
                                 break
 
                         if inside != 1:
-                            msg = "Node {}({}) is not in the target area."
-                            logger.debug(msg.format(
-                                cand.node.name, cand.node.id))
+                            msg = f"Node {n.name}({n.id}) is not in the target area."
+                            logger.debug(msg)
                             continue
 
                     if self.get_config("require_coordinates") \
-                            and not cand.node.has_valid_coordinate_values():
-                        logger.debug("Node {}({}) has no coordinates.".format(
-                            cand.node.name, cand.node.id
-                        ))
+                            and not n.has_valid_coordinate_values():
+                        logger.debug(
+                            f"Node {n.name}({n.id}) has no coordinates.")
                         continue
 
                     _len = offset + cand.nchars
@@ -792,27 +800,26 @@ class AddressTree(object):
                     if best_only:
                         if _len > max_len:
                             results = {
-                                cand.node.id: [cand.node, key + cand.matched]
+                                n.id: [n, key + cand.matched]
                             }
                             max_len = _len
                             min_part = _part
 
-                        elif _len == max_len and cand.node.id not in results \
+                        elif _len == max_len and n.id not in results \
                                 and (min_part is None or _part <= min_part):
-                            results[cand.node.id] = [
-                                cand.node, key + cand.matched]
+                            results[n.id] = [n, key + cand.matched]
                             min_part = _part
 
                     else:
-                        if cand.node.id in resolved_node_ids:
+                        if n.id in resolved_node_ids:
                             continue
 
-                        cur = cand.node.parent
+                        cur = n.parent
                         while cur is not None:
                             resolved_node_ids.add(cur.id)
                             cur = cur.parent
 
-                        results[cand.node.id] = [cand.node, key + cand[1]]
+                        results[n.id] = [n, key + cand.matched]
                         max_len = max(_len, max_len)
                         if min_part is None:
                             min_part = _part
@@ -910,7 +917,7 @@ class AddressTree(object):
         str:
             The recovered substring.
         """
-        recovered = None
+        recovered = ""
         node, matched = retrieved
         l_result = len(matched)
         pos = l_result if l_result <= len(query) else len(query)
