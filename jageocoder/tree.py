@@ -433,10 +433,10 @@ class AddressTree(object):
                 std = self.converter.standardize(v)
                 candidates = self.trie.common_prefixes(std)
                 if std in candidates:
-                    trie_node_id = candidates[std]
+                    trie_node_id = candidates[std] + 1
                     for node_id in self.trie_nodes.get_record_by_id(
                             id=trie_node_id).get("nodes", []):
-                        node = self.address_nodes.get_record(pos=node_id)
+                        node = self.address_nodes.get_record(id=node_id)
                         if node.name == v:
                             return
 
@@ -843,7 +843,7 @@ class AddressTree(object):
         AddressNode
             Node with the specified ID.
         """
-        node = self.address_nodes.get_record(pos=id)
+        node = self.address_nodes.get_record(id=id)
         node.tree = self
         return node
 
@@ -1053,7 +1053,7 @@ class AddressTree(object):
             candidates = self.search_ids_by_codes(
                 category="aza_id",
                 value=id[-7:])
-            nodes = [self.address_nodes.get_record(x)
+            nodes = [self.address_nodes.get_record(id=x)
                      for x in candidates
                      if x >= citynode.id and x < citynode.sibling_id]
         elif len(id) == 13:
@@ -1066,7 +1066,7 @@ class AddressTree(object):
             candidates = self.search_ids_by_codes(
                 category="aza_id",
                 value=id[-7:])
-            nodes = [self.address_nodes.get_record(x)
+            nodes = [self.address_nodes.get_record(id=x)
                      for x in candidates
                      if x >= citynode.id and x < citynode.sibling_id]
         else:

@@ -99,7 +99,7 @@ class RemoteNodeTable(AddressNodeTable):
             method="jageocoder.server_signature",
             params=[],
         )
-        if isinstance(server_signature, str):
+        if not isinstance(server_signature, str):
             raise RemoteTreeException(
                 "Remote server returns non string signature.")
 
@@ -110,31 +110,39 @@ class RemoteNodeTable(AddressNodeTable):
 
         return self.server_signature
 
-    def get_record(self, pos: int) -> AddressNode:
+    def get_record(self, id: int) -> AddressNode:
         """
-        Get the record at the specified position from the remote server
+        Get the record with the specified id from the remote server
         and convert it to AddressNode object.
 
         Parameters
         ----------
-        pos: int
-            The position.
+        id: int
+            The node id.
 
         Returns
         -------
         AddressNode
             The converted object.
         """
-        if pos in self.cache:
-            return self.cache[pos]
+        if id in self.cache:
+            return self.cache[id]
+
+        if id < 0:
+            raise RemoteTreeException(
+                "The remote server doesn't support traversal operations."
+            )
 
         rpc_result = self.tree.json_request(
             method="node.get_record",
-            params={"pos": pos, "server": self.server_signature},
+            params={
+                "pos": id,
+                "server": self.server_signature,
+            },
         )
         node = AddressNode(**rpc_result)
         node.table = self
-        self.cache[pos] = node
+        self.cache[id] = node
         return node
 
     def search_records_on(
@@ -436,7 +444,7 @@ class RemoteTree(AddressTree):
         results = []
         for r in rpc_result:
             result = Result.from_dict(r)
-            result.node = self.get_node_by_id(r["node"]["id"])
+            result.get_node().table = self.address_nodes
             results.append(result)
 
         return results

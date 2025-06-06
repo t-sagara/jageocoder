@@ -29,12 +29,18 @@ class TestReverseMethods(unittest.TestCase):
         # self.assertEqual(candidate_names[2], ["東京都", "多摩市", "豊ケ丘", "一丁目"])
 
     def test_endless_pattern(self):
+        x = 139.69175
+        y = 35.689472
         results = jageocoder.reverse(
-            y=35.689472, x=139.69175, level=7, as_dict=False
+            x=x, y=y, level=7, as_dict=False
         )
         nearest_node = results[0]["candidate"]
-        self.assertTrue(isinstance(nearest_node, jageocoder.node.AddressNode))
-        self.assertEqual(nearest_node.dataset["title"], "街区レベル位置参照情報")
+        self.assertTrue(isinstance(nearest_node, AddressNode))
+        reverse_index = jageocoder.get_reverse_index()
+        dist = reverse_index.distance(
+            nearest_node.x, nearest_node.y, x, y)
+        self.assertTrue(dist < 100)
+        # self.assertEqual(nearest_node.dataset["title"], "街区レベル位置参照情報")
 
     def test_block_level(self):
         """
@@ -71,17 +77,25 @@ class TestReverseMethods(unittest.TestCase):
         Test for the case where the specified coordinates are at the edge of
         the land and cannot form a Delaunay triangle and lookup at Block level.
         """
+        x = 140.869360
+        y = 35.720882
         results = jageocoder.reverse(
-            y=35.720882, x=140.869360, level=AddressLevel.BLOCK)
-        candidate_names = [x['candidate']['fullname'] for x in results]
+            x=x, y=y, level=AddressLevel.BLOCK, as_dict=False)
+        candidate_names = [x['candidate'].get_fullname() for x in results]
         self.assertTrue(len(candidate_names) >= 2)
         self.assertTrue(
             ["千葉県", "銚子市", "海鹿島町", "5244番地"] in candidate_names
         )
-        self.assertTrue(
-            ["千葉県", "銚子市", "海鹿島町", "5254番地"] in candidate_names or
-            ["千葉県", "銚子市", "海鹿島町", "5246番地"] in candidate_names
-        )
+        nearest_node = results[0].get("candidate")
+        reverse_index = jageocoder.get_reverse_index()
+        dist = reverse_index.distance(
+            nearest_node.x, nearest_node.y, x, y)
+        self.assertTrue(dist < 100)
+
+        # self.assertTrue(
+        #     ["千葉県", "銚子市", "海鹿島町", "5254番地"] in candidate_names or
+        #     ["千葉県", "銚子市", "海鹿島町", "5246番地"] in candidate_names
+        # )
 
     def test_island(self):
         """

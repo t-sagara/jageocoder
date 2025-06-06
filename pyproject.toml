@@ -20,7 +20,7 @@ classifiers = [
 include = ["itaiji_dic.json", "islands.json"]
 
 [tool.poetry.dependencies]
-python = ">3.9.0"
+python = ">3.9.1"
 certifi = ">=2024.07.04"
 cryptography = ">=44.0.1"
 deprecated = "^1.2.13"

@@ -33,6 +33,7 @@ __all__ = [
     'get_search_config',
     'get_db_dir',
     'get_module_tree',
+    'get_reverse_index',
     'download_dictionary',
     'install_dictionary',
     'uninstall_dictionary',
@@ -53,7 +54,8 @@ __all__ = [
 
 from jageocoder.module import init, free, is_initialized, \
     get_db_dir, set_search_config, get_search_config, \
-    get_module_tree, download_dictionary, install_dictionary, \
+    get_module_tree, get_reverse_index, \
+    download_dictionary, install_dictionary, \
     uninstall_dictionary, get_datasets, create_trie_index, \
     search, searchNode, search_by_machiaza_id, search_by_postcode, \
     search_by_citycode, search_by_prefcode, reverse, \

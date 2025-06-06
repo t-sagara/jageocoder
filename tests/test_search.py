@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 import unittest
 
 import jageocoder
@@ -15,14 +15,25 @@ class TestSearchMethods(unittest.TestCase):
     def setUpClass(cls):
         jageocoder.init(mode="r")
 
-    def _check(self, query: str, aza_skip='auto',
-               target_area: Optional[List[str]] = None,
-               match: str = None, ncandidates: int = None,
-               level: int = None, fullname: list = None):
+    def _check(
+        self,
+        query: str,
+        aza_skip: Union[str, bool] = 'auto',
+        target_area: Optional[List[str]] = None,
+        match: Optional[str] = None,
+        ncandidates: Optional[int] = None,
+        level: Optional[int] = None,
+        fullname: Optional[list] = None
+    ):
         jageocoder.set_search_config(
             aza_skip=aza_skip, target_area=target_area)
-        result = jageocoder.search(query=query)
-        if match:
+        results = jageocoder.search(query=query)
+        if isinstance(results, dict):
+            result = results
+        else:
+            result = results[0]
+
+        if match is not None:
             self.assertEqual(result["matched"], match)
 
         candidates = result["candidates"]
@@ -841,46 +852,46 @@ class TestSearchByCodeMethods(unittest.TestCase):
         results = jageocoder.search_by_machiaza_id(id='1310410023002')
         self.assertEqual(len(results), 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name == '二丁目' and node.parent.name == '西新宿')
 
         results = jageocoder.search_by_machiaza_id(id='131040023002')
         self.assertEqual(len(results), 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name == '二丁目' and node.parent.name == '西新宿')
 
     def test_search_postcode(self):
         results = jageocoder.search_by_postcode(code='1600023')
         self.assertTrue(len(results) >= 8)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name[-2:] == '丁目' and node.parent.name == '西新宿')
 
     def test_search_citycode(self):
         results = jageocoder.search_by_citycode(code='131041')
         self.assertTrue(len(results) >= 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertEqual(node.name, '新宿区')
 
         results = jageocoder.search_by_citycode(code='13104')
         self.assertTrue(len(results) >= 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertEqual(node.name, '新宿区')
 
     def test_search_prefcode(self):
         results = jageocoder.search_by_prefcode(code='130001')
         self.assertTrue(len(results) >= 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name in ('東京', '東京都'))
 
         results = jageocoder.search_by_prefcode(code='13')
         self.assertTrue(len(results) >= 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name in ('東京', '東京都'))
 
 

@@ -32,7 +32,7 @@ class Dataset(AbstractTable):
             "title": "",
             "url": ""
         }"""
-    __id_field__ = "id"
+    __id_field__ = "_pos"
 
     def __init__(self, db_dir: Path) -> None:
         super().__init__(db_dir=db_dir)
@@ -40,8 +40,7 @@ class Dataset(AbstractTable):
 
     def load_records(self):
         self._map = {}
-        for i in range(self.count_records()):
-            record = self.get_record(pos=i)
+        for record in self.get_records_by_pos(0, self.count_records()):
             self._map[record["id"]] = record
 
     def get(self, id: int) -> dict:

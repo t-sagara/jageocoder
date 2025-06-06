@@ -2,7 +2,7 @@ import datetime
 import logging
 import os
 import shutil
-from typing import Dict, Optional, Union, List
+from typing import Any, Dict, List, Optional, Union
 import urllib.request
 from urllib.error import URLError
 
@@ -12,6 +12,7 @@ from jageocoder.exceptions import JageocoderError
 from jageocoder.tree import AddressTree, get_db_dir
 from jageocoder.remote import RemoteTree
 from jageocoder.result import Result
+from jageocoder.rtree import Index
 
 _tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)
@@ -184,6 +185,23 @@ def get_module_tree() -> AddressTree:
         raise JageocoderError("Tree is not initialized.")
 
     return _tree
+
+
+def get_reverse_index() -> Index:
+    """
+    Get the reverse index object of the module-level AddressTree
+    singleton object.
+
+    Return
+    ------
+    rtree.Index
+        The reverse index.
+    """
+    rindex = get_module_tree().reverse_index
+    if rindex is None:
+        raise JageocoderError("Reverse index is not created.")
+
+    return rindex
 
 
 def download_dictionary(url: str) -> None:
@@ -391,7 +409,7 @@ def installed_dictionary_readme(
     return content
 
 
-def search(query: str) -> Union[dict, list[dict]]:
+def search(query: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Search node from the tree by the query.
 

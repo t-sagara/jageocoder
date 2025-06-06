@@ -12,7 +12,7 @@ import PortableTab
 
 from jageocoder.address import AddressLevel
 from jageocoder.dataset import Dataset
-from jageocoder.exceptions import AddressNodeError
+from jageocoder.exceptions import AddressNodeError, RemoteTreeException
 from jageocoder.itaiji import Converter
 from jageocoder.result import Result
 from jageocoder.strlib import strlib
@@ -70,6 +70,28 @@ class AddressNodeTable(PortableTab.AbstractTable):
         node.table = self
         return node
 
+    def get_records(self, from_id: int, to_id: int) -> Iterator[AddressNode]:
+        """
+        Get the records between from_id and to_id
+        and convert it to AddressNode object.
+
+        Parameters
+        ----------
+        from_pos: int
+            The lower bound of id.
+        to_pos: int
+            The upper bound of id. The record which has `to_pos` is not included.
+
+        Returns
+        -------
+        Iterator[AddressNode]
+            Iterator of the converted object.
+        """
+        for record in super().get_records_by_id(from_id, to_id):
+            node = AddressNode.from_record(record)
+            node.table = self
+            yield node
+
     def search_ids_on(
         self,
         attr: str,
@@ -92,7 +114,7 @@ class AddressNodeTable(PortableTab.AbstractTable):
         """
         trie = self.open_trie_on(attr)
         positions = trie.get(value, [])
-        return [p[0] for p in positions]
+        return [p[0] + 1 for p in positions]
 
     def create_indexes(self) -> None:
         """
@@ -193,7 +215,7 @@ class AddressNode(object):
             level: int = -1,
             priority: int = -1,
             note: str = "",
-            parent_id: int = ROOT_NODE_ID,
+            parent_id: int = -1,
             sibling_id: int = -1,
             tree: Optional[AddressTree] = None,
     ) -> None:
@@ -1292,6 +1314,8 @@ class AddressNode(object):
             "level": self.level,
             "priority": self.priority,
             "note": self.note,
+            "parent_id": self.parent_id,
+            "sibling_id": self.sibling_id,
             "fullname": self.get_fullname(),
         }
 
@@ -1304,7 +1328,9 @@ class AddressNode(object):
             y=jsonable["y"],
             level=jsonable["level"],
             priority=jsonable["priority"],
-            note=jsonable["note"]
+            note=jsonable["note"],
+            parent_id=jsonable.get("parent_id", -1),
+            sibling_id=jsonable.get("sibling_id", -1),
         )
 
     def as_geojson(self):
@@ -1317,14 +1343,7 @@ class AddressNode(object):
                 "type": "Point",
                 "coordinates": [self.x, self.y]
             },
-            "properties": {
-                "id": self.id,
-                "name": self.get_name(),
-                "level": self.level,
-                "priority": self.priority,
-                "note": self.note,
-                "fullname": self.get_fullname(),
-            }
+            "properties": self.as_dict(),
         }
 
     def to_json(self):
@@ -1378,7 +1397,10 @@ class AddressNode(object):
         cur_node = self
         while cur_node is not None:
             names.insert(0, cur_node.get_name(alt))
-            cur_node = cur_node.get_parent()
+            try:
+                cur_node = cur_node.get_parent()
+            except (ValueError, RemoteTreeException):
+                break
 
         if isinstance(delimiter, str):
             return delimiter.join(names)
