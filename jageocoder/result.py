@@ -125,7 +125,7 @@ class Result(object):
                 The substring matching the query.
         """
         return {
-            "node": self.node.as_dict(),
+            "node": self.node.to_json(),
             "matched": self.matched,
         }
 

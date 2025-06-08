@@ -12,6 +12,7 @@ import PortableTab
 
 from jageocoder.address import AddressLevel
 from jageocoder.dataset import Dataset
+from jageocoder.exceptions import AddressNodeError
 from jageocoder.itaiji import Converter
 from jageocoder.result import Result
 from jageocoder.strlib import strlib
@@ -180,6 +181,7 @@ class AddressNode(object):
             note: Optional[str] = None,
             parent_id: Optional[int] = None,
             sibling_id: Optional[int] = None,
+            tree: Optional[AddressTree] = None,
     ) -> None:
         """
         The initializer of the node.
@@ -198,13 +200,25 @@ class AddressNode(object):
         self.note = note
         self.parent_id = parent_id
         self.sibling_id = sibling_id
+        self.tree = tree
 
         # For indexing
         if self.name_index is None:
             self.name_index = default_itaiji_converter.standardize(self.name)
 
-        # Set relations
-        self.table = None
+        self.table: Union[AddressNodeTable, None] = None
+
+    def get_table(self) -> AddressNodeTable:
+        if self.table is None:
+            raise AddressNodeError("The node has no table information.")
+
+        return self.table
+
+    def get_tree(self) -> AddressTree:
+        if self.tree is None:
+            raise AddressNodeError("The node has no tree information.")
+
+        return self.tree
 
     def has_valid_coordinate_values(self) -> bool:
         """
@@ -1259,7 +1273,9 @@ class AddressNode(object):
             y=jsonable["y"],
             level=jsonable["level"],
             priority=jsonable["priority"],
-            note=jsonable["note"]
+            note=jsonable["note"],
+            parent_id=jsonable.get("parent_id", None),
+            sibling_id=jsonable.get("sibling_id", None),
         )
 
     def as_geojson(self):
@@ -1272,14 +1288,7 @@ class AddressNode(object):
                 "type": "Point",
                 "coordinates": [self.x, self.y]
             },
-            "properties": {
-                "id": self.id,
-                "name": self.get_name(),
-                "level": self.level,
-                "priority": self.priority,
-                "note": self.note,
-                "fullname": self.get_fullname(),
-            }
+            "properties": self.as_dict(),
         }
 
     def to_json(self):
