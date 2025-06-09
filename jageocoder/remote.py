@@ -376,6 +376,12 @@ class RemoteTree(AddressTree):
             params={},
         )
 
+    def installed_dictionary_readme(self) -> str:
+        return self.json_request(
+            method="jageocoder.installed_dictionary_readme",
+            params={},
+        )
+
     def search_by_trie(
             self, *args, **kwargs
     ) -> NoReturn:

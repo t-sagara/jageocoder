@@ -1,5 +1,6 @@
 from logging import getLogger
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 from PortableTab import BaseTable
 
@@ -35,23 +36,24 @@ class Dataset(BaseTable):
 
     def __init__(self, db_dir: Path) -> None:
         super().__init__(db_dir=db_dir)
-        self._map = None
+        self._map: Optional[Dict[int, Any]] = None
 
-    def load_records(self):
-        self._map = {}
+    def load_records(self) -> Dict[int, Any]:
+        dataset_map = {}
         for i in range(self.count_records()):
             record = self.get_record(pos=i, as_dict=True)
-            self._map[record["id"]] = record
+            dataset_map[record["id"]] = record
 
         self.unload()
+        return dataset_map
 
-    def get(self, id: int) -> dict:
+    def get(self, id: int) -> Any:
         if self._map is None:
-            self.load_records()
+            self._map = self.load_records()
 
         return self._map[id]
 
-    def get_all(self) -> dict:
+    def get_all(self) -> Optional[Dict[int, Any]]:
         if self._map is None:
             self.load_records()
 

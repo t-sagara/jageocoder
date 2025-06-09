@@ -33,7 +33,7 @@ class TestReverseMethods(unittest.TestCase):
             y=35.689472, x=139.69175, level=7, as_dict=False
         )
         nearest_node = results[0]["candidate"]
-        self.assertTrue(isinstance(nearest_node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(nearest_node, AddressNode))
         self.assertEqual(nearest_node.dataset["title"], "街区レベル位置参照情報")
 
     def test_block_level(self):

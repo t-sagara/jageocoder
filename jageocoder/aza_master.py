@@ -208,7 +208,7 @@ class AzaMaster(BaseTable):
         - This method uses sequential search so it is very slow.
         """
         st_name = self.__class__.standardize_aza_name(elements)
-        for i in range(self.count_records):
+        for i in range(self.count_records()):
             record = self.get_record(pos=i)
             if record.names_index == st_name:
                 return record

@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 import unittest
 
 import jageocoder
@@ -15,14 +15,25 @@ class TestSearchMethods(unittest.TestCase):
     def setUpClass(cls):
         jageocoder.init(mode="r")
 
-    def _check(self, query: str, aza_skip='auto',
-               target_area: Optional[List[str]] = None,
-               match: str = None, ncandidates: int = None,
-               level: int = None, fullname: list = None):
+    def _check(
+        self,
+        query: str,
+        aza_skip: Union[str, bool] = 'auto',
+        target_area: Optional[List[str]] = None,
+        match: Optional[str] = None,
+        ncandidates: Optional[int] = None,
+        level: Optional[int] = None,
+        fullname: Optional[list] = None
+    ):
         jageocoder.set_search_config(
             aza_skip=aza_skip, target_area=target_area)
-        result = jageocoder.search(query=query)
-        if match:
+        results = jageocoder.search(query=query)
+        if isinstance(results, dict):
+            result = results
+        else:
+            result = results[0]
+
+        if match is not None:
             self.assertEqual(result["matched"], match)
 
         candidates = result["candidates"]
@@ -824,6 +835,7 @@ class TestSearchByCodeMethods(unittest.TestCase):
     def test_search_set_config(self):
         jageocoder.set_search_config(target_area='14152')
         result = jageocoder.search(query="中央区中央1-1-1")
+        self.assertTrue(isinstance(result, dict))
         self.assertTrue(len(result["matched"]) == 10)
         self.assertTrue(len(result["candidates"]) == 1)
 
@@ -841,46 +853,46 @@ class TestSearchByCodeMethods(unittest.TestCase):
         results = jageocoder.search_by_machiaza_id(id='1310410023002')
         self.assertEqual(len(results), 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name == '二丁目' and node.parent.name == '西新宿')
 
         results = jageocoder.search_by_machiaza_id(id='131040023002')
         self.assertEqual(len(results), 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name == '二丁目' and node.parent.name == '西新宿')
 
     def test_search_postcode(self):
         results = jageocoder.search_by_postcode(code='1600023')
         self.assertTrue(len(results) >= 8)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name[-2:] == '丁目' and node.parent.name == '西新宿')
 
     def test_search_citycode(self):
         results = jageocoder.search_by_citycode(code='131041')
         self.assertTrue(len(results) >= 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertEqual(node.name, '新宿区')
 
         results = jageocoder.search_by_citycode(code='13104')
         self.assertTrue(len(results) >= 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertEqual(node.name, '新宿区')
 
     def test_search_prefcode(self):
         results = jageocoder.search_by_prefcode(code='130001')
         self.assertTrue(len(results) >= 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name in ('東京', '東京都'))
 
         results = jageocoder.search_by_prefcode(code='13')
         self.assertTrue(len(results) >= 1)
         node = results[0]
-        self.assertTrue(isinstance(node, jageocoder.node.AddressNode))
+        self.assertTrue(isinstance(node, AddressNode))
         self.assertTrue(node.name in ('東京', '東京都'))
 
 
@@ -892,7 +904,7 @@ class TestSearchNodeMethods(unittest.TestCase):
 
     def _get_first_node(self, query: str) -> AddressNode:
         results = jageocoder.searchNode(query)
-        return results[0].node
+        return results[0].get_node()
 
     def test_node_normal(self):
         node = self._get_first_node('多摩市落合１－１５－２')
@@ -932,6 +944,66 @@ class TestSearchNodeMethods(unittest.TestCase):
         self.assertEqual(node.get_pref_jiscode(), '20')
         self.assertEqual(node.get_pref_local_authority_code(), '200000')
         self.assertEqual(node.get_postcode(), '3810000')
+
+
+class TestNodePropertyMethods(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        jageocoder.init(mode="r")
+
+    def _get_first_node(self, query: str) -> AddressNode:
+        results = jageocoder.searchNode(query)
+        return results[0].get_node()
+
+    def test_get_pref_name(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_pref_name(), '東京都')
+
+    def test_get_pref_jiscode(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_pref_jiscode(), '13')
+
+    def test_get_pref_local_authority_code(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_pref_local_authority_code(), '130001')
+
+    def test_get_city_name(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_city_name(), '新宿区')
+
+    def test_get_city_jiscode(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_city_jiscode(), '13104')
+
+    def test_get_city_local_authority_code(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_city_local_authority_code(), '131041')
+
+    def test_get_aza_id(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_aza_id(), '0023002')
+
+    def test_get_machiaza_id(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_machiaza_id(), '0023002')
+
+    def test_get_aza_code(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_aza_code(), '131040023002')
+
+    def test_get_aza_names(self):
+        correct_answer = [
+            [1, '東京都', 'トウキョウト', 'Tokyo', '13'],
+            [3, '新宿区', 'シンジュクク', 'Shinjuku-ku', '13104'],
+            [5, '西新宿', 'ニシシンジュク', '', '131040023'],
+            [6, '二丁目', '２チョウメ', '2chome', '131040023002']]
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_aza_names(), correct_answer)
+
+    def test_get_postcode(self):
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_postcode(), '1600023')
 
 
 if __name__ == "__main__":
