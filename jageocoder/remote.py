@@ -1,21 +1,46 @@
 from __future__ import annotations
+from collections import OrderedDict
 import json
 from logging import getLogger
 import os
 import re
-from typing import Any, List, NoReturn, Optional
+from typing import Any, Dict, List, NoReturn, Optional, Tuple, Union
 import uuid
 
 import requests
 
 from jageocoder.address import AddressLevel
+from jageocoder.aza_master import AzaMaster
 from jageocoder.exceptions import RemoteTreeException
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
-from jageocoder.tree import AddressTree, LRU
+from jageocoder.tree import AddressTree
 
 
 logger = getLogger(__name__)
+
+
+class LRU(OrderedDict):
+    'Limit size, evicting the least recently looked-up key when full'
+
+    def __init__(self, maxsize=512, *args, **kwds):
+        self.maxsize = maxsize
+        super().__init__(*args, **kwds)
+
+    def __getitem__(self, key):
+        value = super().__getitem__(key)
+        self.move_to_end(key)
+        return value
+
+    def __setitem__(self, key, value):
+        if key in self:
+            self.move_to_end(key)
+
+        super().__setitem__(key, value)
+        if len(self) > self.maxsize:
+            oldest = next(iter(self))
+            logger.debug("Delete '{}'".format(oldest))
+            del self[oldest]
 
 
 class RemoteDataset(object):
@@ -23,7 +48,7 @@ class RemoteDataset(object):
     def __init__(self, tree: RemoteTree) -> None:
         self.tree = tree
         self.records = {}
-        self._map = None
+        self._map: Optional[Dict[int, Any]] = None
 
     def load_record(self, id: int) -> None:
         rpc_result = self.tree.json_request(
@@ -36,13 +61,18 @@ class RemoteDataset(object):
         self._map[rpc_result["id"]] = rpc_result
         return rpc_result
 
-    def load_records(self) -> None:
+    def load_records(self) -> Dict[int, Dict[str, Union[int, str]]]:
         rpc_result = self.tree.json_request(
             method="dataset.get_all",
             params=[],
         )
-        self._map = rpc_result
-        return rpc_result
+        new_map = {}
+        for v in rpc_result.values():
+            # The keys of rpc_result are string, so convert to integer here
+            new_map[v["id"]] = v
+
+        self._map = new_map
+        return new_map
 
     def get(self, id: int) -> dict:
         if self._map is None:
@@ -51,19 +81,22 @@ class RemoteDataset(object):
             except RemoteTreeException:
                 self._map = {}
 
-        if id in self._map:
-            return self._map[id]
+        if self._map is None:
+            raise RemoteTreeException("Unexpected error")
 
         try:
             dataset = self.load_record(id)
             self._map[id] = dataset
-            return dataset
         except RemoteTreeException:
-            pass
+            raise RemoteTreeException(
+                f"Remote tree has no dataset for id={id}")
+
+        if self._map is not None and id in self._map:
+            return self._map[id]
 
         raise KeyError(f"'{id}' is not in the dataset keys.")
 
-    def get_all(self) -> dict:
+    def get_all(self) -> Optional[Dict[int, Dict[str, Union[int, str]]]]:
         if self._map is None:
             self.load_records()
 
@@ -76,7 +109,7 @@ class RemoteNodeTable(object):
         self.tree = tree
         self.datasets = RemoteDataset(tree=tree)
         self.cache = LRU()
-        self.server_signature = None
+        self.server_signature: str = ""
         self.mode = 'r'   # Always read only
 
     def update_server_signature(self) -> str:
@@ -96,7 +129,7 @@ class RemoteNodeTable(object):
         if self.server_signature != server_signature:
             # The remote server has been restarted
             self.cache.clear()
-            self.server_signature = server_signature
+            self.server_signature = str(server_signature)
 
         return self.server_signature
 
@@ -123,7 +156,6 @@ class RemoteNodeTable(object):
             params={"pos": pos, "server": self.server_signature},
         )
         node = AddressNode(**rpc_result)
-        node.table = self
         self.cache[pos] = node
         return node
 
@@ -131,7 +163,7 @@ class RemoteNodeTable(object):
             self,
             attr: str,
             value: str,
-            funcname: str = "get") -> list:
+            funcname: str = "get") -> List[AddressNode]:
         """
         Search value from the table on the specified attribute on the remote server.
 
@@ -149,8 +181,8 @@ class RemoteNodeTable(object):
 
         Returns
         -------
-        List[Record]
-            List of records.
+        List[AddressNode]
+            List of nodes.
 
         Notes
         -----
@@ -169,7 +201,6 @@ class RemoteNodeTable(object):
         nodes = []
         for record in rpc_result:
             node = AddressNode(**record)
-            node.table = self
             nodes.append(node)
 
         return nodes
@@ -178,7 +209,7 @@ class RemoteNodeTable(object):
         self,
         attr: str,
         value: str,
-    ) -> list:
+    ) -> List[int]:
         """
         Search id from the table on the specified attribute on the remote server.
 
@@ -191,8 +222,8 @@ class RemoteNodeTable(object):
 
         Returns
         -------
-        List[Record]
-            List of records.
+        List[int]
+            List of node ids.
         """
         rpc_result = self.tree.json_request(
             method="node.search_records_on",
@@ -239,10 +270,10 @@ class RemoteTree(AddressTree):
         debug: bool, optional (default=False)
             Debugging flag. If set to True, write debugging messages.
         """
-        self._session = None
+        super().__init__(debug)
         self.url = url
-        self.debug = debug
-        self.address_nodes = RemoteNodeTable(tree=self)
+        self.table = RemoteNodeTable(tree=self)
+        self._session = None
         self.config = {
             'debug': self.debug,
             'aza_skip': os.environ.get('JAGEOCODER_OPT_AZA_SKIP'),
@@ -254,76 +285,109 @@ class RemoteTree(AddressTree):
                 'JAGEOCODER_OPT_AUTO_REDIRECT', True),
         }
 
-    def set_config(
-        self,
-        **kwargs
-    ) -> None:
+    @property
+    def datasets(self) -> Optional[Dict[int, Any]]:
         """
-        Set configuration parameters.
+        Get list of datasets installed in the dictionary.
 
-        Note
-        ----
-        The possible keywords and their meanings are as follows.
-
-        - best_only: bool (default = True)
-            If set to False, returns all search result candidates
-            whose prefix matches.
-
-        - aza_skip: bool, None (default = False)
-            Specifies how to skip aza-names while searching nodes.
-            - If None, make the decision automatically
-            - If False, do not skip
-            - If True, always skip
-
-        - require_coordinates: bool (default = True)
-            If set to False, nodes without coordinates are also
-            included in the search.
-
-        - target_area: List[str] (Default = [])
-            Specify the areas to be searched.
-            The area can be specified by the list of JIS code of the node.
-            Note: Can't specify by node names when using remote server, currently.
-
-        - auto_redirect: bool (default = True)
-            When this option is set and the retrieved node has a
-            new address recorded in the "ref" attribute,
-            the new address is retrieved automatically.
+        Returns
+        -------
+        Dict[int, Any]:
+            List of datasets.
         """
-        for k, v in kwargs.items():
-            self.validate_config(key=k, value=v)
-            self.config[k] = v
+        return self.table.datasets.get_all()
 
-    def validate_config(self, key: str, value: Any) -> None:
+    def get_azamasters(self) -> AzaMaster:
+        raise RemoteTreeException(
+            "'get_azamasters' is not available for RemoteTree"
+        )
+
+    def get_node_by_id(self, node_id: int) -> AddressNode:
         """
-        Validate configuration key and parameters.
+        Get the full node information by its id.
 
         Parameters
         ----------
-        key: str
-            The name of the parameter.
-        value: str, int, bool, None
-            The value to be set to the parameter.
+        node_id: int
+            The target node id.
 
-        Notes
-        -----
-        If the key-value pair is not valid, raise RuntimeError.
+        Returns
+        -------
+        AddressNode
         """
-        if key == 'target_area':
-            if value in (None, []):
-                return
+        node = self.table.get_record(pos=node_id)
+        node.tree = self
+        return node
 
-            if isinstance(value, str):
-                value = [value]
+    def search_nodes_by_codes(
+            self,
+            category: str,
+            value: str) -> List[AddressNode]:
+        """
+        Search nodes by category and value.
 
-            for v in value:
-                if re.match(r'\d{2}', v) or re.match(r'\d{5}', v):
-                    return
+        Parameters
+        ----------
+        category: str
+            Category name such as 'jisx0402' or 'postcode'.
+        value: str
+            Target value.
 
-                msg = "'{}' is not a valid value for {}.".format(v, key)
-                raise RuntimeError(msg)
+        Returns
+        -------
+        List[AddressNode]
+        """
+        pattern = '{}:{}'.format(category, value)
+        _nodes = self.table.search_records_on(
+            attr="note", value=pattern)  # exact match
+        nodes = []
+        for node in _nodes:
+            node.tree = self
+            nodes.append(node)
 
-        else:
-            return
+        return nodes
+
+    def search_ids_by_codes(
+            self,
+            category: str,
+            value: str) -> List[int]:
+        """
+        Search node ids by category and value.
+
+        Parameters
+        ----------
+        category: str
+            Category name such as 'jisx0402' or 'postcode'.
+        value: str
+            Target value.
+
+        Returns
+        -------
+        List[int]
+        """
+        ids = []
+        pattern = '{}:{}'.format(category, value)
+        ids = self.table.search_ids_on(
+            attr="note", value=pattern)  # exact match
+
+        return ids
+
+    def search_aza_records_by_codes(self, code: str) -> Tuple[Tuple[int, str, str, str]]:
+        """
+        Search Address-base-registry's aza records.
+
+        Parameters
+        ----------
+        code: str
+            Machi-aza code in ABR.
+
+        Returns
+        -------
+        Tuple[Tuple[int, str, str, str]]
+        """
+        raise RemoteTreeException(
+            "'search_aza_records_by_codes' is not available for RemoteTree"
+        )
 
     def json_request(
             self,
@@ -410,9 +474,9 @@ class RemoteTree(AddressTree):
         >>> jageocoder.init()
         >>> tree = jageocoder.get_module_tree()
         >>> tree.searchNode('多摩市落合1-15-2')
-        [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
+        [{"node": {"id": ..., "name": "2", "name_index": "2.", "x": 139.4..., "y": 35.6..., "level": 8, "priority": 9, "note": "", "parent_id": ..., "sibling_id": ...}, "matched": "多摩市落合1-15-2"}]
         """  # noqa: E501
-        self.address_nodes.update_server_signature()
+        self.table.update_server_signature()
         rpc_result = self.json_request(
             method="jageocoder.searchNode",
             params={"query": query, "config": self.config},
@@ -456,7 +520,7 @@ class RemoteTree(AddressTree):
         - Each element is a dict type with the following structure:
             {"candidate":AddressNode, "dist":float}
         """
-        self.address_nodes.update_server_signature()
+        self.table.update_server_signature()
         rpc_result = self.json_request(
             method="jageocoder.reverse",
             params={
@@ -475,17 +539,17 @@ class RemoteTree(AddressTree):
         return results
 
     def search_by_machiaza_id(self, id: str) -> List[AddressNode]:
-        self.address_nodes.update_server_signature()
+        self.table.update_server_signature()
         return super().search_by_machiaza_id(id)
 
     def search_by_postcode(self, code: str) -> List[AddressNode]:
-        self.address_nodes.update_server_signature()
+        self.table.update_server_signature()
         return super().search_by_postcode(code)
 
     def search_by_prefcode(self, code: str) -> List[AddressNode]:
-        self.address_nodes.update_server_signature()
+        self.table.update_server_signature()
         return super().search_by_prefcode(code)
 
     def search_by_citycode(self, code: str) -> List[AddressNode]:
-        self.address_nodes.update_server_signature()
+        self.table.update_server_signature()
         return super().search_by_citycode(code)

@@ -7,7 +7,7 @@ Note
 Before using this module, install address-dictionary
 from the Web as follows:
 
-    $ python -m jageocoder install-dictionary
+    $ jageocoder install-dictionary <dictionary file>
 
 Example
 -------
@@ -16,7 +16,8 @@ running the following steps.
 
     >>> import jageocoder
     >>> jageocoder.init()
-    >>> jageocoder.searchNode('<Japanese-address>')
+    >>> jageocoder.searchNode('新宿区西新宿2-8-1')
+    [{"node": {"id": ..., "name": "8番", "name_index": "8.番", "x": 139.6..., "y": 35.6..., "level": 7, "priority": 3, "note": "", "parent_id": ..., "sibling_id": ...}, "matched": "新宿区西新宿2-8-"}]
 """
 
 from importlib.metadata import version

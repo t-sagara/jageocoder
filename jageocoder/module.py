@@ -9,19 +9,20 @@ from urllib.error import URLError
 import jageocoder
 from jageocoder.dataset import Dataset
 from jageocoder.exceptions import JageocoderError
+from jageocoder.local_tree import LocalTree
 from jageocoder.tree import AddressTree, get_db_dir
 from jageocoder.remote import RemoteTree
 from jageocoder.result import Result
 from jageocoder.rtree import Index
 
-_tree = None  # The default AddressTree
+_tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)
 
 
 def init(db_dir: Optional[os.PathLike] = None,
-         mode: Optional[str] = 'r',
-         debug: Optional[bool] = False,
-         url: Optional[str] = None,
+         mode: str = 'r',
+         debug: bool = False,
+         url: str = "",
          **kwargs) -> None:
     """
     Initialize the module-level AddressTree object `jageocoder.tree`
@@ -69,7 +70,7 @@ def init(db_dir: Optional[os.PathLike] = None,
     # Check parameters
     if db_dir is not None:
         _db_dir = db_dir
-    elif url is not None and mode == 'r':
+    elif url != "" and mode == 'r':
         _url = url
 
     # Check environmental variables
@@ -85,7 +86,7 @@ def init(db_dir: Optional[os.PathLike] = None,
 
     # Initialize tree object
     if _db_dir:
-        _tree = AddressTree(db_dir=_db_dir, mode=mode, debug=debug)
+        _tree = LocalTree(db_dir=_db_dir, mode=mode, debug=debug)
     elif _url:
         _tree = RemoteTree(url=_url, debug=debug)
     else:
@@ -186,23 +187,6 @@ def get_module_tree() -> AddressTree:
         raise JageocoderError("Tree is not initialized")
 
     return _tree
-
-
-def get_reverse_index() -> Index:
-    """
-    Get the reverse index object of the module-level AddressTree
-    singleton object.
-
-    Return
-    ------
-    rtree.Index
-        The reverse index.
-    """
-    rindex = get_module_tree().reverse_index
-    if rindex is None:
-        raise JageocoderError("Reverse index is not created.")
-
-    return rindex
 
 
 def download_dictionary(url: str) -> None:
@@ -308,7 +292,7 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     logger.info('Dictionary has been uninstalled.')
 
 
-def get_datasets() -> List[Dataset]:
+def get_datasets() -> Optional[Dict[int, Any]]:
     """
     Get the datasets in the installed dictionary.
 
@@ -484,7 +468,7 @@ def searchNode(query: str) -> List[Result]:
     >>> import jageocoder
     >>> jageocoder.init()
     >>> jageocoder.searchNode('多摩市落合1-15-2')
-    [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
+    [{"node": {"id": ..., "name": "2", "name_index": "2.", "x": 139.4..., "y": 35.6..., "level": 8, "priority": 9, "note": "", "parent_id": ..., "sibling_id": ...}, "matched": "多摩市落合1-15-2"}]
     """  # noqa: E501
     return get_module_tree().searchNode(query)
 
@@ -627,10 +611,12 @@ def create_trie_index() -> None:
     This function is a shortcut for AddressTree.create_trie_index().
     """
     tree = get_module_tree()
-    if isinstance(_tree, RemoteTree):
+    if isinstance(tree, RemoteTree):
         raise JageocoderError("Can't update TRIE index on remote server.")
 
-    tree.get_address_nodes().create_indexes()
+    if isinstance(tree, LocalTree):
+        t: LocalTree = tree
+        t.create_note_index_table()
 
 
 def version():

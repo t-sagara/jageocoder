@@ -1001,6 +1001,15 @@ class TestNodePropertyMethods(unittest.TestCase):
         self.assertEqual(self._get_first_node(
             "新宿区西新宿2-8-1").get_aza_names(), correct_answer)
 
+        correct_answer = [
+            ['都道府県', '東京都', 'トウキョウト', 'Tokyo', '13'],
+            ['市町村・特別区', '新宿区', 'シンジュクク', 'Shinjuku-ku', '13104'],
+            ['町域・大字', '西新宿', 'ニシシンジュク', '', '131040023'],
+            ['丁目・小字', '二丁目', '２チョウメ', '2chome', '131040023002']]
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_aza_names(
+                levelname=True), correct_answer)
+
     def test_get_postcode(self):
         self.assertEqual(self._get_first_node(
             "新宿区西新宿2-8-1").get_postcode(), '1600023')

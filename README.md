@@ -271,6 +271,11 @@ Tutorials and references are [here](https://jageocoder.readthedocs.io/ja/latest/
 
 Consider using [jageocoder-converter](https://github.com/t-sagara/jageocoder-converter).
 
+## Tests
+
+Run `pytest` for unit tests.
+Run `pytest jageocoder/ --doctest-modules` for doc tests.
+
 ## Contributing
 
 Address notation varies. So suggestions for logic improvements are welcome.

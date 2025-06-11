@@ -70,7 +70,6 @@ class AddressNodeTable(PortableTab.BaseTable):
         """
         capnp_record = super().get_record(pos=pos)
         node = AddressNode.from_record(capnp_record)
-        node.table = self
         return node
 
     def search_ids_on(
@@ -154,12 +153,13 @@ class AddressNode(object):
         The id of the parent node.
     sibling_id : int
         The id of the next sibling node.
+    tree: Optional[AddressTree]
+        The tree which contains this node.
 
     Attributes
     ----------
     name_index : str
         The standardized string for indexing created from its name.
-
     """
     ROOT_NODE_ID = 0
     NO_COORDINATE_VALUE = 999.9
@@ -202,14 +202,6 @@ class AddressNode(object):
         if self.name_index is None:
             self.name_index = default_itaiji_converter.standardize(self.name)
 
-        self.table: Union[AddressNodeTable, None] = None
-
-    def get_table(self) -> AddressNodeTable:
-        if self.table is None:
-            raise AddressNodeError("The node has no table information.")
-
-        return self.table
-
     def get_tree(self) -> AddressTree:
         if self.tree is None:
             raise AddressNodeError("The node has no tree information.")
@@ -247,7 +239,14 @@ class AddressNode(object):
         """
         Get dataset record.
         """
-        return self.get_table().datasets.get(id=self.priority)
+        datasets = self.get_tree().datasets
+        if datasets is None:
+            raise AddressNodeError("The tree has no datasets information")
+        elif self.priority not in datasets:
+            raise AddressNodeError(
+                f"The tree has no dataset for id={self.priority}")
+
+        return datasets[self.priority]
 
     @property
     def levelname(self) -> str:
@@ -379,7 +378,7 @@ class AddressNode(object):
                 "Attempted to retrieve parent of node with invalid parent_id"
             )
 
-        parent = self.get_table().get_record(pos=self.parent_id)
+        parent = self.get_tree().get_node_by_id(node_id=self.parent_id)
         return parent
 
     def get_child(self, target_name: str) -> Optional[AddressNode]:
@@ -398,7 +397,7 @@ class AddressNode(object):
             Otherwise return None.
         """
         target_name_index = default_itaiji_converter.standardize(target_name)
-        table = self.get_table()
+        tree = self.get_tree()
         if target_name == target_name_index:
             targets = (target_name,)
         else:
@@ -409,33 +408,33 @@ class AddressNode(object):
             ub: int = self.sibling_id  # upper bound
             cp: int = 0
             cp_node: Optional[AddressNode] = None
-            lb_node: AddressNode = table.get_record(pos=lb)
+            lb_node: AddressNode = tree.get_node_by_id(node_id=lb)
             if lb_node.name_index == target:
                 return lb_node
 
             while cp_node is None or \
                     ub > lb_node.sibling_id:
                 cp = int((lb + ub) / 2)  # current position
-                cp_node = table.get_record(pos=cp)
+                cp_node = tree.get_node_by_id(node_id=cp)
                 if cp_node.parent_id != self.id:
                     while cp_node.parent_id != self.id:
                         cp = cp_node.parent_id
-                        cp_node = table.get_record(pos=cp)
+                        cp_node = tree.get_node_by_id(node_id=cp)
 
                     if cp == lb and cp_node.sibling_id < ub:
                         cp = cp_node.sibling_id
-                        cp_node = table.get_record(pos=cp)
+                        cp_node = tree.get_node_by_id(node_id=cp)
 
                 if cp_node.name_index < target:
                     lb = cp
-                    lb_node = table.get_record(pos=lb)
+                    lb_node = tree.get_node_by_id(node_id=lb)
                 elif cp_node.name_index == target:
                     break
                 else:
                     ub = cp
 
             while cp < ub:
-                cp_node = table.get_record(pos=cp)
+                cp_node = tree.get_node_by_id(node_id=cp)
                 if cp_node.name_index == target:
                     return cp_node
                 elif cp_node.name_index > target:
@@ -479,14 +478,14 @@ class AddressNode(object):
             An iterator object that returns a child node in sequence.
         """
         pos: int = self.id + 1
-        table = self.get_table()
+        tree = self.get_tree()
         while pos < self.sibling_id:
-            node = table.get_record(pos=pos)
+            node = tree.get_node_by_id(node_id=pos)
             if node.parent_id == self.id:
                 yield node
                 pos = node.sibling_id
             else:
-                parent = table.get_record(pos=node.parent_id)
+                parent = tree.get_node_by_id(node_id=node.parent_id)
                 pos = parent.sibling_id
 
     def get_notes(self) -> Tuple[Tuple[str, str]]:
@@ -605,9 +604,9 @@ class AddressNode(object):
             gt_candidate,
             max_level,
         ))
-        table = self.get_table()
+        tree = self.get_tree()
         re_pattern = re.compile(pattern)
-        address_node = table.get_record(pos=self.id)
+        address_node = tree.get_node_by_id(node_id=self.id)
         children = []
 
         if self.sibling_id == self.id + 1:  # No child
@@ -627,17 +626,17 @@ class AddressNode(object):
             cp: int = 0
             candidate: Optional[AddressNode] = None
             while candidate is None or \
-                    ub > table.get_record(pos=lb).sibling_id:
+                    ub > tree.get_node_by_id(node_id=lb).sibling_id:
                 cp = int((lb + ub) / 2)  # current position
-                candidate = table.get_record(pos=cp)
+                candidate = tree.get_node_by_id(node_id=cp)
                 if candidate.parent_id != self.id:
                     while candidate.parent_id != self.id:
                         cp = candidate.parent_id
-                        candidate = table.get_record(pos=cp)
+                        candidate = tree.get_node_by_id(node_id=cp)
 
                     if cp == lb and candidate.sibling_id < ub:
                         cp = candidate.sibling_id
-                        candidate = table.get_record(pos=cp)
+                        candidate = tree.get_node_by_id(node_id=cp)
 
                 if candidate.name_index < min_candidate:
                     lb = cp
@@ -648,7 +647,7 @@ class AddressNode(object):
 
         # Scan all records in the range
         while next_pos < address_node.sibling_id:
-            candidate = table.get_record(pos=next_pos)
+            candidate = tree.get_node_by_id(node_id=next_pos)
 
             if gt_candidate is not None and \
                     candidate.name_index >= gt_candidate:
@@ -668,7 +667,6 @@ class AddressNode(object):
 
     def search_recursive(
             self,
-            tree: AddressTree,
             index: str,
             processed_nodes: Optional[Set[int]] = None
     ) -> List[Result]:
@@ -677,8 +675,6 @@ class AddressNode(object):
 
         Parameters
         ----------
-        tree: AddressTree
-            The tree containing this node.
         index : str
             The standardized address notation.
         processed_nodes: Set of the AddressNode's id, optional
@@ -690,6 +686,7 @@ class AddressNode(object):
         List[Result]
             List of Result objects containing relevant AddressNode.
         """
+        tree = self.get_tree()
         l_optional_prefix = tree.converter.check_optional_prefixes(index)
         optional_prefix = index[0: l_optional_prefix]
         index = index[l_optional_prefix:]
@@ -715,7 +712,7 @@ class AddressNode(object):
 
         if self.sibling_id == self.id + 1:
             logger.debug(f"{self.name}({self.id}) has no child.")
-            candidates = self.check_redirect(tree, index, processed_nodes)
+            candidates = self.check_redirect(index, processed_nodes)
 
             if len(candidates) == 0:
                 candidates = [Result(self, "", 0)]
@@ -755,7 +752,6 @@ class AddressNode(object):
                 "Remove the leading extra character '{}' and "
                 "search candidates again.").format(index[0]))
             candidates = self.search_recursive(
-                tree=tree,
                 index=index[1:],
                 processed_nodes=processed_nodes)
             if len(candidates) > 0:
@@ -823,7 +819,6 @@ class AddressNode(object):
                 processed_nodes.add(child.id)
                 logger.debug(f"{child.name}({child.id}) marked as processed")
                 new_candidates = child.search_recursive(
-                    tree=tree,
                     index=rest_index,
                     processed_nodes=processed_nodes)
                 for cand in new_candidates:
@@ -839,9 +834,7 @@ class AddressNode(object):
                     candidates.append(Result(self, "", 0))
 
         # Search for nodes with possible address changes.
-        candidates += self.check_redirect(
-            tree, index, processed_nodes
-        )
+        candidates += self.check_redirect(index, processed_nodes)
 
         # Search for subnodes with queries excludes Aza-name candidates.
         omissible_index = None
@@ -856,13 +849,11 @@ class AddressNode(object):
                 omissible_index = ""
             elif aza_skip is None:  # Skip = auto
                 omissible_index = self.get_omissible_index(
-                    tree=tree,
                     index=index,
                     processed_nodes=processed_nodes,
                     strict=True)
             elif aza_skip is True:  # Skip = on
                 omissible_index = self.get_omissible_index(
-                    tree=tree,
                     index=index,
                     processed_nodes=processed_nodes,
                     strict=False)
@@ -883,7 +874,6 @@ class AddressNode(object):
                 # repeated skip processing.
                 tree.set_config(aza_skip=False)
                 sub_candidates = self.search_recursive(
-                    tree=tree,
                     index=index[azalen:],
                     processed_nodes=processed_nodes)
                 tree.set_config(aza_skip=aza_skip)
@@ -920,7 +910,6 @@ class AddressNode(object):
                     logger.debug(f"Search by common name '{cn}'.")
                     new_index = cn + index
                     new_candidates = parent.search_recursive(
-                        tree=tree,
                         index=new_index,
                         processed_nodes=processed_nodes
                     )
@@ -950,10 +939,10 @@ class AddressNode(object):
 
     def check_redirect(
         self,
-        tree: AddressTree,
         index: str,
         processed_nodes: Set[int]
     ) -> List[Result]:
+        tree = self.get_tree()
         auto_redirect = tree.get_config('auto_redirect')
         require_coordinates = tree.get_config('require_coordinates')
         if auto_redirect is False:
@@ -973,18 +962,16 @@ class AddressNode(object):
                 logger.debug(
                     f"{self.name}({self.id}) marked as processed")
                 tree.set_config(auto_redirect=False, require_coordinates=False)
-                redirect_results = tree.search_by_trie(ref)
                 tree.set_config(
                     auto_redirect=auto_redirect,
                     require_coordinates=require_coordinates
                 )
-                for node_id, val in redirect_results.items():
-                    if node_id in processed_nodes:
+                for result in tree.searchNode(ref):
+                    node = result.get_node()
+                    if node.id in processed_nodes:
                         continue
 
-                    node: AddressNode = val[0]
-                    for result in node.search_recursive(
-                            tree, index, processed_nodes):
+                    for result in node.search_recursive(index, processed_nodes):
                         if len(result.matched) > 0:
                             candidates.append(result)
 
@@ -1059,7 +1046,6 @@ class AddressNode(object):
         logger.debug("self:{} match {} chars".format(self, offset))
         # logger.debug(f"{self.name}({self.id}) marked as processed")
         for cand in self.search_recursive(
-                tree=tree,
                 index=rest_index,
                 processed_nodes=processed_nodes):
             candidates.append(Result(
@@ -1071,7 +1057,6 @@ class AddressNode(object):
 
     def get_omissible_index(
             self,
-            tree: AddressTree,
             index: str,
             processed_nodes: Set[int],
             strict: bool = False) -> str:
@@ -1080,8 +1065,6 @@ class AddressNode(object):
 
         Parameters
         ----------
-        tree: AddressTree
-            The tree containing this node.
         index: str
             Target string.
         processed_nodes: List of AddressNode
@@ -1107,8 +1090,9 @@ class AddressNode(object):
                 self.level > AddressLevel.AZA:
             return ""
 
+        tree = self.get_tree()
         for id in processed_nodes or []:
-            node = self.get_table().get_record(pos=id)
+            node = tree.get_node_by_id(node_id=id)
             if node.parent_id == self.parent_id and \
                     node.name_index != self.name_index:
                 logger.debug((
@@ -1140,7 +1124,8 @@ class AddressNode(object):
         logger.debug(
             "Scanning '{}' in sub aza-records of '{}'".format(
                 index, self.name))
-        aza_records = tree.aza_masters.search_records_on(
+
+        aza_records = tree.get_azamasters().search_records_on(
             attr="code",
             value=target_prefix,
             funcname="keys"
@@ -1238,7 +1223,7 @@ class AddressNode(object):
 
         # Search sub-aza-records using TRIE index on "code"
         logger.debug("Scanning aza-records")
-        aza_records = tree.aza_masters.search_records_on(
+        aza_records = tree.get_azamasters().search_records_on(
             attr="code",
             value=target_prefix,
             funcname="keys"
@@ -1384,7 +1369,7 @@ class AddressNode(object):
         >>> jageocoder.init()
         >>> node = jageocoder.searchNode('多摩市落合1-15')[0][0]
         >>> [str(x) for x in node.get_nodes_by_level()]
-        ['None', "[{'id': 49229505, 'name': '東京都', 'x': 139.6917724609375, 'y': 35.68962860107422, 'level': 1, 'priority': 1, 'note': 'lasdec:130001/jisx0401:13', 'fullname': ['東京都']}]", 'None', "[{'id': 50026506, 'name': '多摩市', 'x': 139.4463653564453, 'y': 35.636959075927734, 'level': 3, 'priority': 1, 'note': 'geoshape_city_id:13224A1971/jisx0402:13224/postcode:2060000', 'fullname': ['東京都', '多摩市']}]", 'None', "[{'id': 50042949, 'name': '落合', 'x': 139.42709350585938, 'y': 35.6248779296875, 'level': 5, 'priority': 2, 'note': '', 'fullname': ['東京都', '多摩市', '落合']}]", "[{'id': 50042950, 'name': '一丁目', 'x': 139.42709350585938, 'y': 35.6248779296875, 'level': 6, 'priority': 2, 'note': 'aza_id:0010001/postcode:2060033', 'fullname': ['東京都', '多摩市', '落合', '一丁目']}]", "[{'id': 50042979, 'name': '15番地', 'x': 139.42897033691406, 'y': 35.62577819824219, 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '多摩市', '落合', '一丁目', '15番地']}]"]
+        ['None', "[{'id': ..., 'name': '東京都', 'x': 139.6..., 'y': 35.6..., 'level': 1, 'priority': 1, 'note': 'lasdec:130001/jisx0401:13', 'fullname': ['東京都']}]", 'None', "[{'id': ..., 'name': '多摩市', 'x': 139.4..., 'y': 35.6..., 'level': 3, 'priority': 1, 'note': 'geoshape_city_id:13224A1971/jisx0402:13224/postcode:2060000', 'fullname': ['東京都', '多摩市']}]", 'None', "[{'id': ..., 'name': '落合', 'x': 139.4..., 'y': 35.6..., 'level': 5, 'priority': 2, 'note': '', 'fullname': ['東京都', '多摩市', '落合']}]", "[{'id': ..., 'name': '一丁目', 'x': 139.4..., 'y': 35.6..., 'level': 6, 'priority': 2, 'note': 'aza_id:0010001/postcode:2060033', 'fullname': ['東京都', '多摩市', '落合', '一丁目']}]", "[{'id': ..., 'name': '15番地', 'x': 139.4..., 'y': 35.6..., 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '多摩市', '落合', '一丁目', '15番地']}]"]
         """  # noqa: E501
         result: List[Optional[List[AddressNode]]] = [
             None for _ in range(self.level + 1)]
@@ -1579,7 +1564,7 @@ class AddressNode(object):
     def get_aza_names(
         self,
         levelname: Optional[bool] = False,
-    ) -> list:
+    ) -> Tuple[Tuple[Union[int, str], str, str, str, str]]:
         """
         Returns representation of Aza node containing this node.
 
@@ -1605,7 +1590,7 @@ class AddressNode(object):
 
             return results
 
-        return []
+        return tuple()
 
     def get_postcode(self) -> str:
         """

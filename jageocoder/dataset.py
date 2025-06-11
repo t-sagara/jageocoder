@@ -55,6 +55,6 @@ class Dataset(BaseTable):
 
     def get_all(self) -> Optional[Dict[int, Any]]:
         if self._map is None:
-            self.load_records()
+            self._map = self.load_records()
 
         return self._map

@@ -9,7 +9,7 @@ from rtree import index
 from rtree.exceptions import RTreeError
 from tqdm import tqdm
 
-from jageocoder.tree import AddressTree
+from jageocoder.local_tree import LocalTree
 from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode, AddressNodeTable
 
@@ -285,7 +285,7 @@ class Index(object):
 
     geod = Geodesic.WGS84  # type: ignore
 
-    def __init__(self, tree: AddressTree):
+    def __init__(self, tree: LocalTree):
         self._tree = tree
         self.idx = None
 
@@ -353,7 +353,7 @@ class Index(object):
             Created rtree index.
         """
         file_idx = index.Rtree(str(treepath))  # Filename must be passed as str
-        node_table: AddressNodeTable = self._tree.address_nodes
+        node_table: AddressNodeTable = self._tree.table
 
         max_id = node_table.count_records()
         registered_coordinates = set()
@@ -465,11 +465,11 @@ class Index(object):
         if self.idx is None:
             return False
 
-        node_table = self._tree.address_nodes
-        node = node_table.get_record(pos=node_table.count_records() // 2)
+        center_id: int = self._tree.table.count_records() // 2
+        node = self._tree.get_node_by_id(node_id=center_id)
         while True:
             while node.level < AddressLevel.BLOCK:
-                node = node_table.get_record(pos=node.id + 1)
+                node = self._tree.get_node_by_id(node_id=node.id + 1)
 
             while node.level > AddressLevel.BLOCK:
                 node = node.parent
@@ -479,7 +479,7 @@ class Index(object):
             if node.has_valid_coordinate_values():
                 break
 
-            node = node_table.get_record(pos=node.sibling_id)
+            node = self._tree.get_node_by_id(node_id=node.sibling_id)
 
         results = tuple(self.idx.nearest(
             (node.x, node.y, node.x, node.y), 1, objects=True))
@@ -487,7 +487,7 @@ class Index(object):
             return False
 
         item = results[0]
-        target_node = node_table.get_record(item.id)
+        target_node = self._tree.get_node_by_id(node_id=item.id)
         target_bbox = item.bbox
         res = target_node.x >= target_bbox[0] \
             and target_node.y >= target_bbox[1] \

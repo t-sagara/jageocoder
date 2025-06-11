@@ -2,6 +2,7 @@ import os
 import unittest
 
 import jageocoder
+from jageocoder.exceptions import RemoteTreeException
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
 
@@ -150,13 +151,8 @@ class TestRemoteMethods(unittest.TestCase):
             "新宿区西新宿2-8-1").get_aza_code(), '131040023002')
 
     def test_get_aza_names(self):
-        correct_answer = [
-            [1, '東京都', 'トウキョウト', 'Tokyo', '13'],
-            [3, '新宿区', 'シンジュクク', 'Shinjuku-ku', '13104'],
-            [5, '西新宿', 'ニシシンジュク', '', '131040023'],
-            [6, '二丁目', '２チョウメ', '2chome', '131040023002']]
-        self.assertEqual(self._get_first_node(
-            "新宿区西新宿2-8-1").get_aza_names(), correct_answer)
+        with self.assertRaises(RemoteTreeException):
+            self._get_first_node("新宿区西新宿2-8-1").get_aza_names()
 
     def test_get_postcode(self):
         self.assertEqual(self._get_first_node(
