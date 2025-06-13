@@ -1,8 +1,9 @@
+import json
 import os
+from typing import Any, Dict
 import unittest
 
 import jageocoder
-from jageocoder.exceptions import RemoteTreeException
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
 
@@ -24,14 +25,14 @@ class TestRemoteMethods(unittest.TestCase):
         return results[0].get_node()
 
     def test_get_dictionary_version(self):
-        version = jageocoder.installed_dictionary_version(
-            url=jageocoder.get_module_tree().url,
-        )
+        version = jageocoder.installed_dictionary_version()
         self.assertTrue(isinstance(version, str))
 
     def test_search(self):
         jageocoder.set_search_config(best_only=True)
-        result = jageocoder.search(query="新宿区西新宿２丁目８−１")
+        _result = jageocoder.search(query="新宿区西新宿２丁目８−１")
+        assert (not isinstance(_result, list))
+        result: Dict[str, Any] = _result
         self.assertTrue(len(result["matched"]) > 10)
         self.assertTrue(isinstance(result["candidates"], list))
         node = result["candidates"][0]
@@ -39,12 +40,16 @@ class TestRemoteMethods(unittest.TestCase):
 
     def test_search_set_config(self):
         jageocoder.set_search_config(target_area='14152')
-        result = jageocoder.search(query="中央区中央1-1-1")
+        _result = jageocoder.search(query="中央区中央1-1-1")
+        assert (not isinstance(_result, list))
+        result: Dict[str, Any] = _result
         self.assertTrue(len(result["matched"]) == 10)
         self.assertTrue(len(result["candidates"]) == 1)
 
         jageocoder.set_search_config(target_area=['13', '14152'])
-        result = jageocoder.search(query="中央区中央1-1-1")
+        _result = jageocoder.search(query="中央区中央1-1-1")
+        assert (not isinstance(_result, list))
+        result: Dict[str, Any] = _result
         self.assertTrue(len(result["matched"]) == 10)
         self.assertTrue(len(result["candidates"]) == 1)
 
@@ -56,7 +61,7 @@ class TestRemoteMethods(unittest.TestCase):
         self.assertEqual(type(results[0]), Result)
         node = results[0].get_node()
         parent = node.get_parent()
-        self.assertIsNotNone(parent)
+        assert (parent is not None)
         self.assertTrue(parent.level < node.level)
         self.assertEqual(node.get_city_jiscode(), "13104")
 
@@ -151,12 +156,29 @@ class TestRemoteMethods(unittest.TestCase):
             "新宿区西新宿2-8-1").get_aza_code(), '131040023002')
 
     def test_get_aza_names(self):
-        with self.assertRaises(RemoteTreeException):
-            self._get_first_node("新宿区西新宿2-8-1").get_aza_names()
+        correct_answer = [
+            [1, '東京都', 'トウキョウト', 'Tokyo', '13'],
+            [3, '新宿区', 'シンジュクク', 'Shinjuku-ku', '13104'],
+            [5, '西新宿', 'ニシシンジュク', '', '131040023'],
+            [6, '二丁目', '２チョウメ', '2chome', '131040023002']]
+        self.assertEqual(self._get_first_node(
+            "新宿区西新宿2-8-1").get_aza_names(), correct_answer)
 
     def test_get_postcode(self):
         self.assertEqual(self._get_first_node(
             "新宿区西新宿2-8-1").get_postcode(), '1600023')
+
+    def test_search_aza_record_by_code(self):
+        """
+        Retrieve Aza record from ABR.
+        """
+        result = jageocoder.search_aza_record_by_code('131040023002')
+        names = json.loads(result["names"])
+        self.assertEqual(names, [
+            [1, '東京都', 'トウキョウト', 'Tokyo', '13'],
+            [3, '新宿区', 'シンジュクク', 'Shinjuku-ku', '13104'],
+            [5, '西新宿', 'ニシシンジュク', '', '131040023'],
+            [6, '二丁目', '２チョウメ', '2chome', '131040023002']])
 
 
 if __name__ == '__main__':

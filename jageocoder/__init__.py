@@ -45,6 +45,7 @@ __all__ = [
     'search_by_postcode',
     'search_by_citycode',
     'search_by_prefcode',
+    'search_aza_record_by_code',
     'reverse',
     'version',
     'dictionary_version',
@@ -57,6 +58,6 @@ from jageocoder.module import init, free, is_initialized, \
     get_module_tree, download_dictionary, install_dictionary, \
     uninstall_dictionary, get_datasets, create_trie_index, \
     search, searchNode, search_by_machiaza_id, search_by_postcode, \
-    search_by_citycode, search_by_prefcode, reverse, \
-    version, dictionary_version, \
+    search_by_citycode, search_by_prefcode, search_aza_record_by_code, \
+    reverse, version, dictionary_version, \
     installed_dictionary_version, installed_dictionary_readme  # noqa: F401

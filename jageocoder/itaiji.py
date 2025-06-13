@@ -2,7 +2,7 @@ import json
 from logging import getLogger
 import os
 import re
-from typing import Union, List, Tuple, Optional
+from typing import List, Tuple, Optional
 
 import jaconv
 

@@ -7,13 +7,12 @@ import urllib.request
 from urllib.error import URLError
 
 import jageocoder
-from jageocoder.dataset import Dataset
+
 from jageocoder.exceptions import JageocoderError
 from jageocoder.local_tree import LocalTree
 from jageocoder.tree import AddressTree, get_db_dir
 from jageocoder.remote import RemoteTree
 from jageocoder.result import Result
-from jageocoder.rtree import Index
 
 _tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)
@@ -292,7 +291,7 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     logger.info('Dictionary has been uninstalled.')
 
 
-def get_datasets() -> Optional[Dict[int, Any]]:
+def get_datasets() -> Dict[int, Any]:
     """
     Get the datasets in the installed dictionary.
 
@@ -307,7 +306,11 @@ def get_datasets() -> Optional[Dict[int, Any]]:
     dict[int, dict]
         The map of the datasets with their ids as keys.
     """
-    return get_module_tree().datasets
+    datasets = get_module_tree().datasets
+    if datasets is None:
+        raise JageocoderError("Datasets returns None.")
+
+    return datasets
 
 
 def installed_dictionary_version(
@@ -602,6 +605,22 @@ def search_by_citycode(
     - If "code" is 6 characters, the code is considered the local-govenment code.
     """
     return get_module_tree().search_by_citycode(code)
+
+
+def search_aza_record_by_code(code: str) -> dict:
+    """
+    Search Address-base-registry's aza record.
+
+    Parameters
+    ----------
+    code: str
+        Machi-aza code in ABR.
+
+    Returns
+    -------
+    dict
+    """
+    return get_module_tree().search_aza_record_by_code(code)
 
 
 def create_trie_index() -> None:

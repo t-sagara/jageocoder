@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 import unittest
 
 import jageocoder
@@ -361,28 +361,6 @@ class TestSearchMethods(unittest.TestCase):
             match="石川県羽咋市一ノ宮町ケ２８",
             fullname=["石川県", "羽咋市", "一ノ宮町", "ケ", "28番地"],
             level=7)
-
-    # def test_complement_cho(self):
-    #     """
-    #     Complement Oaza names if it lacks a "町", "村" or similar characters.
-    #     """
-    #     self._check(
-    #         query="龍ケ崎市薄倉２３６４",
-    #         level=7,
-    #         fullname=["茨城県", "龍ケ崎市", "薄倉町", "2364番地"])
-
-    #     self._check(
-    #         query="宮城県仙台市太白区秋保湯元字寺田",
-    #         fullname=["宮城県", "仙台市", "太白区", "秋保町湯元", "字寺田"])
-
-    # def test_delete_cho(self):
-    #     """
-    #     Delete extra "町" in oaza names.
-    #     """
-    #     self._check(
-    #         query="鹿児島県伊佐市菱刈町川北字古川２２６３",
-    #         match="鹿児島県伊佐市菱刈町川北字古川２２６３",
-    #         fullname=["鹿児島県", "伊佐市", "菱刈川北", "2263番地"])
 
     def test_not_complement_cho(self):
         """
@@ -834,18 +812,24 @@ class TestSearchByCodeMethods(unittest.TestCase):
 
     def test_search_set_config(self):
         jageocoder.set_search_config(target_area='14152')
-        result = jageocoder.search(query="中央区中央1-1-1")
+        _result = jageocoder.search(query="中央区中央1-1-1")
+        assert (not isinstance(_result, list))
+        result: Dict[str, Any] = _result
         self.assertTrue(isinstance(result, dict))
         self.assertTrue(len(result["matched"]) == 10)
         self.assertTrue(len(result["candidates"]) == 1)
 
         jageocoder.set_search_config(target_area=['13', '14152'])
-        result = jageocoder.search(query="中央区中央1-1-1")
+        _result = jageocoder.search(query="中央区中央1-1-1")
+        assert (not isinstance(_result, list))
+        result = _result
         self.assertTrue(len(result["matched"]) == 10)
         self.assertTrue(len(result["candidates"]) == 1)
 
         jageocoder.set_search_config(target_area=['東京都', '相模原市'])
-        result = jageocoder.search(query="中央区中央1-1-1")
+        _result = jageocoder.search(query="中央区中央1-1-1")
+        assert (not isinstance(_result, list))
+        result = _result
         self.assertTrue(len(result["matched"]) == 10)
         self.assertTrue(len(result["candidates"]) == 1)
 

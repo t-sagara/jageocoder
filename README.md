@@ -273,8 +273,10 @@ Consider using [jageocoder-converter](https://github.com/t-sagara/jageocoder-con
 
 ## Tests
 
-Run `pytest` for unit tests.
-Run `pytest jageocoder/ --doctest-modules` for doc tests.
+Run `pytest` for unit tests, `pytest jageocoder/ --doctest-modules`
+for testing sample codes in comments and
+`pytest docs/source/ --doctest-glob=*.rst`
+for testing codes in the online manual document.
 
 ## Contributing
 

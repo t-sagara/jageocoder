@@ -7,19 +7,19 @@ import logging
 import os
 from pathlib import Path
 import re
-from typing import List, Set, Tuple, Optional, Sequence, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Set, Tuple, Optional, Sequence, Union, TYPE_CHECKING
 
 import PortableTab
 
-from jageocoder.address import AddressLevel
-from jageocoder.dataset import Dataset
-from jageocoder.exceptions import AddressNodeError
-from jageocoder.itaiji import Converter
-from jageocoder.result import Result
-from jageocoder.strlib import strlib
+from .address import AddressLevel
+from .dataset import Dataset
+from .exceptions import AddressNodeError
+from .itaiji import Converter
+from .result import Result
+from .strlib import strlib
 
 if TYPE_CHECKING:
-    from jageocoder.tree import AddressTree
+    from .tree import AddressTree
 
 logger = logging.getLogger(__name__)
 default_itaiji_converter = Converter()  # With default settings
@@ -1085,12 +1085,19 @@ class AddressNode(object):
           that have start_count_type is 1 from the aza_master.
         - If the name of the element is contained in the index,
           the substring before the name is returned.
+        - This method can only be called from nodes in LocalTree.
         """
+        from .local_tree import LocalTree
         if self.level < AddressLevel.CITY or \
                 self.level > AddressLevel.AZA:
             return ""
 
-        tree = self.get_tree()
+        _tree = self.get_tree()
+        if not isinstance(_tree, LocalTree):
+            raise AddressNodeError(
+                "'get_ommisible_index' can only be called from nodes in LocalTree.")
+        tree: LocalTree = _tree
+
         for id in processed_nodes or []:
             node = tree.get_node_by_id(node_id=id)
             if node.parent_id == self.parent_id and \
@@ -1125,7 +1132,7 @@ class AddressNode(object):
             "Scanning '{}' in sub aza-records of '{}'".format(
                 index, self.name))
 
-        aza_records = tree.get_azamasters().search_records_on(
+        aza_records = tree.aza_masters.search_records_on(
             attr="code",
             value=target_prefix,
             funcname="keys"
@@ -1185,26 +1192,29 @@ class AddressNode(object):
         logger.debug("  -> omissible '{}'".format(omissible_index))
         return omissible_index
 
-    def get_omissible_children(
-        self,
-        tree: AddressTree,
-    ) -> List[AddressNode]:
+    def get_omissible_children(self) -> List[AddressNode]:
         """
         Create a list of omissible child nodes refer to Aza-master.
-
-        Parameters
-        ----------
-        tree: AddressTree
-            The tree containing this node.
 
         Returns
         -------
         List[AddressNode]
             List of omissible child nodes.
+
+        Notes
+        -----
+        - This method can only be called from nodes in LocalTree.
         """
+        from .local_tree import LocalTree
         if self.level < AddressLevel.CITY or \
                 self.level > AddressLevel.AZA:
             return []
+
+        _tree = self.get_tree()
+        if not isinstance(_tree, LocalTree):
+            raise AddressNodeError(
+                "'get_ommisible_children' can only be called from nodes in LocalTree.")
+        tree: LocalTree = _tree
 
         if self.level < AddressLevel.OAZA:
             target_prefix = self.get_city_jiscode()
@@ -1223,7 +1233,7 @@ class AddressNode(object):
 
         # Search sub-aza-records using TRIE index on "code"
         logger.debug("Scanning aza-records")
-        aza_records = tree.get_azamasters().search_records_on(
+        aza_records = tree.aza_masters.search_records_on(
             attr="code",
             value=target_prefix,
             funcname="keys"
@@ -1277,13 +1287,16 @@ class AddressNode(object):
         """
         Return the geojson notation of the node.
         """
+        properties = self.as_dict()
+        del properties["x"]
+        del properties["y"]
         return {
             "type": "Feature",
             "geometry": {
                 "type": "Point",
                 "coordinates": [self.x, self.y]
             },
-            "properties": self.as_dict(),
+            "properties": properties,
         }
 
     def to_json(self):
@@ -1539,7 +1552,7 @@ class AddressNode(object):
 
         return ''
 
-    def get_aza_record(self) -> Optional[object]:
+    def get_aza_record(self) -> Dict[str, Any]:
         """
         Returns ABR's aza record corresponding to this node..
 
@@ -1554,9 +1567,6 @@ class AddressNode(object):
             code = self.get_city_jiscode()
         else:
             code = self.get_pref_jiscode()
-
-        if code is None or code == '':
-            return None
 
         aza_record = self.get_tree().search_aza_records_by_codes(code)
         return aza_record
@@ -1583,7 +1593,7 @@ class AddressNode(object):
         """
         aza_record = self.get_aza_record()
         if aza_record is not None:
-            results = json.loads(aza_record.names)  # type: ignore
+            results = json.loads(aza_record["names"])  # type: ignore
             if levelname:
                 for i in range(len(results)):
                     results[i][0] = AddressLevel.levelname(results[i][0])

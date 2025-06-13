@@ -1,16 +1,11 @@
-from collections import OrderedDict
-import json
 from logging import getLogger
 import os
 from pathlib import Path
 import re
-import site
-import sys
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from deprecated import deprecated
 
-import jaconv
 from .tree import get_db_dir, AddressTree
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
@@ -25,7 +20,7 @@ logger = getLogger(__name__)
 
 class LocalTree(AddressTree):
     """
-    The address-tree structure.
+    The address-tree structure on the local database.
 
     Attributes
     ----------
@@ -141,9 +136,6 @@ class LocalTree(AddressTree):
         """
         return self.table.datasets.get_all()
 
-    def get_azamasters(self) -> AzaMaster:
-        return self.aza_masters
-
     def get_node_by_id(self, node_id: int) -> AddressNode:
         """
         Get the full node information by its id.
@@ -212,7 +204,7 @@ class LocalTree(AddressTree):
 
         return ids
 
-    def search_aza_records_by_codes(self, code: str) -> Any:
+    def search_aza_record_by_code(self, code: str) -> Dict[str, Union[bool, int, str]]:
         """
         Search Address-base-registry's aza records.
 
@@ -225,11 +217,8 @@ class LocalTree(AddressTree):
         -------
         AzaRecord
         """
-        result = self.aza_masters.search_by_code(code)
-        if result is None:
-            raise KeyError(f"{code} is not in the aza master")
-
-        return result
+        record = self.aza_masters.search_by_code(code, as_dict=True)
+        return record
 
     def validate_config(self, key: str, value: Any) -> None:
         """

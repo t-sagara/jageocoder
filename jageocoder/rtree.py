@@ -1,6 +1,5 @@
 from abc import ABC
 from logging import getLogger
-import os
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 

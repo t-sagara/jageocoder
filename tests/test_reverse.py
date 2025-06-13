@@ -7,7 +7,6 @@ from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode
 
 logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.INFO)
 
 
 class TestReverseMethods(unittest.TestCase):
@@ -25,8 +24,6 @@ class TestReverseMethods(unittest.TestCase):
 
         self.assertTrue(len(candidate_names) > 0)
         self.assertEqual(candidate_names[0], ["東京都", "多摩市", "落合", "一丁目"])
-        # self.assertEqual(candidate_names[1], ["東京都", "多摩市", "愛宕", "四丁目"])
-        # self.assertEqual(candidate_names[2], ["東京都", "多摩市", "豊ケ丘", "一丁目"])
 
     def test_endless_pattern(self):
         results = jageocoder.reverse(

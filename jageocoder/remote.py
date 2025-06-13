@@ -3,14 +3,12 @@ from collections import OrderedDict
 import json
 from logging import getLogger
 import os
-import re
 from typing import Any, Dict, List, NoReturn, Optional, Tuple, Union
 import uuid
 
 import requests
 
 from jageocoder.address import AddressLevel
-from jageocoder.aza_master import AzaMaster
 from jageocoder.exceptions import RemoteTreeException
 from jageocoder.node import AddressNode
 from jageocoder.result import Result
@@ -297,11 +295,6 @@ class RemoteTree(AddressTree):
         """
         return self.table.datasets.get_all()
 
-    def get_azamasters(self) -> AzaMaster:
-        raise RemoteTreeException(
-            "'get_azamasters' is not available for RemoteTree"
-        )
-
     def get_node_by_id(self, node_id: int) -> AddressNode:
         """
         Get the full node information by its id.
@@ -372,7 +365,7 @@ class RemoteTree(AddressTree):
 
         return ids
 
-    def search_aza_records_by_codes(self, code: str) -> Tuple[Tuple[int, str, str, str]]:
+    def search_aza_record_by_code(self, code: str) -> Dict[str, Union[bool, int, str]]:
         """
         Search Address-base-registry's aza records.
 
@@ -385,9 +378,13 @@ class RemoteTree(AddressTree):
         -------
         Tuple[Tuple[int, str, str, str]]
         """
-        raise RemoteTreeException(
-            "'search_aza_records_by_codes' is not available for RemoteTree"
+        rpc_result = self.json_request(
+            method="aza_master.search_by_codes",
+            params={
+                "code": code,
+            },
         )
+        return rpc_result
 
     def json_request(
             self,

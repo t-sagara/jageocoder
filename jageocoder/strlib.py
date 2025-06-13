@@ -156,7 +156,10 @@ class Strlib(object):
 
         return False
 
-    def get_number(self, string: str, expected: int = None) -> dict:
+    def get_number(
+            self,
+            string: str,
+            expected: int = 0) -> dict:
         """
         Parses a string as a number.
 
@@ -164,10 +167,10 @@ class Strlib(object):
         ----------
         string: str
             String to be examined.
-        expected: int, optional
+        expected: int, default=0
             The value to be extracted from this string.
-            If specified, the process will be aborted when the value is
-            equal to or greater than this value.
+            If positive value is specified, the process will stop
+            when the value is equal to or greater than this value.
             If omitted, the longest numeric string will be extracted.
 
         Return
@@ -215,7 +218,7 @@ class Strlib(object):
             arabic = self.is_arabic_number(c)
 
             if (not arabic or not pre_arabic) and \
-                    expected and total + curval >= expected:
+                    expected > 0 and total + curval >= expected:
                 break
 
             if mode != 1 and arabic:

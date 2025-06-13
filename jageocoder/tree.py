@@ -6,18 +6,15 @@ from pathlib import Path
 import re
 import site
 import sys
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from deprecated import deprecated
 
 import jaconv
-from jageocoder.address import AddressLevel
-from jageocoder.aza_master import AzaMaster
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.itaiji import Converter
-from jageocoder.node import AddressNode, AddressNodeTable
+from jageocoder.node import AddressNode
 from jageocoder.result import Result
-from jageocoder.trie import AddressTrie, TrieNode
 
 logger = getLogger(__name__)
 
@@ -175,10 +172,6 @@ class AddressTree(ABC):
         """
         pass
 
-    @abstractmethod
-    def get_azamasters(self) -> AzaMaster:
-        pass
-
     def get_root(self) -> AddressNode:
         """
         Get the root-node of the tree.
@@ -266,8 +259,12 @@ class AddressTree(ABC):
         """
         pass
 
+    @deprecated(reason="Rename to 'search_aza_record_by_code'.", version="2.1.10")
+    def search_aza_records_by_codes(self, code: str) -> Dict[str, Union[bool, int, str]]:
+        return self.search_aza_record_by_code(code)
+
     @abstractmethod
-    def search_aza_records_by_codes(self, code: str) -> Any:
+    def search_aza_record_by_code(self, code: str) -> Dict[str, Union[bool, int, str]]:
         """
         Search Address-base-registry's aza records.
 

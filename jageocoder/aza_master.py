@@ -220,6 +220,7 @@ class AzaMaster(BaseTable):
     def search_by_code(
         self,
         code: str,
+        as_dict: bool = False,
     ):
         """
         Search AzaMaster record by azacode.
@@ -240,10 +241,20 @@ class AzaMaster(BaseTable):
 
         for record in self.search_records_on(attr="code", value=code):
             if record.code == code:
+                if as_dict is True:
+                    return {
+                        "code": str(record.code),
+                        "names": str(record.names),
+                        "namesIndex": str(record.namesIndex),
+                        "azaClass": int(record.azaClass),
+                        "isJukyo": bool(record.isJukyo),
+                        "startCountType": int(record.startCountType),
+                        "postcode": str(record.postcode),
+                    }
+
                 return record
 
-        logger.debug("'{}' is not in the aza_master table.".format(code))
-        return None
+        raise KeyError(f"'{code}' is not in the aza_master table.")
 
     def binary_search(self, code: str) -> int:
         """
