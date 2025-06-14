@@ -102,6 +102,12 @@ class AddressTrie(object):
         del self.trie
         self.connect()
 
+    def get_trie(self):
+        if self.trie is None:
+            raise AddressTrieError("The trie-index is not created.")
+
+        return self.trie
+
     def get_id(self, query: str):
         """
         Get the id on the TRIE index (TRIE id) of the prefix string
@@ -118,7 +124,7 @@ class AddressTrie(object):
         The TRIE id if it matches the query.
         Otherwise, it will raise a 'KeyError' exception.
         """
-        return self.trie.key_id(query)
+        return self.get_trie().key_id(query)
 
     def common_prefixes(self, query: str):
         """
@@ -140,14 +146,10 @@ class AddressTrie(object):
         ------
         A dict with a prefix string as key and a TRIE id as value.
         """
-        if self.trie is None:
-            raise AddressTrieError((
-                "The trie-index is not created."
-                "Try running 'jageocoder migrate-dictinary'"))
-
+        trie = self.get_trie()
         results = {}
-        for p in self.trie.iter_prefixes(query):
-            results[p] = self.trie.key_id(p)
+        for p in trie.iter_prefixes(query):
+            results[p] = trie.key_id(p)
 
         return results
 
@@ -171,11 +173,10 @@ class AddressTrie(object):
         ------
         A dict with a prefix string as key and a TRIE id as value.
         """
-        if self.trie is None:
-            raise AddressTrieError('The trie-index is not created.')
+        trie = self.get_trie()
 
         results = {}
-        for p in self.trie.iterkeys(query):
-            results[p] = self.trie.key_id(p)
+        for p in trie.iterkeys(query):
+            results[p] = trie.key_id(p)
 
         return results
