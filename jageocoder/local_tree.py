@@ -1,3 +1,4 @@
+import datetime
 from logging import getLogger
 import os
 from pathlib import Path
@@ -10,7 +11,6 @@ from .tree import get_db_dir, AddressTree
 from jageocoder.address import AddressLevel
 from jageocoder.aza_master import AzaMaster
 from jageocoder.exceptions import AddressTreeException
-from jageocoder.itaiji import Converter
 from jageocoder.node import AddressNode, AddressNodeTable
 from jageocoder.result import Result
 from jageocoder.trie import AddressTrie, TrieNode
@@ -28,7 +28,7 @@ class LocalTree(AddressTree):
         Read (r) or Write (w).
     db_dir: PathLike
         Directory path where the database files are located.
-    address_nodes: AddressNodeTable
+    table: AddressNodeTable
         Table of address-nodes.
     aza_masters: AzaMaster
         Aza master table from the Address Base registry.
@@ -46,10 +46,13 @@ class LocalTree(AddressTree):
         Converter object of character-variants.
     """
 
-    def __init__(self,
-                 db_dir: Optional[os.PathLike] = None,
-                 mode: str = 'a',
-                 debug: Optional[bool] = None):
+    def __init__(
+        self,
+        db_dir: Optional[os.PathLike] = None,
+        mode: str = 'a',
+        debug: Optional[bool] = None,
+        **kwargs,
+    ):
         """
         The initializer
 
@@ -86,12 +89,25 @@ class LocalTree(AddressTree):
         else:
             db_dir = Path(db_dir).absolute()
 
-        if db_dir is None or not db_dir.is_dir():
-            msg = "Directory '{}' does not exist.".format(db_dir)
+        if db_dir is None:
+            msg = "Cannot choose a directory to create the database."
             raise AddressTreeException(msg)
 
+        if db_dir.exists() and not db_dir.is_dir():
+            msg = f"Specified path '{db_dir}' is not a directory."
+            raise AddressTreeException(msg)
+
+        if not db_dir.exists():
+            if self.mode == "w":
+                logger.info(f"Create directory '{db_dir}' for the database.")
+                db_dir.mkdir(mode=0o755)
+            else:
+                msg = f"No database found at the specified path '{db_dir}'."
+                raise AddressTreeException(msg)
+
         self.db_dir = db_dir
-        self.table: AddressNodeTable = AddressNodeTable(db_dir=self.db_dir)
+        self.address_nodes: AddressNodeTable = AddressNodeTable(
+            db_dir=self.db_dir)
         self.aza_masters: AzaMaster = AzaMaster(db_dir=self.db_dir)
         self.trie_nodes: TrieNode = self.get_trie_nodes()
         self.trie_path = db_dir / 'address.trie'
@@ -101,7 +117,7 @@ class LocalTree(AddressTree):
 
         # Clear database when in write mode.
         if self.mode == 'w':
-            self.table.delete()
+            self.address_nodes.delete()
             if os.path.exists(self.trie_path):
                 os.remove(self.trie_path)
 
@@ -134,7 +150,7 @@ class LocalTree(AddressTree):
         List[Dataset]:
             List of datasets.
         """
-        return self.table.datasets.get_all()
+        return self.address_nodes.datasets.get_all()
 
     def get_node_by_id(self, node_id: int) -> AddressNode:
         """
@@ -149,9 +165,19 @@ class LocalTree(AddressTree):
         -------
         AddressNode
         """
-        node = self.table.get_record(pos=node_id)
+        node = self.address_nodes.get_record(pos=node_id)
         node.tree = self
         return node
+
+    def count_records(self) -> int:
+        """
+        Get the number of records in the database.
+
+        Returns
+        -------
+        int
+        """
+        return self.address_nodes.count_records()
 
     def search_nodes_by_codes(
             self,
@@ -172,7 +198,7 @@ class LocalTree(AddressTree):
         List[AddressNode]
         """
         pattern = '{}:{}'.format(category, value)
-        nodes: List[AddressNode] = self.table.search_records_on(
+        nodes: List[AddressNode] = self.address_nodes.search_records_on(
             attr="note", value=pattern)  # exact match
         for node in nodes:
             node.tree = self
@@ -199,7 +225,7 @@ class LocalTree(AddressTree):
         """
         ids = []
         pattern = '{}:{}'.format(category, value)
-        ids = self.table.search_ids_on(
+        ids = self.address_nodes.search_ids_on(
             attr="note", value=pattern)  # exact match
 
         return ids
@@ -649,7 +675,7 @@ class LocalTree(AddressTree):
         search table with index.
         """
         self.__not_in_readonly_mode()
-        self.table.create_indexes()
+        self.address_nodes.create_indexes()
 
     def reverse(
         self,
@@ -687,3 +713,46 @@ class LocalTree(AddressTree):
             self.reverse_index = Index(tree=self)
 
         return self.reverse_index.nearest(x=x, y=y, level=level, as_dict=as_dict)
+
+    def installed_dictionary_version(self) -> str:
+        """
+        Get the installed dictionary version.
+
+        Returns
+        -------
+        str
+            The version string of the installed dicitionary or the server.
+        """
+        metadata_path = self.db_dir / "metadata.txt"
+        if metadata_path.exists():
+            with open(metadata_path, "r") as f:
+                version = f.readline().rstrip()
+
+        else:
+            readme_path = self.db_dir / "README.md"
+            if readme_path.exists():
+                stats = os.stat(readme_path)
+                version = datetime.date.fromtimestamp(
+                    stats.st_mtime).strftime('%Y%m%d')
+            else:
+                version = '(Unknown)'
+
+        return version
+
+    def installed_dictionary_readme(self) -> str:
+        """
+        Get the content of README.txt attached to the installed dictionary.
+
+        Returns
+        -------
+        str
+            The content of the text.
+        """
+        readme_path = self.db_dir / "README.md"
+        if not os.path.exists(readme_path):
+            return "(no README information)"
+
+        with open(readme_path, "r") as f:
+            content = f.read()
+
+        return content

@@ -54,6 +54,15 @@ class TestSearchMethods(unittest.TestCase):
 
         return top
 
+    def test_count_nodes(self):
+        n = jageocoder.get_module_tree().count_records()
+        self.assertTrue(isinstance(n, int))
+        self.assertTrue(n > 0)
+
+    def test_get_dictionary_version(self):
+        version = jageocoder.installed_dictionary_version()
+        self.assertTrue(isinstance(version, str))
+
     def test_jukyo(self):
         """
         Test for addresses followed by other strings.

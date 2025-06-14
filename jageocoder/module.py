@@ -18,11 +18,13 @@ _tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)
 
 
-def init(db_dir: Optional[os.PathLike] = None,
-         mode: str = 'r',
-         debug: bool = False,
-         url: str = "",
-         **kwargs) -> None:
+def init(
+    db_dir: Optional[os.PathLike] = None,
+    mode: str = 'r',
+    debug: Optional[bool] = None,
+    url: Optional[str] = None,
+    **kwargs
+) -> None:
     """
     Initialize the module-level AddressTree object `jageocoder.tree`
     ready for use.
@@ -65,6 +67,16 @@ def init(db_dir: Optional[os.PathLike] = None,
 
     _url = None
     _db_dir = None
+
+    _tree = AddressTree(
+        db_dir=db_dir,
+        mode=mode,
+        url=url,
+        debug=debug,
+        **kwargs,
+    )
+    set_search_config(**kwargs)
+    return
 
     # Check parameters
     if db_dir is not None:
@@ -334,29 +346,8 @@ def installed_dictionary_version(
     str
         The version string of the installed dicitionary or the server.
     """
-    if db_dir is None:
-        if url is not None:
-            return RemoteTree(url=url).installed_dictionary_version()
-
-        db_dir = get_db_dir(mode='r')
-        if db_dir is None:
-            raise JageocoderError("Dictionary has not been installed.")
-
-    metadata_path = os.path.join(db_dir, "metadata.txt")
-    if os.path.exists(metadata_path):
-        with open(metadata_path, "r") as f:
-            version = f.readline().rstrip()
-
-    else:
-        readme_path = os.path.join(db_dir, "README.md")
-        if os.path.exists(readme_path):
-            stats = os.stat(readme_path)
-            version = datetime.date.fromtimestamp(stats.st_mtime).strftime(
-                '%Y%m%d')
-        else:
-            version = '(Unknown)'
-
-    return version
+    tree = AddressTree(db_dir=db_dir, url=url)
+    return tree.installed_dictionary_version()
 
 
 def installed_dictionary_readme(
@@ -380,22 +371,8 @@ def installed_dictionary_readme(
     str
         The content of the text.
     """
-    if db_dir is None:
-        if url is not None:
-            return RemoteTree(url=url).installed_dictionary_readme()
-
-        db_dir = get_db_dir(mode='r')
-        if db_dir is None:
-            raise JageocoderError("Dictionary has not been installed.")
-
-    readme_path = os.path.join(db_dir, "README.md")
-    if not os.path.exists(readme_path):
-        return "(no README information)"
-
-    with open(readme_path, "r") as f:
-        content = f.read()
-
-    return content
+    tree = AddressTree(db_dir=db_dir, url=url)
+    return tree.installed_dictionary_readme()
 
 
 def search(query: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:

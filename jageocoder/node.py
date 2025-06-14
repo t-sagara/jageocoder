@@ -167,16 +167,16 @@ class AddressNode(object):
 
     def __init__(
             self,
-            id: int = -1,
+            id: int = 0,
             name: str = "",
             name_index: str = "",
             x: float = NO_COORDINATE_VALUE,
             y: float = NO_COORDINATE_VALUE,
-            level: int = -1,
-            priority: int = -1,
+            level: int = 0,
+            priority: int = 0,
             note: str = "",
-            parent_id: int = -1,
-            sibling_id: int = -1,
+            parent_id: int = 0,
+            sibling_id: int = 0,
             tree: Optional[AddressTree] = None,
     ) -> None:
         """
@@ -321,6 +321,7 @@ class AddressNode(object):
             priority=0,
             note="",
             parent_id=cls.ROOT_NODE_ID,
+            sibling_id=0,
         )
 
     def set_attributes(self, **kwargs):

@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
-
+from __future__ import annotations
+from abc import ABC
 from logging import getLogger
 import os
 from pathlib import Path
@@ -114,8 +114,42 @@ class AddressTree(ABC):
         Converter object of character-variants.
     """
 
+    def __new__(
+            cls,
+            db_dir: Optional[os.PathLike] = None,
+            mode: str = "r",
+            url: Optional[str] = None,
+            *args, **kwargs
+    ) -> AddressTree:
+        from .local_tree import LocalTree
+        from .remote import RemoteTree
+
+        if cls is AddressTree:
+            if db_dir is not None:
+                return LocalTree(db_dir=db_dir, mode=mode, *args, **kwargs)
+
+            if url is not None:
+                return RemoteTree(url=url, *args, **kwargs)
+
+            _db_dir = get_db_dir(mode)
+            if _db_dir is not None:
+                return LocalTree(db_dir=_db_dir, mode=mode, **kwargs)
+
+            _url = os.environ.get("JAGEOCODER_SERVER_URL")
+            if _url is not None and mode == "r":
+                return RemoteTree(url=_url, **kwargs)
+
+            raise AddressTreeException(
+                "Specify 'db_dir' or 'url' to instanciate AddressTree."
+            )
+
+        return super().__new__(cls)
+
     def __init__(
         self,
+        db_dir: Optional[os.PathLike] = None,
+        mode: str = "r",
+        url: Optional[str] = None,
         debug: Optional[bool] = None
     ):
         """
@@ -160,7 +194,6 @@ class AddressTree(ABC):
         })
 
     @property
-    @abstractmethod
     def datasets(self) -> Optional[Dict[int, Any]]:
         """
         Get list of datasets installed in the dictionary.
@@ -170,7 +203,8 @@ class AddressTree(ABC):
         Dict[int, Any]:
             List of datasets.
         """
-        pass
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
 
     def get_root(self) -> AddressNode:
         """
@@ -201,7 +235,6 @@ class AddressTree(ABC):
 
         return root_node.note
 
-    @abstractmethod
     def get_node_by_id(self, node_id: int) -> AddressNode:
         """
         Get the full node information by its id.
@@ -215,9 +248,20 @@ class AddressTree(ABC):
         -------
         AddressNode
         """
-        pass
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
 
-    @abstractmethod
+    def count_records(self) -> int:
+        """
+        Get the number of records in the database.
+
+        Returns
+        -------
+        int
+        """
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
+
     def search_nodes_by_codes(
             self,
             category: str,
@@ -236,9 +280,9 @@ class AddressTree(ABC):
         -------
         List[AddressNode]
         """
-        pass
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
 
-    @abstractmethod
     def search_ids_by_codes(
             self,
             category: str,
@@ -257,13 +301,13 @@ class AddressTree(ABC):
         -------
         List[int]
         """
-        pass
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
 
     @deprecated(reason="Rename to 'search_aza_record_by_code'.", version="2.1.10")
     def search_aza_records_by_codes(self, code: str) -> Dict[str, Union[bool, int, str]]:
         return self.search_aza_record_by_code(code)
 
-    @abstractmethod
     def search_aza_record_by_code(self, code: str) -> Dict[str, Union[bool, int, str]]:
         """
         Search Address-base-registry's aza records.
@@ -277,7 +321,8 @@ class AddressTree(ABC):
         -------
         AzaRecord
         """
-        pass
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
 
     @deprecated("Use 'node.get_fullname()' instead of this method.")
     def get_node_fullname(self, node: Union[AddressNode, int]) -> List[str]:
@@ -519,7 +564,6 @@ class AddressTree(ABC):
     def search(self, query: str, **kwargs) -> list:
         return self.searchNode(query, **kwargs)
 
-    @abstractmethod
     def searchNode(self, query: str) -> List[Result]:
         """
         Searches for address nodes corresponding to an address notation
@@ -543,9 +587,17 @@ class AddressTree(ABC):
         >>> tree.searchNode('多摩市落合1-15-2')
         [{"node": {"id": ..., "name": "2", "name_index": "2.", "x": 139.4..., "y": 35.6..., "level": 8, "priority": 9, "note": "", "parent_id": ..., "sibling_id": ...}, "matched": "多摩市落合1-15-2"}]
         """  # noqa: E501
-        pass
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
 
-    @abstractmethod
+    def create_note_index_table(self) -> None:
+        """
+        Collect notes from all address elements and create
+        search table with index.
+        """
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
+
     def reverse(
         self,
         x: float,
@@ -577,7 +629,8 @@ class AddressTree(ABC):
         - Each element is a dict type with the following structure:
             {"candidate":AddressNode, "dist":float}
         """
-        pass
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
 
     @classmethod
     def _clean_numerical_string(cls, code: str) -> str:
@@ -754,3 +807,36 @@ class AddressTree(ABC):
                 value=code[0:5])
 
         return []
+
+    def installed_dictionary_version(self) -> str:
+        """
+        Get the installed dictionary version.
+
+        Returns
+        -------
+        str
+            The version string of the installed dicitionary or the server.
+        """
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
+
+    def installed_dictionary_readme(self) -> str:
+        """
+        Get the content of README.txt attached to the installed dictionary.
+
+        Parameters
+        ----------
+        db_dir: os.PathLike, optional
+            The directory where the database files has been installed.
+            If omitted, it will be determined by `get_db_dir()`.
+
+        url: str, optional
+            URL of the Jageocoder server endpoint.
+
+        Returns
+        -------
+        str
+            The content of the text.
+        """
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")

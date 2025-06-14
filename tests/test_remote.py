@@ -24,6 +24,11 @@ class TestRemoteMethods(unittest.TestCase):
         results = self.tree.searchNode(query)
         return results[0].get_node()
 
+    def test_count_nodes(self):
+        n = jageocoder.get_module_tree().count_records()
+        self.assertTrue(isinstance(n, int))
+        self.assertTrue(n > 0)
+
     def test_get_dictionary_version(self):
         version = jageocoder.installed_dictionary_version()
         self.assertTrue(isinstance(version, str))

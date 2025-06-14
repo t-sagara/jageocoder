@@ -157,6 +157,20 @@ class RemoteNodeTable(object):
         self.cache[pos] = node
         return node
 
+    def count_records(self) -> int:
+        """
+        Get the number of records in the remote server.
+
+        Returns
+        -------
+        int
+        """
+        rpc_result = self.tree.json_request(
+            method="node.count_records",
+            params=[],
+        )
+        return rpc_result
+
     def search_records_on(
             self,
             attr: str,
@@ -256,6 +270,7 @@ class RemoteTree(AddressTree):
             self,
             url: str,
             debug: Optional[bool] = None,
+            **kwargs,
     ) -> None:
         """
         The initializer
@@ -268,9 +283,9 @@ class RemoteTree(AddressTree):
         debug: bool, optional (default=False)
             Debugging flag. If set to True, write debugging messages.
         """
-        super().__init__(debug)
+        super().__init__(debug=debug)
         self.url = url
-        self.table = RemoteNodeTable(tree=self)
+        self.address_nodes = RemoteNodeTable(tree=self)
         self._session = None
         self.config = {
             'debug': self.debug,
@@ -293,7 +308,7 @@ class RemoteTree(AddressTree):
         Dict[int, Any]:
             List of datasets.
         """
-        return self.table.datasets.get_all()
+        return self.address_nodes.datasets.get_all()
 
     def get_node_by_id(self, node_id: int) -> AddressNode:
         """
@@ -308,9 +323,19 @@ class RemoteTree(AddressTree):
         -------
         AddressNode
         """
-        node = self.table.get_record(pos=node_id)
+        node = self.address_nodes.get_record(pos=node_id)
         node.tree = self
         return node
+
+    def count_records(self) -> int:
+        """
+        Get the number of records in the database.
+
+        Returns
+        -------
+        int
+        """
+        return self.address_nodes.count_records()
 
     def search_nodes_by_codes(
             self,
@@ -331,7 +356,7 @@ class RemoteTree(AddressTree):
         List[AddressNode]
         """
         pattern = '{}:{}'.format(category, value)
-        _nodes = self.table.search_records_on(
+        _nodes = self.address_nodes.search_records_on(
             attr="note", value=pattern)  # exact match
         nodes = []
         for node in _nodes:
@@ -360,7 +385,7 @@ class RemoteTree(AddressTree):
         """
         ids = []
         pattern = '{}:{}'.format(category, value)
-        ids = self.table.search_ids_on(
+        ids = self.address_nodes.search_ids_on(
             attr="note", value=pattern)  # exact match
 
         return ids
@@ -473,7 +498,7 @@ class RemoteTree(AddressTree):
         >>> tree.searchNode('多摩市落合1-15-2')
         [{"node": {"id": ..., "name": "2", "name_index": "2.", "x": 139.4..., "y": 35.6..., "level": 8, "priority": 9, "note": "", "parent_id": ..., "sibling_id": ...}, "matched": "多摩市落合1-15-2"}]
         """  # noqa: E501
-        self.table.update_server_signature()
+        self.address_nodes.update_server_signature()
         rpc_result = self.json_request(
             method="jageocoder.searchNode",
             params={"query": query, "config": self.config},
@@ -485,6 +510,15 @@ class RemoteTree(AddressTree):
             results.append(result)
 
         return results
+
+    def create_note_index_table(self) -> None:
+        """
+        Collect notes from all address elements and create
+        search table with index.
+        """
+        raise RemoteTreeException(
+            "Cannot create index on RemoteTree."
+        )
 
     def reverse(
         self,
@@ -517,7 +551,7 @@ class RemoteTree(AddressTree):
         - Each element is a dict type with the following structure:
             {"candidate":AddressNode, "dist":float}
         """
-        self.table.update_server_signature()
+        self.address_nodes.update_server_signature()
         rpc_result = self.json_request(
             method="jageocoder.reverse",
             params={
@@ -536,17 +570,17 @@ class RemoteTree(AddressTree):
         return results
 
     def search_by_machiaza_id(self, id: str) -> List[AddressNode]:
-        self.table.update_server_signature()
+        self.address_nodes.update_server_signature()
         return super().search_by_machiaza_id(id)
 
     def search_by_postcode(self, code: str) -> List[AddressNode]:
-        self.table.update_server_signature()
+        self.address_nodes.update_server_signature()
         return super().search_by_postcode(code)
 
     def search_by_prefcode(self, code: str) -> List[AddressNode]:
-        self.table.update_server_signature()
+        self.address_nodes.update_server_signature()
         return super().search_by_prefcode(code)
 
     def search_by_citycode(self, code: str) -> List[AddressNode]:
-        self.table.update_server_signature()
+        self.address_nodes.update_server_signature()
         return super().search_by_citycode(code)

@@ -352,7 +352,7 @@ class Index(object):
             Created rtree index.
         """
         file_idx = index.Rtree(str(treepath))  # Filename must be passed as str
-        node_table: AddressNodeTable = self._tree.table
+        node_table: AddressNodeTable = self._tree.address_nodes
 
         max_id = node_table.count_records()
         registered_coordinates = set()
@@ -464,7 +464,7 @@ class Index(object):
         if self.idx is None:
             return False
 
-        center_id: int = self._tree.table.count_records() // 2
+        center_id: int = self._tree.address_nodes.count_records() // 2
         node = self._tree.get_node_by_id(node_id=center_id)
         while True:
             while node.level < AddressLevel.BLOCK:
