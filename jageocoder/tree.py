@@ -126,18 +126,18 @@ class AddressTree(ABC):
 
         if cls is AddressTree:
             if db_dir is not None:
-                return LocalTree(db_dir=db_dir, mode=mode, *args, **kwargs)
+                return LocalTree.__new__(LocalTree, db_dir=db_dir, mode=mode, *args, **kwargs)
 
             if url is not None:
-                return RemoteTree(url=url, *args, **kwargs)
+                return RemoteTree.__new__(RemoteTree, url=url, *args, **kwargs)
 
             _db_dir = get_db_dir(mode)
             if _db_dir is not None:
-                return LocalTree(db_dir=_db_dir, mode=mode, **kwargs)
+                return LocalTree.__new__(LocalTree, db_dir=_db_dir, mode=mode, **kwargs)
 
             _url = os.environ.get("JAGEOCODER_SERVER_URL")
             if _url is not None and mode == "r":
-                return RemoteTree(url=_url, **kwargs)
+                return RemoteTree.__new__(RemoteTree, url=_url, **kwargs)
 
             raise AddressTreeException(
                 "Specify 'db_dir' or 'url' to instanciate AddressTree."

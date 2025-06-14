@@ -3,8 +3,12 @@ import os
 from typing import Any, Dict
 import unittest
 
+from requests.exceptions import ConnectionError
+
 import jageocoder
+from jageocoder.exceptions import RemoteTreeException
 from jageocoder.node import AddressNode
+from jageocoder.remote import RemoteTree
 from jageocoder.result import Result
 
 
@@ -14,8 +18,22 @@ class TestRemoteMethods(unittest.TestCase):
     def setUpClass(cls):
         url = os.environ.get("JAGEOCODER_SERVER_URL")
         if url is None:
-            # url = "https://jageocoder.info-proto.com/jsonrpc"
-            url = "http://jageocoder:5000/jsonrpc"
+            url = "https://jageocoder.info-proto.com/jsonrpc"
+            # url = "http://jageocoder:5000/jsonrpc"
+
+        tree = RemoteTree(url=url)
+        if isinstance(tree, RemoteTree):
+            rt: RemoteTree = tree
+            try:
+                rt.json_request(method="helo", params=[])
+            except ConnectionError:
+                raise unittest.SkipTest("The server is not running.")
+            except RemoteTreeException:
+                pass
+
+        else:
+            c = type(tree)
+            raise RuntimeError(f"RemoteTree() instantiated '{c}' object.")
 
         jageocoder.init(url=url)
         cls.tree = jageocoder.get_module_tree()

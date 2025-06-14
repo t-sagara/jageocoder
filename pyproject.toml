@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jageocoder"
-version = "2.1.10rc2"
+version = "2.1.10rc3"
 description = "A Japanese-address geocoder for Python."
 authors = ["Takeshi Sagara <sagara@info-proto.com>"]
 repository = "https://github.com/t-sagara/jageocoder/"
@@ -50,6 +50,9 @@ pytest = "^7.2.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
 
 [tool.poetry.scripts]
 jageocoder = "jageocoder.__main__:main"

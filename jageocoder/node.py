@@ -1574,6 +1574,7 @@ class AddressNode(object):
 
     def get_aza_names(
         self,
+        tree: Optional[AddressTree] = None,
         levelname: Optional[bool] = False,
     ) -> Tuple[Tuple[Union[int, str], str, str, str, str]]:
         """
@@ -1592,6 +1593,10 @@ class AddressNode(object):
 
             [AddressLevel, Kanji, Kana, English, code]
         """
+        if tree is not None:
+            logger.warning(
+                "Deprecated: 'tree' parameter is passed but ignored in 'AddressNode:get_aza_names'.")
+
         aza_record = self.get_aza_record()
         if aza_record is not None:
             results = json.loads(aza_record["names"])  # type: ignore
