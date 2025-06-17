@@ -96,6 +96,19 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Tokyo15ku",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "jageocoder",
+            "args": [
+                "search",
+                "--debug",
+                "--db-dir=/home/sagara/jageocoder/jageocoder-tokyo15ku",
+                "一ツ橋通町1"
+            ],
+            "justMyCode": false
         }
     ]
 }

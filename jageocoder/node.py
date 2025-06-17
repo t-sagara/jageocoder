@@ -227,7 +227,7 @@ class AddressNode(object):
         Parameters
         ----------
         alt: str, optional
-            String to be used instead if the node name is empty.
+            String to be used when the node name is empty.
         """
         if self.name == self.NONAME:
             return alt
@@ -354,8 +354,8 @@ class AddressNode(object):
         Return
         ------
         AddressNode
-            The parent object. When the parent node is the root-node,
-            None will be returned.
+            The parent object.
+            Return None when the parent node is the root node.
         """
         return self.get_parent()
 
@@ -669,7 +669,7 @@ class AddressNode(object):
     def search_recursive(
             self,
             index: str,
-            processed_nodes: Optional[Set[int]] = None
+            processed_nodes: Set[int],
     ) -> List[Result]:
         """
         Search nodes recursively that match the specified address notation.
@@ -678,7 +678,7 @@ class AddressNode(object):
         ----------
         index : str
             The standardized address notation.
-        processed_nodes: Set of the AddressNode's id, optional
+        processed_nodes: Set of the AddressNode's id
             List of node's id that have already been processed
             by TRIE search results.
 
@@ -700,7 +700,9 @@ class AddressNode(object):
                 processed_nodes
             )))
         if processed_nodes is None:
-            processed_nodes = set()
+            raise AddressNodeError(
+                "AddressNode.search_recursive received None for processed_nodes."
+            )
 
         if len(index) == 0:
             logger.debug((
@@ -785,7 +787,7 @@ class AddressNode(object):
 
         candidates = []
         for child in filtered_children:
-            if processed_nodes is None or child.id in processed_nodes:
+            if child.id in processed_nodes:
                 msg = "-> Skip {}({}) (already processed)."
                 logger.debug(msg.format(child.name, child.id))
                 continue
@@ -963,11 +965,12 @@ class AddressNode(object):
                 logger.debug(
                     f"{self.name}({self.id}) marked as processed")
                 tree.set_config(auto_redirect=False, require_coordinates=False)
+                redirect_results = tree.searchNode(ref)
                 tree.set_config(
                     auto_redirect=auto_redirect,
                     require_coordinates=require_coordinates
                 )
-                for result in tree.searchNode(ref):
+                for result in redirect_results:
                     node = result.get_node()
                     if node.id in processed_nodes:
                         continue
