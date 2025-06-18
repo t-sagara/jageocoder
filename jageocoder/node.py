@@ -1091,7 +1091,7 @@ class AddressNode(object):
           the substring before the name is returned.
         - This method can only be called from nodes in LocalTree.
         """
-        from .local_tree import LocalTree
+        from .local import LocalTree
         if self.level < AddressLevel.CITY or \
                 self.level > AddressLevel.AZA:
             return ""
@@ -1209,7 +1209,7 @@ class AddressNode(object):
         -----
         - This method can only be called from nodes in LocalTree.
         """
-        from .local_tree import LocalTree
+        from .local import LocalTree
         if self.level < AddressLevel.CITY or \
                 self.level > AddressLevel.AZA:
             return []

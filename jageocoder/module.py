@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import shutil
@@ -9,7 +8,7 @@ from urllib.error import URLError
 import jageocoder
 
 from jageocoder.exceptions import JageocoderError
-from jageocoder.local_tree import LocalTree
+from jageocoder.local import LocalTree
 from jageocoder.tree import AddressTree, get_db_dir
 from jageocoder.remote import RemoteTree
 from jageocoder.result import Result
@@ -616,8 +615,14 @@ def create_trie_index() -> None:
 
 
 def version():
+    """
+    Returns the version of this package.
+    """
     return jageocoder.__version__
 
 
 def dictionary_version():
+    """
+    Returnes the version of the compatible dictionary.
+    """
     return jageocoder.__dictionary_version__

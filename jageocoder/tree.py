@@ -121,7 +121,7 @@ class AddressTree(ABC):
             url: Optional[str] = None,
             *args, **kwargs
     ) -> AddressTree:
-        from .local_tree import LocalTree
+        from .local import LocalTree
         from .remote import RemoteTree
 
         if cls is AddressTree:

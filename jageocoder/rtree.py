@@ -8,7 +8,7 @@ from rtree import index
 from rtree.exceptions import RTreeError
 from tqdm import tqdm
 
-from jageocoder.local_tree import LocalTree
+from jageocoder.local import LocalTree
 from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode, AddressNodeTable
 

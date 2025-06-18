@@ -6,7 +6,7 @@ import unittest
 
 from jageocoder.exceptions import AddressTreeException
 from jageocoder.tree import AddressTree
-from jageocoder.local_tree import LocalTree
+from jageocoder.local import LocalTree
 from jageocoder.remote import RemoteTree
 
 logger = logging.getLogger(__name__)
