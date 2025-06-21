@@ -1572,7 +1572,7 @@ class AddressNode(object):
         else:
             code = self.get_pref_jiscode()
 
-        aza_record = self.get_tree().search_aza_records_by_codes(code)
+        aza_record = self.get_tree().search_aza_record_by_code(code)
         return aza_record
 
     def get_aza_names(
