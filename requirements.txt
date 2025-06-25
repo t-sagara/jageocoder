@@ -3,12 +3,12 @@ cffi==1.17.1
 charset-normalizer==3.4.2
 cryptography==44.0.3
 Deprecated==1.2.18
-docopt-ng==0.6.3
+click==8.1.7
 geographiclib==2.0
 idna==3.10
 jaconv==0.3.4
 marisa-trie==1.2.1
-PortableTab==0.3.7
+PortableTab==0.3.7.post1
 pycapnp==2.0.0
 pycparser==2.22
 requests==2.32.3
