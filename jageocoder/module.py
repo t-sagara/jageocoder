@@ -250,19 +250,22 @@ def install_dictionary(
             raise JageocoderError(
                 "Cannot find a directory to install the dictionary.")
 
-    if skip_confirmation is not True and os.path.exists(
-            os.path.join(db_dir, 'address_node')):
-        # Dictionary had been installed.
-        r = input("他の辞書がインストール済みです。上書きしますか？(Y/n) ")
-        if r.lower()[0] != 'y':
-            return
-
-    if os.path.exists(path):
-        path = path
-    else:
+    if not os.path.exists(path):
         raise JageocoderError("Can't open file '{}'".format(path))
 
+    if skip_confirmation is not True:
+        if not os.path.exists(db_dir):
+            r = input("インストール先のディレクトリがありません。作成しますか？(Y/n) ")
+            if r.lower()[0] != 'y':
+                return
+
+        if os.path.exists(os.path.join(db_dir, 'address_node')):
+            r = input("他の辞書がインストール済みです。上書きしますか？(Y/n) ")
+            if r.lower()[0] != 'y':
+                return
+
     # Unzip the archive
+    os.makedirs(db_dir, exist_ok=True)
     shutil.rmtree(db_dir)
     shutil.unpack_archive(
         filename=str(path),
