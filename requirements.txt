@@ -6,7 +6,7 @@ Deprecated==1.2.18
 docopt-ng==0.6.3
 geographiclib==2.0
 idna==3.10
-jaconv==0.3.4
+jaconv>=0.3.4,<0.5.0
 marisa-trie==1.2.1
 PortableTab==0.3.7
 pycapnp==2.0.0
