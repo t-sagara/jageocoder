@@ -34,9 +34,9 @@ Linux, Windows, MacOS 上に、 jageocoder をインストールして
 コマンドラインで実行
 --------------------
 
-Jageocoder は Python プログラム内から呼びだすパッケージとして
-利用することを想定していますが、コマンドライン・インタフェースから
-利用することもできます。
+Jageocoder は主に Python プログラム内から呼びだすライブラリとして
+利用することを想定していますが、シェルスクリプトや他の言語から
+コマンドを実行して利用することもできます。
 
 .. code-block:: console
 
@@ -46,7 +46,7 @@ Jageocoder は Python プログラム内から呼びだすパッケージとし�
    $ jageocoder reverse --url=https://jageocoder.info-proto.com/jsonrpc 139.691778 35.689627
    [{"candidate": {"fullname": ["東京都", "新宿区", "西新宿", "二丁目"], "id": 80217626, "level": 6, "name": "二丁目", "note": "aza_id:0023002/postcode:1600023", "priority": 2, "x": 139.6917724609375, "y": 35.689449310302734}, "dist": 19.721624552843714}, {"candidate": {"fullname": ["東京都", "新宿区", "西新宿", "六丁目"], "id": 80222945, "level": 6, "name": "六丁目", "note": "aza_id:0023006/postcode:1600023", "priority": 2, "x": 139.6909637451172, "y": 35.693424224853516}, "dist": 427.71233368734613}, {"candidate": {"fullname": ["東京都", "新宿区", "西新宿", "一丁目"], "id": 80216569, "level": 6, "name": "一丁目", "note": "aza_id:0023001/postcode:1600023", "priority": 2, "x": 139.69749450683594, "y": 35.69038391113281}, "dist": 524.2019773820475}]
 
-その他のコマンドについては :doc:`command_line` を参照してください。
+上記以外のコマンドについては :doc:`command_line` を参照してください。
 
 Python コードで実行
 -------------------

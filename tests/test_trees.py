@@ -18,8 +18,15 @@ class TestTreeMethods(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.db_dir = os.environ.get("JAGEOCODER_DB2_DIR")
+        cls.url = os.environ.get(
+            "JAGEOCODER_SERVER_URL",
+            "https://jageocoder.info-proto.com/jsonrpc")
         cls.testdb_dir = os.path.join(os.path.dirname(__file__), "testdb")
-        cls.url = "https://jageocoder.info-proto.com/jsonrpc"
+        if os.environ.get("JAGEOCODER_DB2_DIR"):
+            del os.environ["JAGEOCODER_DB2_DIR"]
+
+        if os.environ.get("JAGEOCODER_SERVER_URL"):
+            del os.environ["JAGEOCODER_SERVER_URL"]
 
     def test_create_local_tree_for_read(self):
         if self.db_dir is None:
@@ -28,6 +35,18 @@ class TestTreeMethods(unittest.TestCase):
         db_dir = Path(self.db_dir)
         tree = AddressTree(db_dir=db_dir, mode="r")
         self.assertTrue(isinstance(tree, LocalTree))
+
+    def test_create_local_tree_for_read_with_envvar(self):
+        if self.db_dir is None:
+            self.skipTest("Skip create local tree")
+
+        os.environ["JAGEOCODER_DB2_DIR"] = self.db_dir
+        tree = AddressTree(mode="r")
+        self.assertTrue(isinstance(tree, LocalTree))
+        if isinstance(tree, LocalTree):
+            self.assertEqual(tree.db_dir, Path(
+                os.environ["JAGEOCODER_DB2_DIR"]))
+        del os.environ["JAGEOCODER_DB2_DIR"]
 
     def test_create_local_tree_for_write(self):
         if os.path.exists(self.testdb_dir):
@@ -51,6 +70,14 @@ class TestTreeMethods(unittest.TestCase):
     def test_create_remote_tree(self):
         tree = AddressTree(url=self.url)
         self.assertTrue(isinstance(tree, RemoteTree))
+
+    def test_create_remote_tree_with_envvar(self):
+        os.environ["JAGEOCODER_SERVER_URL"] = self.url
+        tree = AddressTree()
+        self.assertTrue(isinstance(tree, RemoteTree))
+        if isinstance(tree, RemoteTree):
+            self.assertEqual(tree.url, os.environ["JAGEOCODER_SERVER_URL"])
+        del os.environ["JAGEOCODER_SERVER_URL"]
 
     def test_create_address_tree(self):
         # Escape and remove environ values

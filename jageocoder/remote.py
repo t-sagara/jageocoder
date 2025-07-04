@@ -268,7 +268,7 @@ class RemoteTree(AddressTree):
 
     def __init__(
             self,
-            url: str,
+            url: Optional[str] = None,
             debug: Optional[bool] = None,
             **kwargs,
     ) -> None:
@@ -284,7 +284,14 @@ class RemoteTree(AddressTree):
             Debugging flag. If set to True, write debugging messages.
         """
         super().__init__(debug=debug)
-        self.url = url
+        if isinstance(url, str):
+            self.url = url
+        else:
+            self.url = os.environ.get("JAGEOCODER_SERVER_URL", "--no-url--")
+
+        if self.url is "--no-url--":
+            raise RemoteTreeException("'url' must be set.")
+
         self.address_nodes = RemoteNodeTable(tree=self)
         self._session = None
         self.config = {
