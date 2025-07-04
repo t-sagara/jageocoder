@@ -243,7 +243,7 @@ class LocalTree(AddressTree):
         -------
         AzaRecord
         """
-        record = self.aza_masters.search_by_code(code, as_dict=True)
+        record = self.aza_masters.search_by_code(code)
         return record
 
     def validate_config(self, key: str, value: Any) -> None:
@@ -553,8 +553,9 @@ class LocalTree(AddressTree):
         node = self.get_node_by_id(node_id=id)
         return node
 
-    @deprecated(('Renamed to `searchNode()` because it was confusing'
-                 ' with jageocoder.search()'))
+    @deprecated(reason=(
+        "Renamed to `searchNode()` because it was confusing"
+        " with `jageocoder.search()`"))
     def search(self, query: str, **kwargs) -> list:
         return self.searchNode(query, **kwargs)
 

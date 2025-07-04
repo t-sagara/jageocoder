@@ -304,7 +304,11 @@ class AddressTree(ABC):
         raise NotImplementedError(
             f"This method is not implemented for class '{self.__class__}'")
 
-    @deprecated(reason="Rename to 'search_aza_record_by_code'.", version="2.1.10")
+    @deprecated(
+        reason=(
+            "Rename to 'search_aza_record_by_code' "
+            "because this method always returns single value."),
+        version="2.1.10")
     def search_aza_records_by_codes(self, code: str) -> Dict[str, Union[bool, int, str]]:
         return self.search_aza_record_by_code(code)
 
@@ -559,8 +563,9 @@ class AddressTree(ABC):
         node = self.get_node_by_id(node_id=id)
         return node
 
-    @deprecated(('Renamed to `searchNode()` because it was confusing'
-                 ' with jageocoder.search()'))
+    @deprecated(reason=(
+        "Renamed to `searchNode()` because it was confusing"
+        " with `jageocoder.search()`"))
     def search(self, query: str, **kwargs) -> list:
         return self.searchNode(query, **kwargs)
 

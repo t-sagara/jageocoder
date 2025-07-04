@@ -122,6 +122,39 @@ class TestCodeMethods(unittest.TestCase):
             [5, '西新宿', 'ニシシンジュク', '', '131040023'],
             [6, '二丁目', '２チョウメ', '2chome', '131040023002']])
 
+    def test_search_aza_record_by_citycode(self):
+        """
+        Retrieve Aza record from ABR using citycode.
+        """
+        result = jageocoder.search_aza_record_by_code("08208")
+        names = json.loads(result["names"])
+        self.assertEqual(names, [
+            [1, '茨城県', 'イバラキケン', 'Ibaraki', '08'],
+            [3, '龍ケ崎市', 'リュウガサキシ', 'Ryugasaki-shi', '08208'],
+        ])
+
+    def test_search_aza_record_by_prefcode(self):
+        """
+        Retrieve Aza record from ABR using prefcode.
+        """
+        result = jageocoder.search_aza_record_by_code("26")
+        names = json.loads(result["names"])
+        self.assertEqual(result["code"], "26")
+        self.assertEqual(names, [
+            [1, '京都府', 'キョウトフ', 'Kyoto', '26'],
+        ])
+
+    def test_search_aza_record_by_lg_citycode(self):
+        """
+        Retrieve Aza record from ABR using lg_citycode.
+        """
+        result = jageocoder.search_aza_record_by_code("082082")
+        names = json.loads(result["names"])
+        self.assertEqual(names, [
+            [1, '茨城県', 'イバラキケン', 'Ibaraki', '08'],
+            [3, '龍ケ崎市', 'リュウガサキシ', 'Ryugasaki-shi', '08208'],
+        ])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1565,14 +1565,17 @@ class AddressNode(object):
         Record of AzaMaster
             A record object if exists. Otherwise None.
         """
+        code = ""
         if self.level >= AddressLevel.OAZA:
             code = self.get_aza_code()
-        elif self.level >= AddressLevel.CITY:
+
+        if code == "" and self.level >= AddressLevel.CITY:
             code = self.get_city_jiscode()
-        else:
+
+        if code == "":
             code = self.get_pref_jiscode()
 
-        aza_record = self.get_tree().search_aza_records_by_codes(code)
+        aza_record = self.get_tree().search_aza_record_by_code(code)
         return aza_record
 
     def get_aza_names(
@@ -1597,19 +1600,20 @@ class AddressNode(object):
             [AddressLevel, Kanji, Kana, English, code]
         """
         if tree is not None:
-            logger.warning(
-                "Deprecated: 'tree' parameter is passed but ignored in 'AddressNode:get_aza_names'.")
+            logger.warning((
+                "Deprecated: The 'tree' parameter passed to this method is ignored. "
+                "The 'tree' attribute of the node object is used instead."))
 
-        aza_record = self.get_aza_record()
-        if aza_record is not None:
+        try:
+            aza_record = self.get_aza_record()
             results = json.loads(aza_record["names"])  # type: ignore
             if levelname:
                 for i in range(len(results)):
                     results[i][0] = AddressLevel.levelname(results[i][0])
 
             return results
-
-        return tuple()
+        except KeyError:
+            return tuple()
 
     def get_postcode(self) -> str:
         """
