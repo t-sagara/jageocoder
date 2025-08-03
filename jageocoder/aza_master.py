@@ -3,6 +3,7 @@ import datetime
 import json
 from logging import getLogger
 import re
+from typing import Dict, Union
 
 from PortableTab import BaseTable
 
@@ -208,7 +209,7 @@ class AzaMaster(BaseTable):
         - This method uses sequential search so it is very slow.
         """
         st_name = self.__class__.standardize_aza_name(elements)
-        for i in range(self.count_records):
+        for i in range(self.count_records()):
             record = self.get_record(pos=i)
             if record.names_index == st_name:
                 return record
@@ -220,7 +221,7 @@ class AzaMaster(BaseTable):
     def search_by_code(
         self,
         code: str,
-    ):
+    ) -> Dict[str, Union[str, int, bool]]:
         """
         Search AzaMaster record by azacode.
 
@@ -234,16 +235,56 @@ class AzaMaster(BaseTable):
         Record, None
             Aza_master record or None.
         """
+        _code = code
         if len(code) == 13:
             # lasdec(6digits) + aza_id(7digits)
-            code = code[0:5] + code[6:]
+            _code = code[0:5] + code[6:]
+        elif len(code) == 6:
+            _code = code[0:5]
 
-        for record in self.search_records_on(attr="code", value=code):
-            if record.code == code:
-                return record
+        if len(_code) == 5 and _code[2:5] == "000":
+            _code = _code[0:2]
 
-        logger.debug("'{}' is not in the aza_master table.".format(code))
-        return None
+        for record in self.search_records_on(
+                attr="code",
+                value=_code,
+                funcname="keys"):
+            if record.code.startswith(_code):
+                if len(_code) == 2:
+                    names = [n for n in json.loads(
+                        str(record.names)) if n[0] <= AddressLevel.PREF]
+                    names_index = itaiji_converter.standardize(
+                        "".join([n[1] for n in names]))
+                    return {
+                        "code": code,
+                        "names": json.dumps(names, ensure_ascii=False),
+                        "namesIndex": names_index,
+                        "postcode": str(record.postcode),
+                    }
+                elif len(_code) == 5:
+                    names = [n for n in json.loads(
+                        str(record.names)) if n[0] <= AddressLevel.WARD]
+                    names_index = itaiji_converter.standardize(
+                        "".join([n[1] for n in names]))
+                    return {
+                        "code": code,
+                        "names": json.dumps(names, ensure_ascii=False),
+                        "namesIndex": names_index,
+                        "postcode": str(record.postcode),
+                    }
+
+                else:
+                    return {
+                        "code": str(record.code),
+                        "names": str(record.names),
+                        "namesIndex": str(record.namesIndex),
+                        "azaClass": int(record.azaClass),
+                        "isJukyo": bool(record.isJukyo),
+                        "startCountType": int(record.startCountType),
+                        "postcode": str(record.postcode),
+                    }
+
+        raise KeyError(f"'{code}' is not in the aza_master table.")
 
     def binary_search(self, code: str) -> int:
         """

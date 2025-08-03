@@ -1,6 +1,6 @@
 from abc import ABC
 from logging import getLogger
-import os
+from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 from geographiclib.geodesic import Geodesic
@@ -8,7 +8,7 @@ from rtree import index
 from rtree.exceptions import RTreeError
 from tqdm import tqdm
 
-from jageocoder.tree import AddressTree
+from jageocoder.local import LocalTree
 from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode, AddressNodeTable
 
@@ -162,8 +162,11 @@ class DelaunayTriangle(ABC):
             Up to 3 nodes surrounding the target point
             and their distance.
         """
-        def kval(t: Tuple[int, int, int]) -> int:
-            sval = sorted(t)
+        def kval(t0: int, t1: int, t2: int) -> int:
+            """
+            Generate hash key for the triangle
+            """
+            sval = sorted((t0, t1, t2))
             return sval[0] * 10000 + sval[1] * 100 + sval[2]
 
         def side(
@@ -173,7 +176,7 @@ class DelaunayTriangle(ABC):
             """
             return ab[0] * ap[1] - ab[1] * ap[0]
 
-        triangle = None
+        triangle_candidate: Optional[Tuple[int, int, int]] = None
         p0, p1 = 0, 1
         a = nodes[p0].node
         ap = (x - a.x, y - a.y)
@@ -207,19 +210,21 @@ class DelaunayTriangle(ABC):
                     (b.x, b.y),
                     (q.x, q.y)
                 ):
-                    triangle = [p0, p1, p2]
+                    triangle_candidate = (p0, p1, p2)
                     break
 
             else:
-                triangle = None
+                triangle_candidate = None
 
-        if triangle is None:
+        if triangle_candidate is None:
             # If the triangle containing the target cannot
             # be constructed, the two nearest points are returned.
             return nodes[:2]
 
+        triangle: Tuple[int, int, int] = triangle_candidate
+
         i = 0
-        processed_triangles = set({kval(triangle), })
+        processed_triangles = set({kval(*triangle), })
         while i < len(nodes):
             if i in triangle:
                 i += 1
@@ -233,9 +238,9 @@ class DelaunayTriangle(ABC):
             ):
                 new_triangle = None
                 for j in range(3):
-                    tt = triangle[:]
+                    tt = [x for x in triangle]
                     tt[j] = i
-                    k = kval(tt)
+                    k = kval(*tt)
                     if k in processed_triangles:
                         continue
 
@@ -245,12 +250,12 @@ class DelaunayTriangle(ABC):
                         (nodes[tt[1]].node.x, nodes[tt[1]].node.y),
                         (nodes[tt[2]].node.x, nodes[tt[2]].node.y)
                     ):
-                        new_triangle = tt
+                        new_triangle = (tt[0], tt[1], tt[2])
                         break
 
                 if new_triangle:
                     triangle = new_triangle
-                    processed_triangles.add(kval(triangle))
+                    processed_triangles.add(kval(*triangle))
                     i = 0
                     continue
 
@@ -277,15 +282,16 @@ class Index(object):
         2 points represented by (lon, lat).
     """
 
-    geod = Geodesic.WGS84
+    geod = Geodesic.WGS84  # type: ignore
 
-    def __init__(self, tree: AddressTree):
+    def __init__(self, tree: LocalTree):
         self._tree = tree
         self.idx = None
 
-        treepath = os.path.join(tree.db_dir, "rtree")
-        if os.path.exists(treepath + ".dat") and \
-                os.path.exists(treepath + ".idx"):
+        treepath = Path(tree.db_dir) / "rtree"
+        dat_path = Path(tree.db_dir) / "rtree.dat"
+        idx_path = Path(tree.db_dir) / "rtree.idx"
+        if dat_path.exists() and idx_path.exists():
             try:
                 self.idx = self.load_rtree(treepath)
                 if self.test_rtree() is False:
@@ -293,14 +299,15 @@ class Index(object):
                         "RTree datafile exists but it does not match "
                         "the registered address data."
                     ))
-                    os.unlink(treepath + ".dat")
-                    os.unlink(treepath + ".idx")
+                    dat_path.unlink()
+                    idx_path.unlink()
                     self.idx = None
 
             except RTreeError as e:
                 logger.warning("Can't load the RTree datafile.({})".format(e))
-                os.unlink(treepath + ".dat")
-                os.unlink(treepath + ".idx")
+                dat_path.unlink()
+                idx_path.unlink()
+                self.idx = None
 
         if self.idx is None:
             self.idx = self.create_rtree(treepath)
@@ -329,13 +336,13 @@ class Index(object):
         g = self.geod.Inverse(lat0, lon0, lat1, lon1)
         return g['s12']
 
-    def create_rtree(self, treepath: os.PathLike) -> index.Rtree:
+    def create_rtree(self, treepath: Path) -> index.Rtree:
         """
         Create RTree from the nodes in the address tree.
 
         Parameters
         ----------
-        treepath: os.PathLike
+        treepath: Path
             The base filename of the rtree data files.
             RTree data files consist of ".dat" and ".idx".
 
@@ -344,7 +351,7 @@ class Index(object):
         index.Rtree
             Created rtree index.
         """
-        file_idx = index.Rtree(str(treepath))
+        file_idx = index.Rtree(str(treepath))  # Filename must be passed as str
         node_table: AddressNodeTable = self._tree.address_nodes
 
         max_id = node_table.count_records()
@@ -427,14 +434,14 @@ class Index(object):
 
         return file_idx
 
-    def load_rtree(self, treepath: os.PathLike) -> index.Rtree:
+    def load_rtree(self, treepath: Path) -> index.Rtree:
         """
         Load RTree from the data files.
 
         Parameters
         ----------
-        treepath: os.PathLike
-            The base filename of the rtree data files.
+        treepath: Path
+            The base path to the rtree data files.
 
         Returns
         -------
@@ -454,19 +461,24 @@ class Index(object):
             If the index passes the test, return True.
             Otherwise return False.
         """
-        node_table = self._tree.address_nodes
-        node = node_table.get_record(pos=node_table.count_records() // 2)
+        if self.idx is None:
+            return False
+
+        center_id: int = self._tree.address_nodes.count_records() // 2
+        node = self._tree.get_node_by_id(node_id=center_id)
         while True:
             while node.level < AddressLevel.BLOCK:
-                node = node_table.get_record(pos=node.id + 1)
+                node = self._tree.get_node_by_id(node_id=node.id + 1)
 
             while node.level > AddressLevel.BLOCK:
                 node = node.parent
+                if node is None:
+                    return False
 
             if node.has_valid_coordinate_values():
                 break
 
-            node = node_table.get_record(pos=node.sibling_id)
+            node = self._tree.get_node_by_id(node_id=node.sibling_id)
 
         results = tuple(self.idx.nearest(
             (node.x, node.y, node.x, node.y), 1, objects=True))
@@ -474,7 +486,7 @@ class Index(object):
             return False
 
         item = results[0]
-        target_node = node_table.get_record(item.id)
+        target_node = self._tree.get_node_by_id(node_id=item.id)
         target_bbox = item.bbox
         res = target_node.x >= target_bbox[0] \
             and target_node.y >= target_bbox[1] \
@@ -545,6 +557,9 @@ class Index(object):
         [{"candidate":AddressNode or dict, "dist":float}]
             Returns the results of retrieval up to 3 nodes.
         """
+        if self.idx is None:
+            raise RTreeError("R-Tree is not created.")
+
         level = level or AddressLevel.AZA
 
         # Retrieve top k-nearest nodes using the R-tree index.
@@ -586,6 +601,8 @@ class Index(object):
             dist, node = v.dist, v.node
             while node.level > level:
                 node = node.parent
+                if node is None:
+                    raise RTreeError("R-Tree index is broken.")
 
             if node.id in registered:
                 continue

@@ -5,8 +5,8 @@
 
 .. _install-package:
 
-パッケージのインストール
-------------------------
+パッケージのインストール手順
+----------------------------
 
 ``pip`` コマンドでインストールできます。
 
@@ -18,33 +18,29 @@
 
 .. code-block:: console
 
-   $ pip install jageocoder==2.1.6.post1
+   $ pip install jageocoder==2.1.10
 
 .. _server-or-dictionary:
+
 
 Jageocoder サーバと住所データベース
 -----------------------------------
 
-:doc:`quick_start` では Jageocoder をすぐに試すために、
-``url`` パラメータを指定して検索処理を
+``pip`` コマンドでインストールされる jageocoder パッケージには住所データベースは含まれていません。
+住所データベースを利用するには次の2通りの方法があります。
+
+- Jageocoder サーバを利用する
+- 「住所データベースファイル」をインストールする
+
+:doc:`quick_start` では Jageocoder をすぐに試すために、 ``url`` パラメータを指定して検索処理を
 `デモンストレーション用 Jageocoder サーバ <https://jageocoder.info-proto.com/>`_
-上で実行しています。
+上で実行しています。これが1番目の方法です。
 
-この方法はローカルマシンに住所データをインストールする必要がないので手軽ですが、
-通信にかかる時間の分だけ遅くなったり、サーバがメンテナンス等の事情により
-応答できないことがあるという欠点があります。
-大量の住所を処理する必要がある場合や、個人情報など外部に送信したくない場合は、
-:ref:`install-dictionary` 以降の手順に従って住所データベースをインストールしてください。
-
-なお、コマンドラインや API で Jageocoder サーバを利用する場合は
-:doc:`quick_start` のように明示的に ``url`` パラメータを指定してもよいですが、
-環境変数 ``JAGEOCODER_SERVER_URL`` にエンドポイント URL をセットしておくと
-``url`` パラメータを省略可能です。
-
-.. code-block:: console
-
-   $ export JAGEOCODER_SERVER_URL=https://jageocoder.info-proto.com/jsonrpc
-   $ jageocoder search '新宿区西新宿２－８－１'  # 指定したサーバを利用します
+この方法はローカルマシンに住所データベースをインストールする必要がないので手軽ですが、
+通信にかかる時間の分だけ遅くなったり、
+サーバがメンテナンス等の事情により応答できないことがあるという欠点があります。
+大量の住所を処理する必要がある場合や、個人情報などを外部に送信したくない場合は、
+2番目の方法を選択してください。
 
 .. note::
 
@@ -56,8 +52,8 @@ Jageocoder サーバと住所データベース
 
 .. _install-dictionary:
 
-住所データベースファイルのインストール
---------------------------------------
+住所データベースファイルのインストール手順
+------------------------------------------
 
 住所データベースファイルは zip 形式でダウンロード可能です。
 `住所データベースファイル一覧 <https://www.info-proto.com/static/jageocoder/latest/>`_
@@ -109,32 +105,28 @@ Jageocoder をアンインストールする場合、先に住所データベー
    バイナリデータファイルの集合です。 RDBMS は利用していません。
 
 
-住所データベースディレクトリを指定する
---------------------------------------
+.. _db_priority:
 
-住所データベースは特に指定しない場合 Python 環境内に作成されます
-（参考： :ref:`commandline-get-db-dir`）。
+接続先の優先順位
+----------------
 
-このデータベースはサイズが大きいため、1台のマシン上の
-複数の Python 環境で Jageocoder を利用する際、
-各環境にインストールせずに共用したいことがあります。
-そのような場合には、環境変数
-``JAGEOCODER_DB2_DIR`` をセットして住所データベースのディレクトリを
-指定してください。
+Jageocoder が利用する住所データベース、 Jageocoder サーバは次の順番に決定されます。
+
+- ``--db-dir=`` (コマンドの場合)・ ``db_dir=`` (Python APIの場合) オプションで指定された住所データベースディレクトリ
+- ``--url=`` (コマンドの場合)・ ``url=`` (Python APIの場合) オプションで指定された Jageocoder サーバの URL
+- 環境変数 ``JAGEOCODER_DB2_DIR`` で指定された住所データベースディレクトリ
+- 環境変数 ``JAGEOCODER_SERVER_URL`` で指定された Jageocoder サーバの URL
+- Python 環境内の所定のディレクトリ (参考： :ref:`commandline-get-db-dir`)
 
 .. code-block:: console
 
-    $ export JAGEOCODER_DB2_DIR=$HOME/jageocoder/db2
-    $ jageocoder get-db-dir
-   /home/sagara/jageocoder/db2
-
-ただし jageocoder のバージョンは住所データベースのバージョンと
-互換性がある必要があります。
+   $ export JAGEOCODER_SERVER_URL=https://jageocoder.info-proto.com/jsonrpc
+   $ jageocoder search '新宿区西新宿２－８－１'  # デモンストレーション用サーバを利用します
+   $ export JAGEOCODER_DB2_DIR=~/jageocoder/db2/
+   $ jageocoder search '新宿区西新宿２－８－１'  # 指定した住所データベースを利用します
+   $ jageocoder search --url=http://localhost:5000/jsonrpc '新宿区西新宿２－８－１'  # ローカルマシン上のサーバを利用します
 
 .. note::
 
-   もし ``JAGEOCODER_DB2_DIR`` と ``JAGEOCODER_SERVER_URL`` が両方とも
-   セットされている場合、 ``JAGEOCODER_DB2_DIR`` が優先されます。
-   ``JAGEOCODER_DB2_DIR`` が指すディレクトリに住所データベースが
-   見つからない場合は、 ``JAGEOCODER_SERVER_URL`` で指定された
-   Jageocoder サーバに接続します。
+   もし ``JAGEOCODER_DB2_DIR`` と ``JAGEOCODER_SERVER_URL`` が両方ともセットされている場合、 ``JAGEOCODER_DB2_DIR`` が優先されます。
+   ``JAGEOCODER_DB2_DIR`` が指すディレクトリに住所データベースが見つからないとエラーになります。

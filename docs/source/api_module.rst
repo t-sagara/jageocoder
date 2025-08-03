@@ -7,7 +7,6 @@ Jageocoder モジュールのメソッドは、以下の5つのグループに�
    :py:meth:`jageocoder.download_dictionary`,
    :py:meth:`jageocoder.install_dictionary`,
    :py:meth:`jageocoder.uninstall_dictionary`,
-   :py:meth:`jageocoder.migrate_dictionary`,
    :py:meth:`jageocoder.create_trie_index`,
    :py:meth:`jageocoder.dictionary_version`
 
@@ -23,7 +22,7 @@ Jageocoder モジュールのメソッドは、以下の5つのグループに�
    :py:meth:`jageocoder.set_search_config`,
    :py:meth:`jageocoder.get_search_config`,
    :py:meth:`jageocoder.search`,
-   :py:meth:`jageocoder.searchNode`,
+   :py:meth:`jageocoder.searchNode`
 
 リバースジオコーディング機能を提供する
    :py:meth:`jageocoder.reverse`
@@ -33,6 +32,9 @@ Jageocoder モジュールのメソッドは、以下の5つのグループに�
    :py:meth:`jageocoder.search_by_prefcode`,
    :py:meth:`jageocoder.search_by_citycode`,
    :py:meth:`jageocoder.search_by_machiaza_id`
+
+その他
+   :py:meth:`jageocoder.search_aza_record_by_code`
 
 .. automodule:: jageocoder
    :members:

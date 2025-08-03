@@ -1,26 +1,29 @@
-import datetime
 import logging
 import os
 import shutil
-from typing import Optional, Union, List
+from typing import Any, Dict, Optional, Union, List
 import urllib.request
 from urllib.error import URLError
 
 import jageocoder
+
 from jageocoder.exceptions import JageocoderError
+from jageocoder.local import LocalTree
 from jageocoder.tree import AddressTree, get_db_dir
 from jageocoder.remote import RemoteTree
 from jageocoder.result import Result
 
-_tree = None  # The default AddressTree
+_tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)
 
 
-def init(db_dir: Optional[os.PathLike] = None,
-         mode: Optional[str] = 'r',
-         debug: Optional[bool] = False,
-         url: Optional[str] = None,
-         **kwargs) -> None:
+def init(
+    db_dir: Optional[os.PathLike] = None,
+    mode: str = 'r',
+    debug: Optional[bool] = None,
+    url: Optional[str] = None,
+    **kwargs
+) -> None:
     """
     Initialize the module-level AddressTree object `jageocoder.tree`
     ready for use.
@@ -64,10 +67,20 @@ def init(db_dir: Optional[os.PathLike] = None,
     _url = None
     _db_dir = None
 
+    _tree = AddressTree(
+        db_dir=db_dir,
+        mode=mode,
+        url=url,
+        debug=debug,
+        **kwargs,
+    )
+    set_search_config(**kwargs)
+    return
+
     # Check parameters
     if db_dir is not None:
         _db_dir = db_dir
-    elif url is not None and mode == 'r':
+    elif url != "" and mode == 'r':
         _url = url
 
     # Check environmental variables
@@ -83,7 +96,7 @@ def init(db_dir: Optional[os.PathLike] = None,
 
     # Initialize tree object
     if _db_dir:
-        _tree = AddressTree(db_dir=_db_dir, mode=mode, debug=debug)
+        _tree = LocalTree(db_dir=_db_dir, mode=mode, debug=debug)
     elif _url:
         _tree = RemoteTree(url=_url, debug=debug)
     else:
@@ -98,9 +111,6 @@ def free():
     Frees all objects created by 'init()'.
     """
     global _tree
-    if _tree:
-        _tree.close()
-
     _tree = None
 
 
@@ -136,10 +146,7 @@ def set_search_config(**kwargs):
         new address recorded in the "ref" attribute,
         the new address is retrieved automatically.
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-
-    _tree.set_config(**kwargs)
+    return get_module_tree().set_config(**kwargs)
 
 
 def get_search_config(keys: Union[str, List[str], None] = None) -> dict:
@@ -157,10 +164,7 @@ def get_search_config(keys: Union[str, List[str], None] = None) -> dict:
     -------
     Any, or dict.
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-
-    return _tree.get_config(keys)
+    return get_module_tree().get_config(keys)
 
 
 def is_initialized() -> bool:
@@ -172,13 +176,14 @@ def is_initialized() -> bool:
     bool
         True if the module is initialized, otherwise False.
     """
-    if get_module_tree():
+    try:
+        get_module_tree()
         return True
+    except JageocoderError:
+        return False
 
-    return False
 
-
-def get_module_tree() -> Union[AddressTree, None]:
+def get_module_tree() -> AddressTree:
     """
     Get the module-level AddressTree singleton object.
 
@@ -188,6 +193,9 @@ def get_module_tree() -> Union[AddressTree, None]:
         The singleton object.
     """
     global _tree
+    if _tree is None:
+        raise JageocoderError("Tree is not initialized")
+
     return _tree
 
 
@@ -238,20 +246,26 @@ def install_dictionary(
     # Set default value
     if db_dir is None:
         db_dir = get_db_dir(mode='w')
+        if db_dir is None:
+            raise JageocoderError(
+                "Cannot find a directory to install the dictionary.")
 
-    if skip_confirmation is not True and os.path.exists(
-            os.path.join(db_dir, 'address_node')):
-        # Dictionary had been installed.
-        r = input("他の辞書がインストール済みです。上書きしますか？(Y/n) ")
-        if r.lower()[0] != 'y':
-            return
-
-    if os.path.exists(path):
-        path = path
-    else:
+    if not os.path.exists(path):
         raise JageocoderError("Can't open file '{}'".format(path))
 
+    if skip_confirmation is not True:
+        if not os.path.exists(db_dir):
+            r = input("インストール先のディレクトリがありません。作成しますか？(Y/n) ")
+            if r.lower()[0] != 'y':
+                return
+
+        if os.path.exists(os.path.join(db_dir, 'address_node')):
+            r = input("他の辞書がインストール済みです。上書きしますか？(Y/n) ")
+            if r.lower()[0] != 'y':
+                return
+
     # Unzip the archive
+    os.makedirs(db_dir, exist_ok=True)
     shutil.rmtree(db_dir)
     shutil.unpack_archive(
         filename=str(path),
@@ -280,6 +294,9 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     # Set default value
     if db_dir is None:
         db_dir = get_db_dir(mode='w')
+        if db_dir is None:
+            logger.info("Dictionary has not been installed.")
+            return
 
     # Remove the directory
     logger.info('Removing directory {}'.format(db_dir))
@@ -288,7 +305,7 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     logger.info('Dictionary has been uninstalled.')
 
 
-def get_datasets() -> dict[int, dict]:
+def get_datasets() -> Dict[int, Any]:
     """
     Get the datasets in the installed dictionary.
 
@@ -303,11 +320,11 @@ def get_datasets() -> dict[int, dict]:
     dict[int, dict]
         The map of the datasets with their ids as keys.
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
+    datasets = get_module_tree().datasets
+    if datasets is None:
+        raise JageocoderError("Datasets returns None.")
 
-    global _tree
-    return _tree.datasets
+    return datasets
 
 
 def installed_dictionary_version(
@@ -331,27 +348,8 @@ def installed_dictionary_version(
     str
         The version string of the installed dicitionary or the server.
     """
-    if db_dir is None:
-        if url is not None:
-            return RemoteTree(url=url).installed_dictionary_version()
-
-        db_dir = get_db_dir(mode='r')
-
-    metadata_path = os.path.join(db_dir, "metadata.txt")
-    if os.path.exists(metadata_path):
-        with open(metadata_path, "r") as f:
-            version = f.readline().rstrip()
-
-    else:
-        readme_path = os.path.join(db_dir, "README.md")
-        if os.path.exists(readme_path):
-            stats = os.stat(readme_path)
-            version = datetime.date.fromtimestamp(stats.st_mtime).strftime(
-                '%Y%m%d')
-        else:
-            version = '(Unknown)'
-
-    return version
+    tree = AddressTree(db_dir=db_dir, url=url)
+    return tree.installed_dictionary_version()
 
 
 def installed_dictionary_readme(
@@ -375,23 +373,11 @@ def installed_dictionary_readme(
     str
         The content of the text.
     """
-    if db_dir is None:
-        if url is not None:
-            return RemoteTree(url=url).installed_dictionary_readme()
-
-        db_dir = get_db_dir(mode='r')
-
-    readme_path = os.path.join(db_dir, "README.md")
-    if not os.path.exists(readme_path):
-        return "(no README information)"
-
-    with open(readme_path, "r") as f:
-        content = f.read()
-
-    return content
+    tree = AddressTree(db_dir=db_dir, url=url)
+    return tree.installed_dictionary_readme()
 
 
-def search(query: str) -> dict:
+def search(query: str) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Search node from the tree by the query.
 
@@ -410,19 +396,16 @@ def search(query: str) -> dict:
         List of dict representation of nodes with
         the longest match to the query string.
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
+    tree = get_module_tree()
+    results = tree.searchNode(query)
 
-    global _tree
-    results = _tree.searchNode(query)
-
-    if _tree.get_config('best_only'):
+    if tree.get_config('best_only'):
         if len(results) == 0:
             return {'matched': '', 'candidates': []}
 
         return {
-            'matched': results[0][1],
-            'candidates': [x[0].as_dict() for x in results],
+            'matched': results[0].get_matched_string(),
+            'candidates': [x.get_node().as_dict() for x in results],
         }
 
     result_by_matched = {}
@@ -430,7 +413,7 @@ def search(query: str) -> dict:
         if result.matched not in result_by_matched:
             result_by_matched[result.matched] = []
 
-        result_by_matched[result.matched].append(result.node.as_dict())
+        result_by_matched[result.matched].append(result.get_node().as_dict())
 
     return [
         {"matched": r[0], "candidates": r[1]} for r in sorted(
@@ -467,13 +450,9 @@ def searchNode(query: str) -> List[Result]:
     >>> import jageocoder
     >>> jageocoder.init()
     >>> jageocoder.searchNode('多摩市落合1-15-2')
-    [[[11460207:東京都(139.69178,35.68963)1(lasdec:130001/jisx0401:13)]>[12063502:多摩市(139.446366,35.636959)3(jisx0402:13224)]>[12065383:落合(139.427097,35.624877)5(None)]>[12065384:一丁目(139.427097,35.624877)6(None)]>[12065390:15番地(139.428969,35.625779)7(None)], '多摩市落合1-15-']]
+    [{"node": {"id": ..., "name": "2", "name_index": "2.", "x": 139.4..., "y": 35.6..., "level": 8, "priority": 9, "note": "", "parent_id": ..., "sibling_id": ...}, "matched": "多摩市落合1-15-2"}]
     """  # noqa: E501
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-
-    global _tree
-    return _tree.searchNode(query)
+    return get_module_tree().searchNode(query)
 
 
 def reverse(
@@ -506,11 +485,7 @@ def reverse(
     - Each element is a dict type with the following structure:
         {"candidate":AddressNode, "dist":float}
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-
-    global _tree
-    return _tree.reverse(x, y, level, as_dict)
+    return get_module_tree().reverse(x, y, level, as_dict)
 
 
 def search_by_machiaza_id(
@@ -538,11 +513,7 @@ def search_by_machiaza_id(
     - Otherwise, it searches for address nodes whose machiaza-id matches "id"
         from all municipalities. In this case, aza_id must be 7 characters.
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-
-    global _tree
-    return _tree.search_by_machiaza_id(id)
+    return get_module_tree().search_by_machiaza_id(id)
 
 
 def search_by_postcode(
@@ -564,11 +535,7 @@ def search_by_postcode(
     -----
     - The "code" must be 7 characters.
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-
-    global _tree
-    return _tree.search_by_postcode(code)
+    return get_module_tree().search_by_postcode(code)
 
 
 def search_by_prefcode(
@@ -592,11 +559,7 @@ def search_by_prefcode(
     - If "code" is 2 characters, the code is considered the JISX0401 code.
     - If "code" is 6 characters, the code is considered the local-govenment code.
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-
-    global _tree
-    return _tree.search_by_prefcode(code)
+    return get_module_tree().search_by_prefcode(code)
 
 
 def search_by_citycode(
@@ -620,11 +583,23 @@ def search_by_citycode(
     - If "code" is 5 characters, the code is considered the JISX0402 code.
     - If "code" is 6 characters, the code is considered the local-govenment code.
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
+    return get_module_tree().search_by_citycode(code)
 
-    global _tree
-    return _tree.search_by_citycode(code)
+
+def search_aza_record_by_code(code: str) -> dict:
+    """
+    Search Address-base-registry's aza record.
+
+    Parameters
+    ----------
+    code: str
+        Machi-aza code in ABR.
+
+    Returns
+    -------
+    dict
+    """
+    return get_module_tree().search_aza_record_by_code(code)
 
 
 def create_trie_index() -> None:
@@ -633,19 +608,24 @@ def create_trie_index() -> None:
 
     This function is a shortcut for AddressTree.create_trie_index().
     """
-    if not is_initialized():
-        raise JageocoderError("Not initialized. Call 'init()' first.")
-
-    global _tree
-    if isinstance(_tree, RemoteTree):
+    tree = get_module_tree()
+    if isinstance(tree, RemoteTree):
         raise JageocoderError("Can't update TRIE index on remote server.")
 
-    _tree.create_trie_index()
+    if isinstance(tree, LocalTree):
+        t: LocalTree = tree
+        t.create_note_index_table()
 
 
 def version():
+    """
+    Returns the version of this package.
+    """
     return jageocoder.__version__
 
 
 def dictionary_version():
+    """
+    Returnes the version of the compatible dictionary.
+    """
     return jageocoder.__dictionary_version__

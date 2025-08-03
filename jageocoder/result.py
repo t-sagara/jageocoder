@@ -3,6 +3,8 @@ import json
 from logging import getLogger
 from typing import Optional, Union, TYPE_CHECKING
 
+from .exceptions import JageocoderError
+
 if TYPE_CHECKING:
     from jageocoder.node import AddressNode
 
@@ -39,13 +41,13 @@ class Result(object):
         node: AddressNode,
         matched: str,
         nchars: int = 0
-    ) -> 'Result':
+    ) -> Result:
         """
         Set node and matched string.
         """
         self.node = node
         self.matched = matched
-        self.matched = nchars or len(matched)
+        self.nchars = nchars or len(matched)
         return self
 
     def get_node(self) -> AddressNode:
@@ -57,6 +59,10 @@ class Result(object):
         AddressNode:
             The matched node.
         """
+        if self.node is None:
+            raise JageocoderError(
+                "The result does not contain node information.")
+
         return self.node
 
     def get_matched_string(self) -> str:
@@ -84,9 +90,9 @@ class Result(object):
     def __getitem__(
         self,
         pos
-    ) -> Union[AddressNode, str]:
+    ) -> Union[AddressNode, str, int]:
         if pos == 0:
-            return self.node
+            return self.get_node()
         elif pos == 1:
             return self.matched
         elif pos == 2:
@@ -125,7 +131,7 @@ class Result(object):
                 The substring matching the query.
         """
         return {
-            "node": self.node.as_dict(),
+            "node": self.get_node().to_json(),
             "matched": self.matched,
         }
 
@@ -153,7 +159,7 @@ class Result(object):
             "properties"
                 Include in "matched" the substring that matched the query, in addition to the attributes of the node.
         """
-        geojson = self.node.as_geojson()
+        geojson = self.get_node().as_geojson()
         geojson['properties']['matched'] = self.matched
         return geojson
 

@@ -1,3 +1,4 @@
+import json
 import logging
 import unittest
 
@@ -13,13 +14,13 @@ class TestCodeMethods(unittest.TestCase):
     def setUpClass(cls):
         jageocoder.init(mode='r')
         query = '札幌市中央区北1西2'
-        cls.node_sapporo = jageocoder.searchNode(query)[0][0]
+        cls.node_sapporo = jageocoder.searchNode(query)[0].get_node()
         query = '長崎市尾上町３－１'
-        cls.node_nagasaki = jageocoder.searchNode(query)[0][0]
+        cls.node_nagasaki = jageocoder.searchNode(query)[0].get_node()
         query = '富山市新総曲輪１－７'
-        cls.node_toyama = jageocoder.searchNode(query)[0][0]
+        cls.node_toyama = jageocoder.searchNode(query)[0].get_node()
         query = '多摩市'
-        cls.node_tama = jageocoder.searchNode(query)[0][0]
+        cls.node_tama = jageocoder.searchNode(query)[0].get_node()
 
     def test_pref_name(self):
         """
@@ -92,8 +93,8 @@ class TestCodeMethods(unittest.TestCase):
         Set and get note fields.
         """
         k1, v1 = ('test', 'test string:-)')
-        notes = self.node_tama.get_notes()
-        notes = notes + tuple([tuple([k1, v1])])
+        notes = list(self.node_tama.get_notes())
+        notes.append((k1, v1))
         self.node_tama.set_notes(notes)
         self.assertTrue('test:test string\\:-)' in self.node_tama.note)
         notes = self.node_tama.get_notes()
@@ -108,6 +109,51 @@ class TestCodeMethods(unittest.TestCase):
         k, v = notes[-1]
         self.assertEqual(k, k2)
         self.assertEqual(v, v2)
+
+    def test_search_aza_record_by_code(self):
+        """
+        Retrieve Aza record from ABR.
+        """
+        result = jageocoder.search_aza_record_by_code('131040023002')
+        names = json.loads(result["names"])
+        self.assertEqual(names, [
+            [1, '東京都', 'トウキョウト', 'Tokyo', '13'],
+            [3, '新宿区', 'シンジュクク', 'Shinjuku-ku', '13104'],
+            [5, '西新宿', 'ニシシンジュク', '', '131040023'],
+            [6, '二丁目', '２チョウメ', '2chome', '131040023002']])
+
+    def test_search_aza_record_by_citycode(self):
+        """
+        Retrieve Aza record from ABR using citycode.
+        """
+        result = jageocoder.search_aza_record_by_code("08208")
+        names = json.loads(result["names"])
+        self.assertEqual(names, [
+            [1, '茨城県', 'イバラキケン', 'Ibaraki', '08'],
+            [3, '龍ケ崎市', 'リュウガサキシ', 'Ryugasaki-shi', '08208'],
+        ])
+
+    def test_search_aza_record_by_prefcode(self):
+        """
+        Retrieve Aza record from ABR using prefcode.
+        """
+        result = jageocoder.search_aza_record_by_code("26")
+        names = json.loads(result["names"])
+        self.assertEqual(result["code"], "26")
+        self.assertEqual(names, [
+            [1, '京都府', 'キョウトフ', 'Kyoto', '26'],
+        ])
+
+    def test_search_aza_record_by_lg_citycode(self):
+        """
+        Retrieve Aza record from ABR using lg_citycode.
+        """
+        result = jageocoder.search_aza_record_by_code("082082")
+        names = json.loads(result["names"])
+        self.assertEqual(names, [
+            [1, '茨城県', 'イバラキケン', 'Ibaraki', '08'],
+            [3, '龍ケ崎市', 'リュウガサキシ', 'Ryugasaki-shi', '08208'],
+        ])
 
 
 if __name__ == '__main__':
