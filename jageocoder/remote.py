@@ -289,7 +289,7 @@ class RemoteTree(AddressTree):
         else:
             self.url = os.environ.get("JAGEOCODER_SERVER_URL", "--no-url--")
 
-        if self.url is "--no-url--":
+        if self.url == "--no-url--":
             raise RemoteTreeException("'url' must be set.")
 
         self.address_nodes = RemoteNodeTable(tree=self)
