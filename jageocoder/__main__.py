@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import sys
 
 import jageocoder
@@ -116,7 +117,7 @@ def main():
 
         try:
             print(json.dumps(
-                jageocoder.search(query=args['<address>']),
+                jageocoder.search(query=re.sub(r"\s+", "", args['<address>'])),
                 ensure_ascii=False))
         except RuntimeError as e:
             print(
