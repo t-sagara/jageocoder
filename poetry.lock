@@ -451,13 +451,13 @@ files = [
 
 [[package]]
 name = "jaconv"
-version = "0.3.4"
+version = "0.4.0"
 description = "Pure-Python Japanese character interconverter for Hiragana, Katakana, Hankaku, Zenkaku and more"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "jaconv-0.3.4.tar.gz", hash = "sha256:9e7c55f3f0b0e2dbad62f6c9fa0c30fc6fffdbb78297955509d90856b3a31d6d"},
+    {file = "jaconv-0.4.0.tar.gz", hash = "sha256:32da74b247f276e09a52d6b35c153df2387965cb85a6f034cc8af21d446f8161"},
 ]
 
 [[package]]
@@ -1605,4 +1605,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">3.9.1,<3.13"
-content-hash = "bd6d36510219fc8c74d5cc1aaed8d822acd732ffcc899187b3ce955f1e9ae4e6"
+content-hash = "3a450e7702f2b00e17ed74bdc400c26938fe23984cb9a54aff7da3a5890950be"
