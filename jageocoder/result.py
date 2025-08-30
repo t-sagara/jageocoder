@@ -4,7 +4,6 @@ from logging import getLogger
 from typing import Optional, Union, TYPE_CHECKING
 
 from .exceptions import JageocoderError
-
 if TYPE_CHECKING:
     from jageocoder.node import AddressNode
 

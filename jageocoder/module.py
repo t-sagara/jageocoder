@@ -1,17 +1,18 @@
 import logging
 import os
 import shutil
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Dict, List, Optional, Union
 import urllib.request
 from urllib.error import URLError
 
 import jageocoder
-
+from jageocoder.dataset import Dataset
 from jageocoder.exceptions import JageocoderError
 from jageocoder.local import LocalTree
 from jageocoder.tree import AddressTree, get_db_dir
 from jageocoder.remote import RemoteTree
 from jageocoder.result import Result
+from jageocoder.rtree import Index
 
 _tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)
@@ -199,6 +200,23 @@ def get_module_tree() -> AddressTree:
     return _tree
 
 
+def get_reverse_index() -> Index:
+    """
+    Get the reverse index object of the module-level AddressTree
+    singleton object.
+
+    Return
+    ------
+    rtree.Index
+        The reverse index.
+    """
+    rindex = get_module_tree().reverse_index
+    if rindex is None:
+        raise JageocoderError("Reverse index is not created.")
+
+    return rindex
+
+
 def download_dictionary(url: str) -> None:
     """
     Download address-dictionary from the specified url into
@@ -305,7 +323,7 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     logger.info('Dictionary has been uninstalled.')
 
 
-def get_datasets() -> Dict[int, Any]:
+def get_datasets() -> Dict[int, dict]:
     """
     Get the datasets in the installed dictionary.
 
@@ -317,8 +335,8 @@ def get_datasets() -> Dict[int, Any]:
 
     Returns
     -------
-    dict[int, dict]
-        The map of the datasets with their ids as keys.
+    List[Dataset]
+        List of datasets.
     """
     datasets = get_module_tree().datasets
     if datasets is None:

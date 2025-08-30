@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from jageocoder.local import LocalTree
 from jageocoder.address import AddressLevel
-from jageocoder.node import AddressNode, AddressNodeTable
+from jageocoder.node import AddressNodeTable, AddressNode
 
 logger = getLogger(__name__)
 
@@ -282,7 +282,7 @@ class Index(object):
         2 points represented by (lon, lat).
     """
 
-    geod = Geodesic.WGS84  # type: ignore
+    geod = Geodesic.WGS84  # type: ignore (instantiated in geodesic.py)
 
     def __init__(self, tree: LocalTree):
         self._tree = tree
@@ -354,18 +354,18 @@ class Index(object):
         file_idx = index.Rtree(str(treepath))  # Filename must be passed as str
         node_table: AddressNodeTable = self._tree.address_nodes
 
-        max_id = node_table.count_records()
+        max_id = AddressNode.ROOT_NODE_ID + node_table.count_records()
         registered_coordinates = set()
 
         logger.info("Building RTree for reverse geocoding...")
         id = AddressNode.ROOT_NODE_ID
         with tqdm(total=max_id, mininterval=0.5, ascii=True) as pbar:
-            prev_id = 0
+            prev_id = AddressNode.ROOT_NODE_ID
             while id < max_id:
                 pbar.update(id - prev_id)
                 prev_id = id
 
-                node = node_table.get_record(pos=id)
+                node = node_table.get_record(id=id)
                 if node.level <= AddressLevel.WARD:
                     registered_coordinates.clear()
                     id += 1
@@ -395,8 +395,10 @@ class Index(object):
                 if node.level == AddressLevel.BLOCK:
                     # Get BDR of child nodes
                     bdr = None
-                    for child_id in range(node.id + 1, node.sibling_id):
-                        child_node = node_table.get_record(child_id)
+                    for child_node in node_table.get_records(
+                        from_id=node.id,
+                        to_id=node.sibling_id
+                    ):
                         if not child_node.has_valid_coordinate_values():
                             continue
 
@@ -448,7 +450,8 @@ class Index(object):
         index.Rtree
             Loaded rtree index.
         """
-        file_idx = index.Rtree(str(treepath))
+        file_idx = index.Rtree(
+            str(treepath))  # rtree.Index.__init__() doesn't recognize Path object
         return file_idx
 
     def test_rtree(self) -> bool:
@@ -572,9 +575,10 @@ class Index(object):
             if item.bbox[0] == item.bbox[2] and item.bbox[1] == item.bbox[3]:
                 candidates.append(node)
             else:
-                for child_id in range(node.id + 1, node.sibling_id):
-                    child_node = self._tree.get_node_by_id(child_id)
-                    if child_node.sibling_id == child_id + 1 and \
+                for child_node in self._tree.address_nodes.get_records(
+                    node.id + 1, node.sibling_id
+                ):
+                    if child_node.sibling_id == child_node.id + 1 and \
                             child_node.has_valid_coordinate_values():
                         candidates.append(child_node)
 

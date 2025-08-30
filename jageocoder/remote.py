@@ -10,7 +10,7 @@ import requests
 
 from jageocoder.address import AddressLevel
 from jageocoder.exceptions import RemoteTreeException
-from jageocoder.node import AddressNode
+from jageocoder.node import AddressNode, AddressNodeTable
 from jageocoder.result import Result
 from jageocoder.tree import AddressTree
 
@@ -48,7 +48,7 @@ class RemoteDataset(object):
         self.records = {}
         self._map: Optional[Dict[int, Any]] = None
 
-    def load_record(self, id: int) -> None:
+    def load_record(self, id: int) -> dict:
         rpc_result = self.tree.json_request(
             method="dataset.get",
             params={"id": id},
@@ -96,12 +96,12 @@ class RemoteDataset(object):
 
     def get_all(self) -> Optional[Dict[int, Dict[str, Union[int, str]]]]:
         if self._map is None:
-            self.load_records()
+            self._map = self.load_records()
 
         return self._map
 
 
-class RemoteNodeTable(object):
+class RemoteNodeTable(AddressNodeTable):
 
     def __init__(self, tree: RemoteTree) -> None:
         self.tree = tree
@@ -124,6 +124,10 @@ class RemoteNodeTable(object):
             method="jageocoder.server_signature",
             params=[],
         )
+        if not isinstance(server_signature, str):
+            raise RemoteTreeException(
+                "Remote server returns non string signature.")
+
         if self.server_signature != server_signature:
             # The remote server has been restarted
             self.cache.clear()
@@ -131,27 +135,35 @@ class RemoteNodeTable(object):
 
         return self.server_signature
 
-    def get_record(self, pos: int) -> AddressNode:
+    def get_record(self, id: int) -> AddressNode:
         """
-        Get the record at the specified position from the remote server
+        Get the record with the specified id from the remote server
         and convert it to AddressNode object.
 
         Parameters
         ----------
-        pos: int
-            The position.
+        id: int
+            The node id.
 
         Returns
         -------
         AddressNode
             The converted object.
         """
-        if pos in self.cache:
-            return self.cache[pos]
+        if id in self.cache:
+            return self.cache[id]
+
+        if id < 0:
+            raise RemoteTreeException(
+                "The remote server doesn't support traversal operations."
+            )
 
         rpc_result = self.tree.json_request(
             method="node.get_record",
-            params={"pos": pos, "server": self.server_signature},
+            params={
+                "pos": id,
+                "server": self.server_signature,
+            },
         )
         node = AddressNode(**rpc_result)
         self.cache[pos] = node
@@ -505,7 +517,7 @@ class RemoteTree(AddressTree):
         >>> tree.searchNode('多摩市落合1-15-2')
         [{"node": {"id": ..., "name": "2", "name_index": "2.", "x": 139.4..., "y": 35.6..., "level": 8, "priority": 9, "note": "", "parent_id": ..., "sibling_id": ...}, "matched": "多摩市落合1-15-2"}]
         """  # noqa: E501
-        self.address_nodes.update_server_signature()
+        self.get_address_nodes().update_server_signature()
         rpc_result = self.json_request(
             method="jageocoder.searchNode",
             params={"query": query, "config": self.config},
@@ -513,7 +525,7 @@ class RemoteTree(AddressTree):
         results = []
         for r in rpc_result:
             result = Result.from_dict(r)
-            result.node = self.get_node_by_id(r["node"]["id"])
+            result.get_node().table = self.address_nodes
             results.append(result)
 
         return results
@@ -558,7 +570,7 @@ class RemoteTree(AddressTree):
         - Each element is a dict type with the following structure:
             {"candidate":AddressNode, "dist":float}
         """
-        self.address_nodes.update_server_signature()
+        self.get_address_nodes().update_server_signature()
         rpc_result = self.json_request(
             method="jageocoder.reverse",
             params={
@@ -577,17 +589,17 @@ class RemoteTree(AddressTree):
         return results
 
     def search_by_machiaza_id(self, id: str) -> List[AddressNode]:
-        self.address_nodes.update_server_signature()
+        self.get_address_nodes().update_server_signature()
         return super().search_by_machiaza_id(id)
 
     def search_by_postcode(self, code: str) -> List[AddressNode]:
-        self.address_nodes.update_server_signature()
+        self.get_address_nodes().update_server_signature()
         return super().search_by_postcode(code)
 
     def search_by_prefcode(self, code: str) -> List[AddressNode]:
-        self.address_nodes.update_server_signature()
+        self.get_address_nodes().update_server_signature()
         return super().search_by_prefcode(code)
 
     def search_by_citycode(self, code: str) -> List[AddressNode]:
-        self.address_nodes.update_server_signature()
+        self.get_address_nodes().update_server_signature()
         return super().search_by_citycode(code)

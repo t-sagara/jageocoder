@@ -221,8 +221,11 @@ class Converter(object):
 
         return self.re_non_trailing_patterns[level].match(index) is not None
 
-    def standardize(self, notation: Optional[str],
-                    keep_numbers: bool = False) -> str:
+    def standardize(
+        self,
+        notation: Optional[str],
+        keep_numbers: bool = False
+    ) -> str:
         """
         Standardize an address notation.
 

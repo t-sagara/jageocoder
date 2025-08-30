@@ -19,7 +19,7 @@ from jageocoder.result import Result
 logger = getLogger(__name__)
 
 
-def get_db_dir(mode: str = 'r') -> Optional[Path]:
+def get_db_dir(mode: Optional[str] = 'r') -> Optional[Path]:
     """
     Get the database directory.
 

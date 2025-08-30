@@ -1,5 +1,4 @@
 from __future__ import annotations
-from collections.abc import Iterator
 import copy
 from functools import lru_cache
 import json
@@ -25,27 +24,26 @@ logger = logging.getLogger(__name__)
 default_itaiji_converter = Converter()  # With default settings
 
 
-class AddressNodeTable(PortableTab.BaseTable):
+class AddressNodeTable(PortableTab.AbstractTable):
     """
     The address node table.
     """
-
     __tablename__ = "address_node"
-    __schema__ = """
-        struct AddressNode {
-            id @0 :UInt32;
-            name @1 :Text;
-            nameIndex @2 :Text;
-            x @3 :Float32;
-            y @4 :Float32;
-            level @5 :Int8;
-            priority @6 :Int8;
-            note @7 :Text;
-            parentId @8 :UInt32;
-            siblingId @9 :UInt32;
-        }
-        """
-    __record_type__ = "AddressNode"
+    __schema__ = """{
+            "id": 0,
+            "name": "",
+            "nameIndex": "",
+            "x": 999.9,
+            "y": 999.9,
+            "level": 0,
+            "priority": 0,
+            "note": "",
+            "parentId": -1,
+            "siblingId": -1
+        }"""
+    __id_field__ = "id"
+
+    PAGE_SIZE = 500000
 
     def __init__(self, db_dir: os.PathLike) -> None:
         db_path = Path(db_dir)
@@ -53,10 +51,9 @@ class AddressNodeTable(PortableTab.BaseTable):
         self.datasets = Dataset(db_dir=db_path)
 
     @lru_cache(maxsize=1024)
-    def get_record(self, pos: int) -> AddressNode:
+    def get_record(self, id: int) -> AddressNode:
         """
-        Get the record at the specified position
-        and convert it to AddressNode object.
+        Get the record by_id and convert it to AddressNode object.
 
         Parameters
         ----------
@@ -71,6 +68,28 @@ class AddressNodeTable(PortableTab.BaseTable):
         capnp_record = super().get_record(pos=pos)
         node = AddressNode.from_record(capnp_record)
         return node
+
+    def get_records(self, from_id: int, to_id: int) -> Iterator[AddressNode]:
+        """
+        Get the records between from_id and to_id
+        and convert it to AddressNode object.
+
+        Parameters
+        ----------
+        from_pos: int
+            The lower bound of id.
+        to_pos: int
+            The upper bound of id. The record which has `to_pos` is not included.
+
+        Returns
+        -------
+        Iterator[AddressNode]
+            Iterator of the converted object.
+        """
+        for record in super().get_records_by_id(from_id, to_id):
+            node = AddressNode.from_record(record)
+            node.table = self
+            yield node
 
     def search_ids_on(
         self,
@@ -94,7 +113,7 @@ class AddressNodeTable(PortableTab.BaseTable):
         """
         trie = self.open_trie_on(attr)
         positions = trie.get(value, [])
-        return [p[0] for p in positions]
+        return [p[0] + 1 for p in positions]
 
     def create_indexes(self) -> None:
         """
@@ -118,13 +137,28 @@ class AddressNodeTable(PortableTab.BaseTable):
 
         self.create_trie_on(
             attr="nameIndex",
-            filter_func=lambda r: r.level <= AddressLevel.AZA
+            filter_func=lambda r: r["level"] <= AddressLevel.AZA
         )
+
         self.create_trie_on(
             attr="note",
             key_func=_split_note,
-            filter_func=lambda r: r.level <= AddressLevel.AZA
+            filter_func=lambda r: r["level"] <= AddressLevel.AZA
         )
+
+    def search_records_on(
+            self,
+            attr: str,
+            value: str,
+            funcname: str = "get"
+    ) -> List[AddressNode]:
+        results: List[AddressNode] = []
+        for record in super().search_records_on(attr, value, funcname):
+            node = AddressNode.from_record(record)
+            node.table = self
+            results.append(node)
+
+        return results
 
 
 class AddressNode(object):
@@ -161,7 +195,7 @@ class AddressNode(object):
     name_index : str
         The standardized string for indexing created from its name.
     """
-    ROOT_NODE_ID = 0
+    ROOT_NODE_ID = 1
     NO_COORDINATE_VALUE = 999.9
     NONAME = "."  # Must be smaller than numbers.
 
@@ -256,13 +290,16 @@ class AddressNode(object):
         return AddressLevel.levelname(self.level)
 
     @classmethod
-    def from_record(cls, record) -> AddressNode:
+    def from_record(
+        cls,
+        record: PortableTab.Record
+    ) -> AddressNode:
         """
         Convert from a record of AddressNodeTable to an AddressNode object.
 
         Parameters
         ----------
-        record: CapnpRecord
+        record: Record
             A record stored in PortableTab's table.
 
         Returns
@@ -270,16 +307,16 @@ class AddressNode(object):
         AddressNode
         """
         return AddressNode(
-            id=record.id,
-            name=record.name,
-            name_index=record.nameIndex,
-            x=record.x,
-            y=record.y,
-            level=record.level,
-            priority=record.priority,
-            note=record.note,
-            parent_id=record.parentId,
-            sibling_id=record.siblingId,
+            id=record["id"],
+            name=record["name"],
+            name_index=record["nameIndex"],
+            x=record["x"],
+            y=record["y"],
+            level=record["level"],
+            priority=record["priority"],
+            note=record["note"],
+            parent_id=record["parentId"],
+            sibling_id=record["siblingId"],
         )
 
     def to_record(self):
@@ -338,13 +375,16 @@ class AddressNode(object):
         ----
         The 'name' attribute can't be modified.
         """
-        self.x = float(kwargs.get('x', kwargs.get(
-            'lon', self.NO_COORDINATE_VALUE)))
-        self.y = float(kwargs.get('y', kwargs.get(
-            'lat', self.NO_COORDINATE_VALUE)))
-        self.level = int(kwargs.get('level', -1))
-        self.priority = int(kwargs.get('priority', 99))
-        self.note = str(kwargs.get('note', ""))
+        if "x" in kwargs or "lon" in kwargs:
+            self.x = float(kwargs.get('x', kwargs.get('lon', 999.9)))
+        if "y" in kwargs or "lat" in kwargs:
+            self.y = float(kwargs.get('y', kwargs.get('lat', 999.9)))
+        if "level" in kwargs:
+            self.level = int(kwargs.get('level', -1))
+        if "priority" in kwargs:
+            self.priority = int(kwargs.get('priority', 99))
+        if "note" in kwargs:
+            self.note = kwargs.get('note', "")
 
     @property
     def parent(self) -> Optional[AddressNode]:
@@ -484,7 +524,7 @@ class AddressNode(object):
             node = tree.get_node_by_id(node_id=pos)
             if node.parent_id == self.id:
                 yield node
-                pos = node.sibling_id
+                id = node.sibling_id
             else:
                 parent = tree.get_node_by_id(node_id=node.parent_id)
                 pos = parent.sibling_id
@@ -1146,11 +1186,11 @@ class AddressNode(object):
             # be omitted by Aza-master.
             omissible_index = index
             for aza_record in aza_records:
-                if not strict and (aza_record.azaClass == 3 and
-                                   aza_record.startCountType == 1) or \
-                        aza_record.azaClass == 1:
+                if not strict and (aza_record["azaClass"] == 3 and
+                                   aza_record["startCountType"] == 1) or \
+                        aza_record["azaClass"] == 1:
 
-                    names = json.loads(aza_record.names)
+                    names = json.loads(aza_record["names"])
                     # logger.debug(
                     #     "  -> '{}' is not omissible.".format(names[-1][1]))
                     name = tree.converter.standardize(names[-1][1])
@@ -1169,8 +1209,8 @@ class AddressNode(object):
             # with by Aza-master.
             omissible_index = ""
             for aza_record in aza_records:
-                if aza_record.startCountType == 1:
-                    names = json.loads(aza_record.names)
+                if aza_record["startCountType"] == 1:
+                    names = json.loads(aza_record["names"])
                     name = tree.converter.standardize(names[-1][1])
                     if name == self.name_index:
                         logger.debug((
@@ -1180,8 +1220,8 @@ class AddressNode(object):
                         omissible_index = index
                         break
 
-                if aza_record.startCountType == 2:
-                    names = json.loads(aza_record.names)
+                if aza_record["startCountType"] == 2:
+                    names = json.loads(aza_record["names"])
                     name = tree.converter.standardize(names[-1][1])
                     pos = index.find(name)
                     if pos > len(omissible_index):
@@ -1243,8 +1283,8 @@ class AddressNode(object):
             funcname="keys"
         )
         for aza_record in aza_records:
-            if aza_record.startCountType == 1:  # 起番
-                names = json.loads(aza_record.names)
+            if aza_record["startCountType"] == 1:  # 起番
+                names = json.loads(aza_record["names"])
                 for e in names:
                     level = e[0]
                     if level < AddressLevel.OAZA:
@@ -1270,6 +1310,8 @@ class AddressNode(object):
             "level": self.level,
             "priority": self.priority,
             "note": self.note,
+            "parent_id": self.parent_id,
+            "sibling_id": self.sibling_id,
             "fullname": self.get_fullname(),
         }
 
@@ -1354,7 +1396,10 @@ class AddressNode(object):
         cur_node = self
         while cur_node is not None:
             names.insert(0, cur_node.get_name(alt))
-            cur_node = cur_node.get_parent()
+            try:
+                cur_node = cur_node.get_parent()
+            except (ValueError, RemoteTreeException):
+                break
 
         if isinstance(delimiter, str):
             return delimiter.join(names)
