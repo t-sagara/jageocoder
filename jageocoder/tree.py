@@ -60,7 +60,7 @@ def get_db_dir(mode: Optional[str] = 'r') -> Optional[Path]:
         db_dirs.append(Path(site.USER_BASE) / 'jageocoder/db2/')
 
     for db_dir in db_dirs:
-        path = db_dir / 'address_node'
+        path = db_dir / 'address_node.sqlite'
         if path.exists():
             return db_dir
 

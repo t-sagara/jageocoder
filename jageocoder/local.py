@@ -165,7 +165,8 @@ class LocalTree(AddressTree):
         -------
         AddressNode
         """
-        node = self.address_nodes.get_record(pos=node_id)
+        node = self.address_nodes.get_record(
+            pos=node_id - AddressNode.ROOT_NODE_ID)
         node.tree = self
         return node
 
@@ -278,7 +279,7 @@ class LocalTree(AddressTree):
                 if std in candidates:
                     trie_node_id = candidates[std]
                     for node_id in self.trie_nodes.get_record(
-                            pos=trie_node_id).nodes:
+                            pos=trie_node_id).get("nodes", []):
                         node = self.get_node_by_id(node_id=node_id)
                         if node.name == v:
                             return
@@ -394,7 +395,7 @@ class LocalTree(AddressTree):
             offset = self.converter.match_len(index, k)
             key = index[0:offset]
             rest_index = index[offset:]
-            for node_id in trie_node.nodes:
+            for node_id in trie_node.get("nodes", []):
                 node = self.get_node_by_id(node_id=node_id)
 
                 if not node.has_valid_coordinate_values() \

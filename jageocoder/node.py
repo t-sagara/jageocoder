@@ -6,13 +6,13 @@ import logging
 import os
 from pathlib import Path
 import re
-from typing import Any, Dict, List, Set, Tuple, Optional, Sequence, Union, TYPE_CHECKING
+from typing import Any, Dict, Iterator, List, Set, Tuple, Optional, Sequence, Union, TYPE_CHECKING
 
 import PortableTab
 
 from .address import AddressLevel
 from .dataset import Dataset
-from .exceptions import AddressNodeError
+from .exceptions import AddressNodeError, RemoteTreeException
 from .itaiji import Converter
 from .result import Result
 from .strlib import strlib
@@ -43,17 +43,16 @@ class AddressNodeTable(PortableTab.AbstractTable):
         }"""
     __id_field__ = "id"
 
-    PAGE_SIZE = 500000
-
     def __init__(self, db_dir: os.PathLike) -> None:
         db_path = Path(db_dir)
         super().__init__(db_dir=db_path)
         self.datasets = Dataset(db_dir=db_path)
+        self._index = PortableTab.BaseIndex(self)
 
     @lru_cache(maxsize=1024)
-    def get_record(self, id: int) -> AddressNode:
+    def get_record(self, pos: int) -> AddressNode:
         """
-        Get the record by_id and convert it to AddressNode object.
+        Get the record by position and convert it to AddressNode object.
 
         Parameters
         ----------
@@ -86,9 +85,8 @@ class AddressNodeTable(PortableTab.AbstractTable):
         Iterator[AddressNode]
             Iterator of the converted object.
         """
-        for record in super().get_records_by_id(from_id, to_id):
+        for record in super().get_records_by_pos(from_id, to_id):
             node = AddressNode.from_record(record)
-            node.table = self
             yield node
 
     def search_ids_on(
@@ -111,7 +109,7 @@ class AddressNodeTable(PortableTab.AbstractTable):
         List[int]
             List of node ids.
         """
-        trie = self.open_trie_on(attr)
+        trie = self._index.open_trie_on(attr)
         positions = trie.get(value, [])
         return [p[0] + 1 for p in positions]
 
@@ -135,12 +133,12 @@ class AddressNodeTable(PortableTab.AbstractTable):
 
             return notes
 
-        self.create_trie_on(
+        self._index.create_trie_on(
             attr="nameIndex",
             filter_func=lambda r: r["level"] <= AddressLevel.AZA
         )
 
-        self.create_trie_on(
+        self._index.create_trie_on(
             attr="note",
             key_func=_split_note,
             filter_func=lambda r: r["level"] <= AddressLevel.AZA
@@ -153,9 +151,8 @@ class AddressNodeTable(PortableTab.AbstractTable):
             funcname: str = "get"
     ) -> List[AddressNode]:
         results: List[AddressNode] = []
-        for record in super().search_records_on(attr, value, funcname):
+        for record in self._index.search_records_on(attr, value, funcname):
             node = AddressNode.from_record(record)
-            node.table = self
             results.append(node)
 
         return results
@@ -195,7 +192,7 @@ class AddressNode(object):
     name_index : str
         The standardized string for indexing created from its name.
     """
-    ROOT_NODE_ID = 1
+    ROOT_NODE_ID = 0
     NO_COORDINATE_VALUE = 999.9
     NONAME = "."  # Must be smaller than numbers.
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 import datetime
 import json
 from logging import getLogger
+from pathlib import Path
 from typing import Optional
 import re
 from typing import Dict, Union
@@ -53,6 +54,9 @@ class AzaMaster(AbstractTable):
     re_optional = re.compile(
         r'({})'.format(
             '|'.join(list('ケヶガツッノ') + ['字', '大字', '小字'])))
+
+    def __init__(self, db_dir: Path) -> None:
+        super().__init__(db_dir=db_dir)
 
     def from_csvrow(self, row: dict) -> dict:
         names = self.get_names_from_csvrow(row)
@@ -249,40 +253,32 @@ class AzaMaster(AbstractTable):
                 attr="code",
                 value=_code,
                 funcname="keys"):
-            if record.code.startswith(_code):
+            if record["code"].startswith(_code):
                 if len(_code) == 2:
                     names = [n for n in json.loads(
-                        str(record.names)) if n[0] <= AddressLevel.PREF]
+                        str(record["names"])) if n[0] <= AddressLevel.PREF]
                     names_index = itaiji_converter.standardize(
                         "".join([n[1] for n in names]))
                     return {
                         "code": code,
                         "names": json.dumps(names, ensure_ascii=False),
                         "namesIndex": names_index,
-                        "postcode": str(record.postcode),
+                        "postcode": str(record["postcode"]),
                     }
                 elif len(_code) == 5:
                     names = [n for n in json.loads(
-                        str(record.names)) if n[0] <= AddressLevel.WARD]
+                        str(record["names"])) if n[0] <= AddressLevel.WARD]
                     names_index = itaiji_converter.standardize(
                         "".join([n[1] for n in names]))
                     return {
                         "code": code,
                         "names": json.dumps(names, ensure_ascii=False),
                         "namesIndex": names_index,
-                        "postcode": str(record.postcode),
+                        "postcode": str(record["postcode"]),
                     }
 
                 else:
-                    return {
-                        "code": str(record.code),
-                        "names": str(record.names),
-                        "namesIndex": str(record.namesIndex),
-                        "azaClass": int(record.azaClass),
-                        "isJukyo": bool(record.isJukyo),
-                        "startCountType": int(record.startCountType),
-                        "postcode": str(record.postcode),
-                    }
+                    return record
 
         raise KeyError(f"'{code}' is not in the aza_master table.")
 

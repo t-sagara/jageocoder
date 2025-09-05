@@ -5,6 +5,7 @@ import unittest
 import jageocoder
 from jageocoder.address import AddressLevel
 from jageocoder.node import AddressNode
+from jageocoder.rtree import Index as rtree_index
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +81,7 @@ class TestReverseMethods(unittest.TestCase):
             ["千葉県", "銚子市", "海鹿島町", "5244番地"] in candidate_names
         )
         nearest_node = results[0].get("candidate")
-        reverse_index = jageocoder.get_reverse_index()
-        dist = reverse_index.distance(
+        dist = rtree_index.distance(
             nearest_node.x, nearest_node.y, x, y)
         self.assertTrue(dist < 100)
 
