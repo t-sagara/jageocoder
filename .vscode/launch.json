@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Search test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "富山市新総曲輪１－７",
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Search noname oaza",
             "type": "debugpy",
             "request": "launch",

@@ -165,8 +165,7 @@ class LocalTree(AddressTree):
         -------
         AddressNode
         """
-        node = self.address_nodes.get_record(
-            pos=node_id - AddressNode.ROOT_NODE_ID)
+        node = self.address_nodes.get_node_by_id(id=node_id)
         node.tree = self
         return node
 

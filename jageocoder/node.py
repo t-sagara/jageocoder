@@ -6,7 +6,7 @@ import logging
 import os
 from pathlib import Path
 import re
-from typing import Any, Dict, Iterator, List, Set, Tuple, Optional, Sequence, Union, TYPE_CHECKING
+from typing import Any, Dict, Generator, List, Set, Tuple, Optional, Sequence, Union, TYPE_CHECKING
 
 import PortableTab
 
@@ -50,25 +50,25 @@ class AddressNodeTable(PortableTab.AbstractTable):
         self._index = PortableTab.BaseIndex(self)
 
     @lru_cache(maxsize=1024)
-    def get_record(self, pos: int) -> AddressNode:
+    def get_node_by_id(self, id: int) -> AddressNode:
         """
         Get the record by position and convert it to AddressNode object.
 
         Parameters
         ----------
-        pos: int
-            The position.
+        id: int
+            The node id.
 
         Returns
         -------
         AddressNode
             The converted object.
         """
-        capnp_record = super().get_record(pos=pos)
+        capnp_record = super().get_record(pos=id - AddressNode.ROOT_NODE_ID)
         node = AddressNode.from_record(capnp_record)
         return node
 
-    def get_records(self, from_id: int, to_id: int) -> Iterator[AddressNode]:
+    def get_nodes_by_id(self, from_id: int, to_id: int) -> Generator[AddressNode]:
         """
         Get the records between from_id and to_id
         and convert it to AddressNode object.
@@ -85,7 +85,9 @@ class AddressNodeTable(PortableTab.AbstractTable):
         Iterator[AddressNode]
             Iterator of the converted object.
         """
-        for record in super().get_records_by_pos(from_id, to_id):
+        for record in super().get_records_by_pos(
+                from_pos=from_id - AddressNode.ROOT_NODE_ID,
+                to_pos=to_id - AddressNode.ROOT_NODE_ID):
             node = AddressNode.from_record(record)
             yield node
 
@@ -506,7 +508,7 @@ class AddressNode(object):
         """
         return list(self.iter_children())
 
-    def iter_children(self) -> Iterator[AddressNode]:
+    def iter_children(self) -> Generator[AddressNode]:
         """
         Iterate children of the node.
 
@@ -521,7 +523,7 @@ class AddressNode(object):
             node = tree.get_node_by_id(node_id=pos)
             if node.parent_id == self.id:
                 yield node
-                id = node.sibling_id
+                pos = node.sibling_id
             else:
                 parent = tree.get_node_by_id(node_id=node.parent_id)
                 pos = parent.sibling_id

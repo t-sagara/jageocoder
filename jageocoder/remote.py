@@ -135,7 +135,7 @@ class RemoteNodeTable(AddressNodeTable):
 
         return self.server_signature
 
-    def get_record(self, id: int) -> AddressNode:
+    def get_node_by_id(self, id: int) -> AddressNode:
         """
         Get the record with the specified id from the remote server
         and convert it to AddressNode object.
@@ -342,7 +342,7 @@ class RemoteTree(AddressTree):
         -------
         AddressNode
         """
-        node = self.address_nodes.get_record(id=node_id)
+        node = self.address_nodes.get_node_by_id(id=node_id)
         node.tree = self
         return node
 
