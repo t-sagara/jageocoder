@@ -8,9 +8,9 @@ from rtree import index
 from rtree.exceptions import RTreeError
 from tqdm import tqdm
 
-from jageocoder.local import LocalTree
-from jageocoder.address import AddressLevel
-from jageocoder.node import AddressNodeTable, AddressNode
+from .address import AddressLevel
+from .local import LocalTree
+from .node import AddressNodeTable, AddressNode
 
 logger = getLogger(__name__)
 

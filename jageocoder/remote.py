@@ -8,11 +8,11 @@ import uuid
 
 import requests
 
-from jageocoder.address import AddressLevel
-from jageocoder.exceptions import RemoteTreeException
-from jageocoder.node import AddressNode, AddressNodeTable
-from jageocoder.result import Result
-from jageocoder.tree import AddressTree
+from .address import AddressLevel
+from .exceptions import RemoteTreeException
+from .node import AddressNode, AddressNodeTable
+from .result import Result
+from .tree import AddressTree
 
 
 logger = getLogger(__name__)

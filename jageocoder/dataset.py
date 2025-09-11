@@ -2,8 +2,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from PortableTab import AbstractTable
-
+from .dbm import AbstractTable
 from .exceptions import JageocoderError
 
 

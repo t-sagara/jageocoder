@@ -8,10 +8,9 @@ from pathlib import Path
 import re
 from typing import Any, Dict, Generator, List, Set, Tuple, Optional, Sequence, Union, TYPE_CHECKING
 
-import PortableTab
-
 from .address import AddressLevel
 from .dataset import Dataset
+from .dbm import AbstractTable, BaseIndex, Record
 from .exceptions import AddressNodeError, RemoteTreeException
 from .itaiji import Converter
 from .result import Result
@@ -24,7 +23,7 @@ logger = logging.getLogger(__name__)
 default_itaiji_converter = Converter()  # With default settings
 
 
-class AddressNodeTable(PortableTab.AbstractTable):
+class AddressNodeTable(AbstractTable):
     """
     The address node table.
     """
@@ -47,7 +46,7 @@ class AddressNodeTable(PortableTab.AbstractTable):
         db_path = Path(db_dir)
         super().__init__(db_dir=db_path)
         self.datasets = Dataset(db_dir=db_path)
-        self._index = PortableTab.BaseIndex(self)
+        self._index = BaseIndex(self)
 
     @lru_cache(maxsize=1024)
     def get_node_by_id(self, id: int) -> AddressNode:
@@ -291,7 +290,7 @@ class AddressNode(object):
     @classmethod
     def from_record(
         cls,
-        record: PortableTab.Record
+        record: Record
     ) -> AddressNode:
         """
         Convert from a record of AddressNodeTable to an AddressNode object.
@@ -299,7 +298,7 @@ class AddressNode(object):
         Parameters
         ----------
         record: Record
-            A record stored in PortableTab's table.
+            A record stored in the table.
 
         Returns
         -------
@@ -1430,7 +1429,7 @@ class AddressNode(object):
         >>> jageocoder.init()
         >>> node = jageocoder.searchNode('多摩市落合1-15')[0][0]
         >>> [str(x) for x in node.get_nodes_by_level()]
-        ['None', "[{'id': ..., 'name': '東京都', 'x': 139.6..., 'y': 35.6..., 'level': 1, 'priority': 1, 'note': 'lasdec:130001/jisx0401:13', 'fullname': ['東京都']}]", 'None', "[{'id': ..., 'name': '多摩市', 'x': 139.4..., 'y': 35.6..., 'level': 3, 'priority': 1, 'note': 'geoshape_city_id:13224A1971/jisx0402:13224/postcode:2060000', 'fullname': ['東京都', '多摩市']}]", 'None', "[{'id': ..., 'name': '落合', 'x': 139.4..., 'y': 35.6..., 'level': 5, 'priority': 2, 'note': '', 'fullname': ['東京都', '多摩市', '落合']}]", "[{'id': ..., 'name': '一丁目', 'x': 139.4..., 'y': 35.6..., 'level': 6, 'priority': 2, 'note': 'aza_id:0010001/postcode:2060033', 'fullname': ['東京都', '多摩市', '落合', '一丁目']}]", "[{'id': ..., 'name': '15番地', 'x': 139.4..., 'y': 35.6..., 'level': 7, 'priority': 3, 'note': '', 'fullname': ['東京都', '多摩市', '落合', '一丁目', '15番地']}]"]
+        ['None', "[{'id': ..., 'name': '東京都', 'x': 139.6..., 'y': 35.6..., 'level': 1, 'priority': 1, 'note': 'lasdec:130001/jisx0401:13', 'parent_id': 0, 'sibling_id': ..., 'fullname': ['東京都']}]", 'None', "[{'id': ..., 'name': '多摩市', 'x': 139.4..., 'y': 35.6..., 'level': 3, 'priority': 1, 'note': 'geoshape_city_id:13224A1971/jisx0402:13224/postcode:2060000', 'parent_id': ..., 'sibling_id': ..., 'fullname': ['東京都', '多摩市']}]", 'None', "[{'id': ..., 'name': '落合', 'x': 139.4..., 'y': 35.6..., 'level': 5, 'priority': 2, 'note': '', 'parent_id': ..., 'sibling_id': ..., 'fullname': ['東京都', '多摩市', '落合']}]", "[{'id': ..., 'name': '一丁目', 'x': 139.4..., 'y': 35.6..., 'level': 6, 'priority': 2, 'note': 'aza_id:0010001/postcode:2060033', 'parent_id': ..., 'sibling_id': ..., 'fullname': ['東京都', '多摩市', '落合', '一丁目']}]", "[{'id': ..., 'name': '15番地', 'x': 139.4..., 'y': 35.6..., 'level': 7, 'priority': 3, 'note': '', 'parent_id': ..., 'sibling_id': ..., 'fullname': ['東京都', '多摩市', '落合', '一丁目', '15番地']}]"]
         """  # noqa: E501
         result: List[Optional[List[AddressNode]]] = [
             None for _ in range(self.level + 1)]
@@ -1446,7 +1445,7 @@ class AddressNode(object):
         return result
 
     def __str__(self):
-        return '[{}:{}({},{}){}({})]'.format(
+        return '[{}:{}({:.6f},{:.6f}){}({})]'.format(
             self.id, self.get_name(), self.x, self.y, self.level, str(self.note))
 
     def __repr__(self):

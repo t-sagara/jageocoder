@@ -851,25 +851,6 @@ dev = ["pre-commit", "tox"]
 testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
-name = "portabletab-sqlite"
-version = "0.1.0"
-description = "Python package for serializing tables in portable format with sqlite3."
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = []
-develop = true
-
-[package.dependencies]
-docopt-ng = "*"
-marisa-trie = ">=1.1.0"
-zipp = ">=3.19.1"
-
-[package.source]
-type = "directory"
-url = "../portabletab-sqlite"
-
-[[package]]
 name = "pycparser"
 version = "2.22"
 description = "C parser in Python"
@@ -1461,7 +1442,7 @@ version = "3.23.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
 optional = false
 python-versions = ">=3.9"
-groups = ["main", "dev", "doc"]
+groups = ["dev", "doc"]
 files = [
     {file = "zipp-3.23.0-py3-none-any.whl", hash = "sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e"},
     {file = "zipp-3.23.0.tar.gz", hash = "sha256:a07157588a12518c9d4034df3fbbee09c814741a33ff63c05fa29d26a2404166"},
@@ -1479,4 +1460,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">3.9.1"
-content-hash = "f721c3d7401bdd89acab6318212a9b58b384952316887ffa68a1d95e00c303b2"
+content-hash = "38648a6ae1a21a334b15c22faac0b175a40024bae133cef8de63e6432ac9bb32"

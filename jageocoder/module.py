@@ -6,13 +6,13 @@ import urllib.request
 from urllib.error import URLError
 
 import jageocoder
-from jageocoder.dataset import Dataset
-from jageocoder.exceptions import JageocoderError
-from jageocoder.local import LocalTree
-from jageocoder.tree import AddressTree, get_db_dir
-from jageocoder.remote import RemoteTree
-from jageocoder.result import Result
-from jageocoder.rtree import Index
+from .dataset import Dataset
+from .exceptions import JageocoderError
+from .local import LocalTree
+from .tree import AddressTree, get_db_dir
+from .remote import RemoteTree
+from .result import Result
+from .rtree import Index
 
 _tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)

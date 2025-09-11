@@ -7,13 +7,13 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from deprecated import deprecated
 
+from .address import AddressLevel
+from .aza_master import AzaMaster
+from .exceptions import AddressTreeException
+from .node import AddressNode, AddressNodeTable
+from .result import Result
+from .trie import AddressTrie, TrieNode
 from .tree import get_db_dir, AddressTree
-from jageocoder.address import AddressLevel
-from jageocoder.aza_master import AzaMaster
-from jageocoder.exceptions import AddressTreeException
-from jageocoder.node import AddressNode, AddressNodeTable
-from jageocoder.result import Result
-from jageocoder.trie import AddressTrie, TrieNode
 
 logger = getLogger(__name__)
 

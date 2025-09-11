@@ -7,10 +7,9 @@ from typing import Optional
 import re
 from typing import Dict, Union
 
-from PortableTab import AbstractTable
-
-from jageocoder.address import AddressLevel
-from jageocoder.itaiji import converter as itaiji_converter
+from .address import AddressLevel
+from .dbm import AbstractTable
+from .itaiji import converter as itaiji_converter
 
 logger = getLogger(__name__)
 

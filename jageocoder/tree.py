@@ -11,10 +11,10 @@ from typing import Any, Dict, List, Optional, Union
 from deprecated import deprecated
 
 import jaconv
-from jageocoder.exceptions import AddressTreeException
-from jageocoder.itaiji import Converter
-from jageocoder.node import AddressNode
-from jageocoder.result import Result
+from .exceptions import AddressTreeException
+from .itaiji import Converter
+from .node import AddressNode
+from .result import Result
 
 logger = getLogger(__name__)
 

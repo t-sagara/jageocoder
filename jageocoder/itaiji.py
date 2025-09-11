@@ -6,8 +6,8 @@ from typing import List, Tuple, Optional
 
 import jaconv
 
-from jageocoder.address import AddressLevel
-from jageocoder.strlib import strlib
+from .address import AddressLevel
+from .strlib import strlib
 
 logger = getLogger(__name__)
 

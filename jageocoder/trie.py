@@ -3,9 +3,9 @@ import os
 from pathlib import Path
 
 import marisa_trie
-from PortableTab import AbstractTable
 
-from jageocoder.exceptions import AddressTrieError
+from .dbm import AbstractTable
+from .exceptions import AddressTrieError
 
 logger = getLogger(__name__)
 

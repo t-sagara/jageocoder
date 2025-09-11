@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from jageocoder.exceptions import AddressLevelError
+from .exceptions import AddressLevelError
 
 logger = getLogger(__name__)
 
