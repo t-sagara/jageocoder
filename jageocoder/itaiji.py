@@ -1,6 +1,6 @@
 import json
 from logging import getLogger
-import os
+from pathlib import Path
 import re
 from typing import List, Tuple, Optional
 
@@ -23,19 +23,34 @@ class Converter(object):
     kana_letters = (strlib.HIRAGANA, strlib.KATAKANA)
     latin1_letters = (strlib.ASCII, strlib.NUMERIC, strlib.ALPHABET)
     trans_itaiji = None
-    trans_h2z = None
-    trans_z2h = None
+    trans_h2z = str.maketrans(
+        {chr(0x0021 + i): chr(0xFF01 + i) for i in range(94)})
+    trans_z2h = str.maketrans(
+        {chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
 
-    @classmethod
-    def read_itaiji_table(cls) -> None:
-        if cls.trans_itaiji is not None:
+    def read_itaiji_table(
+        self,
+        itaiji_dic_path: Optional[Path] = None
+    ) -> None:
+        if self.trans_itaiji is not None:
             # The table is already prepared.
             return
 
-        itaiji_dic_json = os.path.join(
-            os.path.dirname(__file__), 'itaiji_dic.json')
+        if itaiji_dic_path is None:
+            _itaiji_dic_path = Path(__file__).parent / 'itaiji_dic.json'
+        else:
+            _itaiji_dic_path = Path(itaiji_dic_path)
+            if _itaiji_dic_path.is_dir():
+                _itaiji_dic_path = _itaiji_dic_path / 'itaiji_dic.json'
 
-        with open(itaiji_dic_json, 'r', encoding='utf-8') as f:
+            if not _itaiji_dic_path.exists():
+                logger.warning((
+                    "'itaiji_dic.json' doesn't exist in the db_dir. "
+                    "Use default itaiji dictionary instead."
+                ))
+                _itaiji_dic_path = Path(__file__).parent / 'itaiji_dic.json'
+
+        with open(_itaiji_dic_path, 'r', encoding='utf-8') as f:
             itaiji_dic = json.load(f)
 
         src_str, dst_str = '', ''
@@ -43,13 +58,13 @@ class Converter(object):
             src_str += src
             dst_str += dst
 
-        cls.trans_itaiji = str.maketrans(src_str, dst_str)
-        cls.trans_h2z = str.maketrans(
-            {chr(0x0021 + i): chr(0xFF01 + i) for i in range(94)})
-        cls.trans_z2h = str.maketrans(
-            {chr(0xFF01 + i): chr(0x21 + i) for i in range(94)})
+        self.trans_itaiji = str.maketrans(src_str, dst_str)
 
-    def __init__(self, options: Optional[dict] = None):
+    def __init__(
+        self,
+        options: Optional[dict] = None,
+        itaiji_dic_path: Optional[Path] = None
+    ):
         """
         Initialize the converter.
 
@@ -58,8 +73,10 @@ class Converter(object):
         options: dict, optional
             Options to set optional characters, etc.
             See 'set_options()' for list of items.
+        itaiji_dic_path: Path, optional
+            Path to the 'itaiji_dic_json' file or its directory.
         """
-        self.__class__.read_itaiji_table()
+        self.read_itaiji_table(itaiji_dic_path)
         if options is not None:
             self.set_options(options)
         else:

@@ -284,7 +284,7 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_kana_no_in_non_kana_string(self):
         """
-        漢字の間の「の」は省略可能文字として扱う。
+        The "ノ" between Kanji can be omitted.
         """
         self._check(
             query="埼玉県大里郡寄居町大字鷹巣",
@@ -296,8 +296,8 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_kana_no_between_numbers(self):
         """
-        数字の後に「の」が出現した場合の処理1。「の」の次の文字が
-        数字の場合、「の」はハイフンと同様に扱う。
+        If "ノ" exists after numbers, check the next character of 'ノ'.
+        The next character is a number, it will be treated as a hyphen.
         """
         self._check(
             query="新宿区西新宿二ノ８",
@@ -306,16 +306,16 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_kana_no_after_numbers(self):
         """
-        数字の後に「の」が出現した場合の処理2。「の」の次の文字が数字以外で、
-        - 地番の先頭になる可能性のある文字 ('甲', 'イ', etc.) ならば、
-          ハイフンと同様に扱う
-        - それ以外の場合は「の」という文字として扱う
+        In case that the next character is;
+        - a head character of chiban ('甲', 'イ', etc.),
+          treat as a hyphen too
+        - an other character, 'ノ' will be treated as is
         """
         self._check(
-            query="石川県金沢市大野町４のル11",
-            match="石川県金沢市大野町４のル11",
-            fullname=["石川県", "金沢市", "大野町", "四丁目",
-                      "ル", "11番地"])
+            query="群馬県伊勢崎市国定町２の甲１９９４",
+            match="群馬県伊勢崎市国定町２の甲１９９４",
+            fullname=["群馬県", "伊勢崎市", "国定町", "二丁目",
+                      "甲", "1994番地"])
 
         self._check(
             aza_skip='on',
@@ -325,7 +325,7 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_kana_no_terminate(self):
         """
-        「の」で終わる字名は「の」を省略しないでマッチする。
+        Check that Aza names ending in "ノ" match up to "ノ".
         """
         self._check(
             query="兵庫県宍粟市山崎町上ノ１５０２",
@@ -335,7 +335,7 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_kana_no_aza(self):
         """
-        字名が「ノ」の場合も省略しない。
+        Check that Aza names is "ノ".
         """
         self._check(
             query="石川県小松市軽海町ノ１４－１",
@@ -505,10 +505,10 @@ class TestSearchMethods(unittest.TestCase):
 
     def test_unnecessary_aza_name(self):
         """
-        地番の前に出現する字名の省略のテスト
+        Testing for omitting Aza-names before Chiban.
 
-        'aza_skip' オプションの値によって挙動が変化する。
-        デフォルト値は 'auto'。
+        Omission of Aza-names are controled by 'aza_skip' option.
+        The default value is 'auto'.
         """
 
         self._check(
@@ -524,9 +524,8 @@ class TestSearchMethods(unittest.TestCase):
             fullname=["静岡県", "駿東郡", "小山町", "竹之下", "554番地"]
         )
 
-        # ノード名中に字名が含まれている場合、
-        # オプションの設定に関わらず字名の省略を試す。
-        # ノード名外の場合は、 aza_skip が off の場合は省略しない。
+        # Aza-names contained in a node will be omitted
+        # regardless of the option.
         self._check(
             query="千葉県八街市八街字七本松ろ９７－１",
             aza_skip='off',
@@ -547,7 +546,7 @@ class TestSearchMethods(unittest.TestCase):
             match="長野県千曲市礒部字下河原１１３７",
             fullname=["長野県", "千曲市", "大字磯部", "1137番地"])
 
-        # 地番の先頭文字になりえる「ハ」も省略の対象になる。
+        # Case where "ハ" is included in Aza name to be omitted
         self._check(
             query="佐賀県嬉野市嬉野町大字下野字長波須ハ丙１２２４",
             aza_skip='off',
@@ -560,8 +559,8 @@ class TestSearchMethods(unittest.TestCase):
             match="佐賀県嬉野市嬉野町大字下野字長波須ハ丙",
             fullname=["佐賀県", "嬉野市", "嬉野町", "大字下野", "丙"])
 
-        # ノード名の途中に、地番の先頭文字になりえる「ロ」を含んでいても
-        # 省略の対象になる。
+        # Case where "ロ" is included in Aza-name to be omitted
+        # which is contained in a node.
         self._check(
             query="高知県安芸市赤野字シロケ谷尻甲２９９４",
             match="高知県安芸市赤野字シロケ谷尻甲",
@@ -570,9 +569,9 @@ class TestSearchMethods(unittest.TestCase):
                 ["高知県", "安芸市", "赤野甲", "2994番地"],
             ])
 
-        # 省略可能な字名であっても検索文字列に含まれる場合は省略しない。
-        # 「鮫町骨沢」を省略してしまうと「青森県八戸市１」は
-        # 「八戸市一番町」にマッチしてしまう。
+        # But do not omit Aza name which is match to the query.
+        # If "鮫町骨沢" will be skipped, "青森県八戸市１"
+        # can be resolved to "八戸市一番町"
         self._check(
             query="青森県八戸市鮫町骨沢１",
             fullname=["青森県", "八戸市", "大字鮫町", "字骨沢", "1番地"])
@@ -593,8 +592,8 @@ class TestSearchMethods(unittest.TestCase):
                 ["宮城県", "石巻市", "渡波", "字転石山", "1番地", "6"],
             ])
 
-        # 「字新得基線」を省略してしまうと、「新得町１」は
-        # 「字新得1番地」にマッチしてしまう。
+        # If "字新得基線" will be skipped, "新得町１"
+        # can be resolved to "字新得1番地"
         self._check(
             query="北海道上川郡新得町字新得基線１",
             match="北海道上川郡新得町字新得基線１",
@@ -602,21 +601,21 @@ class TestSearchMethods(unittest.TestCase):
                 ["北海道", "上川郡", "新得町", "字新得基線", "1番地"]
             ])
 
-        # 自治体名の後に大字名がなく（無名大字）、直後の字名が
-        # 省略可能な場合も省略できる。
+        # Cases where the oaza-name directly under the city
+        # needs to be skipped.
         self._check(
             aza_skip='on',
             query="高知県高岡郡佐川町字若枝甲４８５",
             match="高知県高岡郡佐川町字若枝甲４８５",
             fullname=["高知県", "高岡郡", "佐川町", "甲", "485番地"])
 
-        # 'aza_skip' オプションが True の場合、「字」から始まらない場合でも
-        # 「十輪谷」は省略される。
+        # When enable_aza_skip option is set to True,
+        # '十輪谷' will be omitted even it doesn't start with '字'
         self._check(
             aza_skip='on',
-            query="広島県府中市鵜飼町十輪谷１３０",
-            match="広島県府中市鵜飼町十輪谷１３０",
-            fullname=["広島県", "府中市", "鵜飼町", "130番地"])
+            query="広島県府中市鵜飼町十輪谷甲１２４－１",
+            match="広島県府中市鵜飼町十輪谷甲１２４－",
+            fullname=["広島県", "府中市", "鵜飼町", "甲", "124番地"])
 
     def test_not_omit_oaza(self):
         self._check(
@@ -705,14 +704,14 @@ class TestSearchMethods(unittest.TestCase):
             match="佐賀県鹿島市納富分字藤津甲",
             fullname=["佐賀県", "鹿島市", "大字納富分", "藤津甲"])
 
-    # def test_datsurakuchi(self):
-    #     """
-    #     地番の最後に符号を含む "脱落地" の処理。
-    #     """
-    #     self._check(
-    #         query="福島県いわき市平上高久塚田97乙",
-    #         fullname=["福島県", "いわき市", "平上高久",
-    #                   "塚田", "97番", "乙地"])
+    def test_datsurakuchi(self):
+        """
+        Check to see if you can correctly determine "脱落地".
+        """
+        self._check(
+            query="福島県いわき市平上高久塚田97乙",
+            fullname=["福島県", "いわき市", "平上高久",
+                      "塚田", "97番", "乙地"])
 
     def test_not_exist_oaza(self):
         """

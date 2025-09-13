@@ -11,7 +11,8 @@
             "module": "jageocoder",
             "args": [
                 "search",
-                "富山市新総曲輪１－７",
+                "--db-dir=/home/sagara/jageocoder/jageocoder-tokyo15ku-v22",
+                "東京府東京市赤坂區赤坂表町１－１"
             ],
             "justMyCode": false
         },

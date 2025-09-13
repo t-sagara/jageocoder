@@ -10,6 +10,7 @@ from deprecated import deprecated
 from .address import AddressLevel
 from .aza_master import AzaMaster
 from .exceptions import AddressTreeException
+from .itaiji import Converter
 from .node import AddressNode, AddressNodeTable
 from .result import Result
 from .trie import AddressTrie, TrieNode
@@ -111,6 +112,9 @@ class LocalTree(AddressTree):
         self.aza_masters: AzaMaster = AzaMaster(db_dir=self.db_dir)
         self.trie_nodes: TrieNode = self.get_trie_nodes()
         self.trie_path = db_dir / 'address.trie'
+
+        # Itaiji converter
+        self.converter = Converter(itaiji_dic_path=self.db_dir)
 
         # Options
         self.debug = debug or bool(os.environ.get('JAGEOCODER_DEBUG', False))
@@ -677,6 +681,12 @@ class LocalTree(AddressTree):
         """
         self.__not_in_readonly_mode()
         self.address_nodes.create_indexes()
+
+    def get_converter(self) -> Converter:
+        """
+        Return the converter instance associated with the tree.
+        """
+        return self.converter
 
     def reverse(
         self,

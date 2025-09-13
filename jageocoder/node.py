@@ -726,7 +726,7 @@ class AddressNode(object):
             List of Result objects containing relevant AddressNode.
         """
         tree = self.get_tree()
-        l_optional_prefix = tree.converter.check_optional_prefixes(index)
+        l_optional_prefix = tree.get_converter().check_optional_prefixes(index)
         optional_prefix = index[0: l_optional_prefix]
         index = index[l_optional_prefix:]
 
@@ -788,7 +788,7 @@ class AddressNode(object):
         # Check if the index begins with an extra character of
         # the current node.
         if len(filtered_children) == 0 and \
-                index[0] in tree.converter.extra_characters:
+                index[0] in tree.get_converter().extra_characters:
             logger.debug((
                 "Remove the leading extra character '{}' and "
                 "search candidates again.").format(index[0]))
@@ -904,7 +904,7 @@ class AddressNode(object):
         elif omissible_index == "":
             logger.debug("No omissible Aza-names are found.")
         else:
-            azalen = tree.converter.optional_aza_len(index, 0)
+            azalen = tree.get_converter().optional_aza_len(index, 0)
             if azalen > len(omissible_index):
                 azalen = 0
 
@@ -924,7 +924,7 @@ class AddressNode(object):
                         node = cand.get_node()
                         if node.level < AddressLevel.BLOCK and \
                                 node.name_index not in \
-                                tree.converter.chiban_heads:
+                                tree.get_converter().chiban_heads:
                             logger.debug("{} is ignored".format(
                                 node.name))
                             continue
@@ -1047,9 +1047,9 @@ class AddressNode(object):
             as the second element.
         """
 
-        match_len = tree.converter.match_len(index, self.name_index)
+        match_len = tree.get_converter().match_len(index, self.name_index)
         if match_len == 0:
-            l_optional_postfix = tree.converter.check_optional_postfixes(
+            l_optional_postfix = tree.get_converter().check_optional_postfixes(
                 self.name_index, self.level)
             if l_optional_postfix > 0:
                 # In case the index string of the self node with optional
@@ -1061,10 +1061,10 @@ class AddressNode(object):
                 logger.debug(
                     "self:{} has optional postfix {}".format(
                         self, optional_postfix))
-                match_len = tree.converter.match_len(
+                match_len = tree.get_converter().match_len(
                     index, alt_index, removed_postfix=optional_postfix)
 
-                if tree.converter.check_trailing_string(
+                if tree.get_converter().check_trailing_string(
                         index[match_len:], self.level):
                     match_len = 0
                 elif match_len < len(index) and index[match_len] in '-ノ':
@@ -1075,7 +1075,7 @@ class AddressNode(object):
             # "北3西1" instead of "北3条西１丁目".
             alt_index = self.name_index.replace('条', '', 1)
             logger.debug("self:{} ends with '.条'".format(self))
-            match_len = tree.converter.match_len(index, alt_index)
+            match_len = tree.get_converter().match_len(index, alt_index)
 
         if match_len == 0:
             logger.debug("{} doesn't match".format(self.name))
@@ -1191,7 +1191,7 @@ class AddressNode(object):
                     names = json.loads(aza_record["names"])
                     # logger.debug(
                     #     "  -> '{}' is not omissible.".format(names[-1][1]))
-                    name = tree.converter.standardize(names[-1][1])
+                    name = tree.get_converter().standardize(names[-1][1])
                     pos = omissible_index.find(name)
                     if pos >= 0:
                         logger.debug(
@@ -1209,7 +1209,7 @@ class AddressNode(object):
             for aza_record in aza_records:
                 if aza_record["startCountType"] == 1:
                     names = json.loads(aza_record["names"])
-                    name = tree.converter.standardize(names[-1][1])
+                    name = tree.get_converter().standardize(names[-1][1])
                     if name == self.name_index:
                         logger.debug((
                             "Can omit string after '{}' "
@@ -1220,7 +1220,7 @@ class AddressNode(object):
 
                 if aza_record["startCountType"] == 2:
                     names = json.loads(aza_record["names"])
-                    name = tree.converter.standardize(names[-1][1])
+                    name = tree.get_converter().standardize(names[-1][1])
                     pos = index.find(name)
                     if pos > len(omissible_index):
                         logger.debug(
@@ -1288,7 +1288,7 @@ class AddressNode(object):
                     if level < AddressLevel.OAZA:
                         continue
 
-                    name = tree.converter.standardize(e[1])
+                    name = tree.get_converter().standardize(e[1])
                     if name in candidates:
                         logger.debug("  -> '{}' is not omissible.".format(
                             names[-1][1]))

@@ -27,7 +27,7 @@ AddressTree はオブジェクトファクトリー機能を持ちます。
    >>> type(local_tree)
    <class 'jageocoder.local.LocalTree'>
    >>> local_tree.searchNode("新宿区西新宿2-8-1")[0]
-   {"node": {"id": 80244777, "name": "8番", "name_index": "8.番", "x": 139.691778, "y": 35.689627, "level": 7, "priority": 3, "note": "", "parent_id": 80244672, "sibling_id": 80244778}, "matched": "新宿区西新宿2-8-"}
+   {"node": {"id": 80223284, "name": "8番", "name_index": "8.番", "x": 139.6917724609375, "y": 35.68962860107422, "level": 7, "priority": 3, "note": "", "parent_id": 80223179, "sibling_id": 80223285}, "matched": "新宿区西新宿2-8-"}
    >>> remote_tree = AddressTree(url="https://jageocoder.info-proto.com/jsonrpc")
    >>> type(remote_tree)
    <class 'jageocoder.remote.RemoteTree'>

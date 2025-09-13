@@ -109,6 +109,7 @@ class RemoteNodeTable(AddressNodeTable):
         self.cache = LRU()
         self.server_signature: str = ""
         self.mode = 'r'   # Always read only
+        self.conn = None
 
     def update_server_signature(self) -> str:
         """
