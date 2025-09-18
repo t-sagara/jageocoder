@@ -35,11 +35,11 @@ When a dictionary database is installed, large amounts of data can be processed 
 
 - Download an address database file compatible with that version from [here](https://www.info-proto.com/static/jageocoder/latest/v2/)
 
-      jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip 
+      jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/20250423/v2/jukyo_all_20250423_v22.zip 
 
 - Install the dictionary with `install-dictionary` command
 
-      jageocoder install-dictionary jukyo_all_v21.zip
+      jageocoder install-dictionary jukyo_all_20250423_v22.zip
 
 If you need to know the location of the dictionary directory,
 perform `get-db-dir` command as follows. (Or call

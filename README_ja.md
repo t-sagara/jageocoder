@@ -20,7 +20,7 @@
 
 ## 事前準備
 
-Python 3.9 以上、3.12 以下が動作する環境が必要です。
+Python 3.9 以上が動作する環境が必要です。
 
 その他の依存パッケージは自動的にインストールされます。
 
@@ -40,11 +40,11 @@ Jageocoder を利用するには、同一マシン上に「辞書データベー
 
 - 利用する辞書データベースファイルを [ここから](https://www.info-proto.com/static/jageocoder/latest/v2/) ダウンロードします
 
-      wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip
+      wget https://www.info-proto.com/static/jageocoder/20250423/v2/jukyo_all_20250423_v22.zip
 
 - 辞書データベースをインストールします
     
-      jageocoder install-dictionary jukyo_all_v21.zip
+      jageocoder install-dictionary jukyo_all_20250423_v22.zip
 
 辞書データベースが作成されたディレクトリを知る必要がある場合、
 以下のように `get-db-dir` コマンドを実行するか、スクリプト内で

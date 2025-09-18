@@ -6,8 +6,7 @@ import os
 from pathlib import Path
 import sqlite3
 from typing import (
-    Any, Dict, Generator, Iterator, Iterable,
-    List, Optional, Sequence, Tuple, Union)
+    Any, Dict, Generator, Iterator, Iterable, Optional, Tuple, Union)
 
 from .types import Record
 
@@ -35,6 +34,8 @@ class BaseTable(object):
     - "db_dir" specifies the base directory where other tables will also be placed.
       Tables are placed in subdirectories with tablename in the base directory.
     """
+
+    PAGE_SIZE = 100000
 
     def _check_initialized(self) -> None:
         if not self.is_defined:
@@ -681,7 +682,7 @@ class BaseTable(object):
 
             i += 1
             cur_pos += 1
-            if i == 10000:
+            if i == self.PAGE_SIZE:
                 self._write_records(buf)
                 buf.clear()
                 i = 0
