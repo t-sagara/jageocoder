@@ -46,4 +46,6 @@ https://creativecommons.org/share-your-work/public-domain/cc0
 
 - 2021-10-18 辞書を利用しやすい JSON 形式で整備
 - 2025-06-14 異体字を追加
+- 2025-09-05 異体字を追加
+
 

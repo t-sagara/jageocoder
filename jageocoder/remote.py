@@ -8,11 +8,11 @@ import uuid
 
 import requests
 
-from jageocoder.address import AddressLevel
-from jageocoder.exceptions import RemoteTreeException
-from jageocoder.node import AddressNode
-from jageocoder.result import Result
-from jageocoder.tree import AddressTree
+from .address import AddressLevel
+from .exceptions import RemoteTreeException
+from .node import AddressNode, AddressNodeTable
+from .result import Result
+from .tree import AddressTree
 
 
 logger = getLogger(__name__)
@@ -48,7 +48,7 @@ class RemoteDataset(object):
         self.records = {}
         self._map: Optional[Dict[int, Any]] = None
 
-    def load_record(self, id: int) -> None:
+    def load_record(self, id: int) -> dict:
         rpc_result = self.tree.json_request(
             method="dataset.get",
             params={"id": id},
@@ -96,12 +96,12 @@ class RemoteDataset(object):
 
     def get_all(self) -> Optional[Dict[int, Dict[str, Union[int, str]]]]:
         if self._map is None:
-            self.load_records()
+            self._map = self.load_records()
 
         return self._map
 
 
-class RemoteNodeTable(object):
+class RemoteNodeTable(AddressNodeTable):
 
     def __init__(self, tree: RemoteTree) -> None:
         self.tree = tree
@@ -109,6 +109,7 @@ class RemoteNodeTable(object):
         self.cache = LRU()
         self.server_signature: str = ""
         self.mode = 'r'   # Always read only
+        self.conn = None
 
     def update_server_signature(self) -> str:
         """
@@ -124,6 +125,10 @@ class RemoteNodeTable(object):
             method="jageocoder.server_signature",
             params=[],
         )
+        if not isinstance(server_signature, str):
+            raise RemoteTreeException(
+                "Remote server returns non string signature.")
+
         if self.server_signature != server_signature:
             # The remote server has been restarted
             self.cache.clear()
@@ -131,30 +136,38 @@ class RemoteNodeTable(object):
 
         return self.server_signature
 
-    def get_record(self, pos: int) -> AddressNode:
+    def get_node_by_id(self, id: int) -> AddressNode:
         """
-        Get the record at the specified position from the remote server
+        Get the record with the specified id from the remote server
         and convert it to AddressNode object.
 
         Parameters
         ----------
-        pos: int
-            The position.
+        id: int
+            The node id.
 
         Returns
         -------
         AddressNode
             The converted object.
         """
-        if pos in self.cache:
-            return self.cache[pos]
+        if id in self.cache:
+            return self.cache[id]
+
+        if id < 0:
+            raise RemoteTreeException(
+                "The remote server doesn't support traversal operations."
+            )
 
         rpc_result = self.tree.json_request(
             method="node.get_record",
-            params={"pos": pos, "server": self.server_signature},
+            params={
+                "pos": id,
+                "server": self.server_signature,
+            },
         )
         node = AddressNode(**rpc_result)
-        self.cache[pos] = node
+        self.cache[id] = node
         return node
 
     def count_records(self) -> int:
@@ -330,7 +343,7 @@ class RemoteTree(AddressTree):
         -------
         AddressNode
         """
-        node = self.address_nodes.get_record(pos=node_id)
+        node = self.address_nodes.get_node_by_id(id=node_id)
         node.tree = self
         return node
 

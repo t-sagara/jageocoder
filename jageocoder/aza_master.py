@@ -2,18 +2,19 @@ from __future__ import annotations
 import datetime
 import json
 from logging import getLogger
+from pathlib import Path
+from typing import Optional
 import re
 from typing import Dict, Union
 
-from PortableTab import BaseTable
-
-from jageocoder.address import AddressLevel
-from jageocoder.itaiji import converter as itaiji_converter
+from .address import AddressLevel
+from .dbm import AbstractTable
+from .itaiji import converter as itaiji_converter
 
 logger = getLogger(__name__)
 
 
-class AzaMaster(BaseTable):
+class AzaMaster(AbstractTable):
     """
     The mater table of Cho-Aza data from the address-base registry.
 
@@ -39,22 +40,22 @@ class AzaMaster(BaseTable):
     """
 
     __tablename__ = "aza_master"
-    __schema__ = """
-        struct AzaMaster {
-            code @0 :Text;
-            names @1 :Text;
-            namesIndex @2 :Text;
-            azaClass @3 :UInt8;
-            isJukyo @4 :Bool;
-            startCountType @5 :UInt8;
-            postcode @6 :Text;
-        }
-        """
-    __record_type__ = "AzaMaster"
+    __schema__ = """{
+            "code": "",
+            "names": "",
+            "namesIndex": "",
+            "azaClass": 0,
+            "isJukyo": false,
+            "startCountType": 0,
+            "postcode": ""
+        }"""
 
     re_optional = re.compile(
         r'({})'.format(
             '|'.join(list('ケヶガツッノ') + ['字', '大字', '小字'])))
+
+    def __init__(self, db_dir: Path) -> None:
+        super().__init__(db_dir=db_dir)
 
     def from_csvrow(self, row: dict) -> dict:
         names = self.get_names_from_csvrow(row)
@@ -209,9 +210,11 @@ class AzaMaster(BaseTable):
         - This method uses sequential search so it is very slow.
         """
         st_name = self.__class__.standardize_aza_name(elements)
-        for i in range(self.count_records()):
-            record = self.get_record(pos=i)
-            if record.names_index == st_name:
+        for record in self.get_records_by_pos(
+            from_pos=0,
+            to_pos=self.count_records()
+        ):
+            if record["namesIndex"] == st_name:
                 return record
 
         logger.debug("'{}' is not in the aza_master table.".format(
@@ -249,40 +252,32 @@ class AzaMaster(BaseTable):
                 attr="code",
                 value=_code,
                 funcname="keys"):
-            if record.code.startswith(_code):
+            if record["code"].startswith(_code):
                 if len(_code) == 2:
                     names = [n for n in json.loads(
-                        str(record.names)) if n[0] <= AddressLevel.PREF]
+                        str(record["names"])) if n[0] <= AddressLevel.PREF]
                     names_index = itaiji_converter.standardize(
                         "".join([n[1] for n in names]))
                     return {
                         "code": code,
                         "names": json.dumps(names, ensure_ascii=False),
                         "namesIndex": names_index,
-                        "postcode": str(record.postcode),
+                        "postcode": str(record["postcode"]),
                     }
                 elif len(_code) == 5:
                     names = [n for n in json.loads(
-                        str(record.names)) if n[0] <= AddressLevel.WARD]
+                        str(record["names"])) if n[0] <= AddressLevel.WARD]
                     names_index = itaiji_converter.standardize(
                         "".join([n[1] for n in names]))
                     return {
                         "code": code,
                         "names": json.dumps(names, ensure_ascii=False),
                         "namesIndex": names_index,
-                        "postcode": str(record.postcode),
+                        "postcode": str(record["postcode"]),
                     }
 
                 else:
-                    return {
-                        "code": str(record.code),
-                        "names": str(record.names),
-                        "namesIndex": str(record.namesIndex),
-                        "azaClass": int(record.azaClass),
-                        "isJukyo": bool(record.isJukyo),
-                        "startCountType": int(record.startCountType),
-                        "postcode": str(record.postcode),
-                    }
+                    return record
 
         raise KeyError(f"'{code}' is not in the aza_master table.")
 
@@ -310,12 +305,12 @@ class AzaMaster(BaseTable):
         search_range = (0, self.count_records())
         while search_range[0] < search_range[1]:
             pos = int((search_range[0] + search_range[1]) / 2)
-            record = self.get_record(pos=pos)
-            if record.code == code:
+            record = self.get_record(pos)
+            if record["code"] == code:
                 return pos
-            elif record.code > code:
+            elif record["code"] > code:
                 new_range = (search_range[0], pos)
-            elif record.code < code:
+            elif record["code"] < code:
                 new_range = (pos, search_range[1])
 
             if new_range == search_range:

@@ -20,7 +20,7 @@
 
 ## 事前準備
 
-Python 3.9 以上、3.12 以下が動作する環境が必要です。
+Python 3.9.2 以上が動作する環境が必要です。
 
 その他の依存パッケージは自動的にインストールされます。
 
@@ -36,47 +36,41 @@ Jageocoder を利用するには、同一マシン上に「辞書データベー
 
 ### 辞書データベースをインストールする場合
 
-辞書データベースをインストールすると大量のデータも高速に処理できます。全国の住所を網羅するデータベースは 30GB 以上のストレージが必要です。
+辞書データベースをインストールすると大量のデータも高速に処理できます。全国の住所を網羅するデータベースは 20GB 以上のストレージが必要です。
 
 - 利用する辞書データベースファイルを [ここから](https://www.info-proto.com/static/jageocoder/latest/v2/) ダウンロードします
 
-      wget https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip
+      wget https://www.info-proto.com/static/jageocoder/20250423/v2/jukyo_all_20250423_v22.zip
 
 - 辞書データベースをインストールします
     
-      jageocoder install-dictionary jukyo_all_v21.zip
+      jageocoder install-dictionary jukyo_all_20250423_v22.zip
 
-辞書データベースが作成されたディレクトリを知る必要がある場合、
-以下のように `get-db-dir` コマンドを実行するか、スクリプト内で
-`jageocoder.get_db_dir()` メソッドを呼びだしてください。
+辞書データベースが作成されたディレクトリを知る必要がある場合、以下のように `get-db-dir` コマンドを実行するか、スクリプト内で `jageocoder.get_db_dir()` メソッドを呼びだしてください。
 
 ```bash
 jageocoder get-db-dir
 ```
 
-上記以外の任意の場所に作成したい場合、住所辞書をインストールする前に
-環境変数 `JAGEOCODER_DB2_DIR` でディレクトリを指定してください。
+上記以外の任意の場所に作成したい場合、住所辞書をインストールする前に環境変数 `JAGEOCODER_DB2_DIR` でディレクトリを指定してください。
 
 ```bash
 export JAGEOCODER_DB2_DIR='/usr/local/share/jageocoder/db2'
-jageocoder install-dictionary jukyo_all_v21.zip
+jageocoder install-dictionary <db-file>
 ```
 
 ### Jageocoder サーバに接続する場合
 
-辞書データベースはサイズが大きいので、複数のマシンにインストールするとストレージを消費しますし、更新の手間もかかります。
-そこで各マシンに辞書データベースをインストールする代わりに、Jageocoder サーバに接続して検索処理を代行させることもできます。
+辞書データベースはサイズが大きいので、複数のマシンにインストールするとストレージを消費しますし、更新の手間もかかります。そこで各マシンに辞書データベースをインストールする代わりに、Jageocoder サーバに接続して検索処理を代行させることもできます。
 
-サーバを利用したい場合、環境変数 `JAGEOCODER_SERVER_URL` にサーバの
-エンドポイントを指定してください。
+サーバを利用したい場合、環境変数 `JAGEOCODER_SERVER_URL` にサーバのエンドポイントを指定してください。
 公開デモンストレーション用サーバの場合は次の通りです。
 
 ```bash
 export JAGEOCODER_SERVER_URL=https://jageocoder.info-proto.com/jsonrpc
 ```
 
-ただし公開デモンストレーション用サーバはアクセスが集中すると負荷に耐えられないため、1秒1リクエストまでに制限しています。
-大量の処理を行いたい場合は [こちら](https://t-sagara.github.io/jageocoder/server/) を参照して独自 Jageocoder サーバを設置してください。エンドポイントはサーバの `/jsonrpc` になります。
+ただし公開デモンストレーション用サーバはアクセスが集中すると負荷に耐えられないため、1秒間に利用できるリクエスト数に上限を設定しています。大量の処理を行いたい場合は [こちら](https://t-sagara.github.io/jageocoder/server/) を参照して独自 Jageocoder サーバを設置してください。エンドポイントはサーバの `/jsonrpc` になります。
 
 ## アンインストール手順
 
@@ -181,8 +175,7 @@ jageocoder --help
 
 > [!Note]
 >
-> リバースジオコーディング用のインデックスは、初めてリバースジオコーディングを実行した時に自動的に作成されます。
-この処理には長い時間がかかりますので、注意してください。
+> リバースジオコーディング用のインデックスは、初めてリバースジオコーディングを実行した時に自動的に作成されます。この処理には長い時間がかかりますので、注意してください。
 
 ### 住所の属性情報を調べる
 
@@ -210,9 +203,9 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 
 ```python
 >>> results[0].as_geojson()
-{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番'], 'matched': '新宿区西新宿２－８－'}}
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.6917724609375, 35.68962860107422]}, 'properties': {'id': 80223284, 'name': '8番', 'level': 7, 'priority': 3, 'note': '', 'parent_id': 80223179, 'sibling_id': 80223285, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番'], 'matched': '新宿区西 新宿２－８－'}}
 >>> results[0].node.as_geojson()
-{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}}
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.6917724609375, 35.68962860107422]}, 'properties': {'id': 80223284, 'name': '8番', 'level': 7, 'priority': 3, 'note': '', 'parent_id': 80223179, 'sibling_id': 80223285, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}}
 ```
 
 #### 自治体コードを取得する
@@ -260,18 +253,17 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 「子ノード」とは、住所の一つ下の階層を表すノードのことです。
 ノードの属性 `children` で取得します。
 
-親ノードは一つですが、子ノードは複数あります。
-実際に返すのは SQL クエリオブジェクトですが、
-イテレータでループしたり list にキャストできます。
+親ノードは常に一つしか存在しませんが、子ノードは複数あることがあります。そのため、ノードのリストを返します。
 
-今 `parent` は '二丁目' を指しているので、子ノードは
-そこに含まれる街区符号（○番）になります。
+今 `parent` は '二丁目' を指しているので、子ノードはそこに含まれる街区符号または地番（○番、△番地）になります。
 
 ```python
->>> parent.children
-<sqlalchemy.orm.dynamic.AppenderQuery object at 0x7fbc08404b38>
+>>> type(parent.children)
+<class 'list'>
+>>> len(parent.children)
+50
 >>> [child.name for child in parent.children]
-['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
+['1番', '1番地', '10番', '10番地', '11番', '11番地', '12番地', '134番地', '135番地', '136番地', '139番地', '140番地', '141番地', '145番地', '158番地', '174番地', '178番地', '181番地', '2番', '2番地', '3番', '3番地', '308番地', '309番地', '310番地', '311番地', '313番地', '314番地', '315番地', '318番地', '4番', '4番地', '5番', '5番地', '6番', '6番地', '673番地', '674番地', '7番', '7番地', '705番地', '708番地', '710番地', '733番地', '734番地', '735番地', '8番', '8番地', '9番', '9番地']
 ```
 
 # 開発者向け情報
@@ -291,16 +283,7 @@ Result および AddressNode オブジェクトの `as_geojson()` メソッド�
 
 ## サンプルウェブアプリ
 
-Flask を利用したシンプルなウェブアプリのサンプルが
-`flask-demo` の下にあります。
-
-次の手順を実行し、ポート 5000 にアクセスしてください。
-
-```bash
-cd flask-demo
-pip install flask flask-cors
-bash run.sh
-```
+サンプルウェブアプリは削除しました。[jageocoder-server](https://t-sagara.github.io/jageocoder/server/) を参考にしてください。
 
 ## ご協力頂ける場合
 

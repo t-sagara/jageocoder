@@ -11,15 +11,15 @@ from typing import Any, Dict, List, Optional, Union
 from deprecated import deprecated
 
 import jaconv
-from jageocoder.exceptions import AddressTreeException
-from jageocoder.itaiji import Converter
-from jageocoder.node import AddressNode
-from jageocoder.result import Result
+from .itaiji import Converter
+from .exceptions import AddressTreeException
+from .node import AddressNode
+from .result import Result
 
 logger = getLogger(__name__)
 
 
-def get_db_dir(mode: str = 'r') -> Optional[Path]:
+def get_db_dir(mode: Optional[str] = 'r') -> Optional[Path]:
     """
     Get the database directory.
 
@@ -60,7 +60,7 @@ def get_db_dir(mode: str = 'r') -> Optional[Path]:
         db_dirs.append(Path(site.USER_BASE) / 'jageocoder/db2/')
 
     for db_dir in db_dirs:
-        path = db_dir / 'address_node'
+        path = db_dir / 'address_node.sqlite'
         if path.exists():
             return db_dir
 
@@ -110,8 +110,6 @@ class AddressTree(ABC):
         The root-node of the address TRIE index.
     config: dict
         Configuration parameters.
-    converter: itaiji.Converter
-        Converter object of character-variants.
     """
 
     def __new__(
@@ -168,9 +166,6 @@ class AddressTree(ABC):
         """
         # Options
         self.debug = debug or bool(os.environ.get('JAGEOCODER_DEBUG', False))
-
-        # Itaiji converter
-        self.converter = Converter()
 
         # Set default settings
         self.config = {
@@ -603,6 +598,13 @@ class AddressTree(ABC):
         """
         Collect notes from all address elements and create
         search table with index.
+        """
+        raise NotImplementedError(
+            f"This method is not implemented for class '{self.__class__}'")
+
+    def get_converter(self) -> Converter:
+        """
+        Return the converter instance associated with the tree.
         """
         raise NotImplementedError(
             f"This method is not implemented for class '{self.__class__}'")

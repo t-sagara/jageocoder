@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Search test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "search",
+                "--db-dir=/home/sagara/jageocoder/jageocoder-tokyo15ku-v22",
+                "東京府東京市赤坂區赤坂表町１－１"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "Search noname oaza",
             "type": "debugpy",
             "request": "launch",

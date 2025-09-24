@@ -1,15 +1,16 @@
 from logging import getLogger
 import os
+from pathlib import Path
 
 import marisa_trie
-from PortableTab import BaseTable
 
-from jageocoder.exceptions import AddressTrieError
+from .dbm import AbstractTable
+from .exceptions import AddressTrieError
 
 logger = getLogger(__name__)
 
 
-class TrieNode(BaseTable):
+class TrieNode(AbstractTable):
     """
     The mapping-table of TRIE id and Node id. Stored in 'trienode' table.
 
@@ -28,13 +29,10 @@ class TrieNode(BaseTable):
     """
 
     __tablename__ = 'trienode'
-    __schema__ = """
-        struct TrieNode {
-            id @0 :UInt32;
-            nodes @1 :List(UInt32);
-        }
-        """
-    __record_type__ = "TrieNode"
+    __schema__ = """{
+        "id": 0,
+        "nodes": []
+    }"""
 
 
 class AddressTrie(object):

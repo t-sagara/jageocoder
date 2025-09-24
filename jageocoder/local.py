@@ -7,13 +7,14 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from deprecated import deprecated
 
+from .address import AddressLevel
+from .aza_master import AzaMaster
+from .exceptions import AddressTreeException
+from .itaiji import Converter
+from .node import AddressNode, AddressNodeTable
+from .result import Result
+from .trie import AddressTrie, TrieNode
 from .tree import get_db_dir, AddressTree
-from jageocoder.address import AddressLevel
-from jageocoder.aza_master import AzaMaster
-from jageocoder.exceptions import AddressTreeException
-from jageocoder.node import AddressNode, AddressNodeTable
-from jageocoder.result import Result
-from jageocoder.trie import AddressTrie, TrieNode
 
 logger = getLogger(__name__)
 
@@ -112,6 +113,9 @@ class LocalTree(AddressTree):
         self.trie_nodes: TrieNode = self.get_trie_nodes()
         self.trie_path = db_dir / 'address.trie'
 
+        # Itaiji converter
+        self.converter = Converter(itaiji_dic_path=self.db_dir)
+
         # Options
         self.debug = debug or bool(os.environ.get('JAGEOCODER_DEBUG', False))
 
@@ -165,7 +169,7 @@ class LocalTree(AddressTree):
         -------
         AddressNode
         """
-        node = self.address_nodes.get_record(pos=node_id)
+        node = self.address_nodes.get_node_by_id(id=node_id)
         node.tree = self
         return node
 
@@ -278,7 +282,7 @@ class LocalTree(AddressTree):
                 if std in candidates:
                     trie_node_id = candidates[std]
                     for node_id in self.trie_nodes.get_record(
-                            pos=trie_node_id).nodes:
+                            pos=trie_node_id).get("nodes", []):
                         node = self.get_node_by_id(node_id=node_id)
                         if node.name == v:
                             return
@@ -394,7 +398,7 @@ class LocalTree(AddressTree):
             offset = self.converter.match_len(index, k)
             key = index[0:offset]
             rest_index = index[offset:]
-            for node_id in trie_node.nodes:
+            for node_id in trie_node.get("nodes", []):
                 node = self.get_node_by_id(node_id=node_id)
 
                 if not node.has_valid_coordinate_values() \
@@ -677,6 +681,12 @@ class LocalTree(AddressTree):
         """
         self.__not_in_readonly_mode()
         self.address_nodes.create_indexes()
+
+    def get_converter(self) -> Converter:
+        """
+        Return the converter instance associated with the tree.
+        """
+        return self.converter
 
     def reverse(
         self,

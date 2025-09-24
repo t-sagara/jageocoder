@@ -19,7 +19,7 @@ This package provides address-geocoding and reverse-geocoding functionality for 
 
 ## Prerequisites
 
-Requires Python 3.9 or later and 3.12 or earlier.
+Requires Python 3.9.2 or later.
 
 All other required packages will be installed automatically.
 
@@ -31,25 +31,23 @@ To use Jageocoder, you need to install the "Dictionary Database" on the same mac
 
 ### Install Dictionary Database
 
-When a dictionary database is installed, large amounts of data can be processed at high speed. A database covering addresses in Japan requires 25 GB or more of storage.
+When a dictionary database is installed, large amounts of data can be processed at high speed. A database covering addresses in Japan requires 20 GB or more of storage.
 
 - Download an address database file compatible with that version from [here](https://www.info-proto.com/static/jageocoder/latest/v2/)
 
-      jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip 
+      jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/20250423/v2/jukyo_all_20250423_v22.zip 
 
 - Install the dictionary with `install-dictionary` command
 
-      jageocoder install-dictionary jukyo_all_v21.zip
+      jageocoder install-dictionary jukyo_all_20250423_v22.zip
 
-If you need to know the location of the dictionary directory,
-perform `get-db-dir` command as follows. (Or call
-`jageocoder.get_db_dir()` in your script)
+If you need to know the location of the dictionary directory, perform `get-db-dir` command as follows. (Or call `jageocoder.get_db_dir()` in your script)
 
 ```bash
 jageocoder get-db-dir
 ```
 
-If you prefer to create the database in another location, set the environment variable `JAGEOCODER_DB2_DIR` before executing `install_dictionary()` to specify the directory.
+If you prefer to create the database in another location, set the environment variable `JAGEOCODER_DB2_DIR` before executing `install_dictionary` to specify the directory.
 
 ```bash
 export JAGEOCODER_DB2_DIR='/usr/local/share/jageocoder/db2'
@@ -58,8 +56,7 @@ install-dictionary <db-file>
 
 ### Connect to the Jageocoder server
 
-Since dictionary databases are large in size, installing them on multiple machines consumes storage and requires time and effort to update them.
-Instead of installing a dictionary database on each machine, you can connect to a Jageocoder server to perform the search process.
+Since dictionary databases are large in size, installing them on multiple machines consumes storage and requires time and effort to update them. Instead of installing a dictionary database on each machine, you can connect to a Jageocoder server to perform the search process.
 
 If you want to use a server, specify the server endpoint in the environment variable `JAGEOCODER_SERVER_URL`. For a public demonstration server, use the following
 
@@ -67,13 +64,11 @@ If you want to use a server, specify the server endpoint in the environment vari
 export JAGEOCODER_SERVER_URL=https://jageocoder.info-proto.com/jsonrpc
 ```
 
-However, the server for public demonstrations cannot withstand the load when accesses are concentrated, so it is limited to one request per second.
-If you want to process a large number of requests, please refer to [here](https://t-sagara.github.io/jageocoder/server/) to set up your own Jageocoder server. The endpoint is '/jsonrpc' on the server.
+However, the server for public demos cannot handle heavy traffic, so we have set a limit on the number of requests per second. If you want to process a large number of requests, please refer to [here](https://t-sagara.github.io/jageocoder/server/) to set up your own Jageocoder server. The endpoint is '/jsonrpc' on the server.
 
 ## Uninstall instructions
 
-Remove the directory containing the database, or perform 
-`uninstall-dictionary` command as follows.
+Remove the directory containing the database, or perform `uninstall-dictionary` command as follows.
 
 ```bash
 jageocoder uninstall-dictionary
@@ -196,9 +191,9 @@ objects to obtain the GeoJSON representation.
 
 ```python
 >>> results[0].as_geojson()
-{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番'], 'matched': '新宿区西新宿２－８－'}}
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.6917724609375, 35.68962860107422]}, 'properties': {'id': 80223284, 'name': '8番', 'level': 7, 'priority': 3, 'note': '', 'parent_id': 80223179, 'sibling_id': 80223285, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番'], 'matched': '新宿区西 新宿２－８－'}}
 >>> results[0].node.as_geojson()
-{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.691778, 35.689627]}, 'properties': {'id': 12299851, 'name': '8番', 'level': 7, 'note': None, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}}
+{'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [139.6917724609375, 35.68962860107422]}, 'properties': {'id': 80223284, 'name': '8番', 'level': 7, 'priority': 3, 'note': '', 'parent_id': 80223179, 'sibling_id': 80223285, 'fullname': ['東京都', '新宿区', '西新宿', '二丁目', '8番']}}
 ```
 
 #### Get the local government codes
@@ -244,21 +239,19 @@ Now the `node` points to '8番', so the parent node will be '二丁目'.
 
 #### Traverse the child nodes
 
-A "child node" is a node that represents a level below the address.
-Get the node by attribute `children`.
+A "child node" is a node that represents a level below the address. Get the node by attribute `children`.
 
-There is one parent node, but there are multiple child nodes.
-The actual return is a SQL query object, but it can be looped through
-with an iterator or cast to a list.
+There is always only one parent node, but there can be multiple child nodes. Therefore, `children` returns a list of address nodes.
 
-Now the `parent` points to '二丁目', so the child node will be
-the block number (○番) contained therein.
+Now the `parent` points to '二丁目', so the child node will be the block number (○番, △番地) contained therein.
 
 ```python
->>> parent.children
-<sqlalchemy.orm.dynamic.AppenderQuery object at 0x7fbc08404b38>
+>>> type(parent.children)
+<class 'list'>
+>>> len(parent.children)
+50
 >>> [child.name for child in parent.children]
-['10番', '11番', '1番', '2番', '3番', '4番', '5番', '6番', '7番', '8番', '9番']
+['1番', '1番地', '10番', '10番地', '11番', '11番地', '12番地', '134番地', '135番地', '136番地', '139番地', '140番地', '141番地', '145番地', '158番地', '174番地', '178番地', '181番地', '2番', '2番地', '3番', '3番地', '308番地', '309番地', '310番地', '311番地', '313番地', '314番地', '315番地', '318番地', '4番', '4番地', '5番', '5番地', '6番', '6番地', '673番地', '674番地', '7番', '7番地', '705番地', '708番地', '710番地', '733番地', '734番地', '735番地', '8番', '8番地', '9番', '9番地']
 ```
 
 # For developers
@@ -273,10 +266,7 @@ Consider using [jageocoder-converter](https://github.com/t-sagara/jageocoder-con
 
 ## Tests
 
-Run `pytest` for unit tests, `pytest jageocoder/ --doctest-modules`
-for testing sample codes in comments and
-`pytest docs/source/ --doctest-glob=*.rst`
-for testing codes in the online manual document.
+Run `pytest` for unit tests, `pytest jageocoder/ --doctest-modules` for testing sample codes in comments and `pytest docs/source/ --doctest-glob=*.rst` for testing codes in the online manual document.
 
 ## Contributing
 

@@ -4,7 +4,7 @@ import re
 import sys
 
 import jageocoder
-from jageocoder.exceptions import JageocoderError
+from .exceptions import JageocoderError
 from docopt import docopt
 
 HELP = """

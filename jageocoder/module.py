@@ -1,17 +1,18 @@
 import logging
 import os
 import shutil
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Dict, List, Optional, Union
 import urllib.request
 from urllib.error import URLError
 
 import jageocoder
-
-from jageocoder.exceptions import JageocoderError
-from jageocoder.local import LocalTree
-from jageocoder.tree import AddressTree, get_db_dir
-from jageocoder.remote import RemoteTree
-from jageocoder.result import Result
+from .dataset import Dataset
+from .exceptions import JageocoderError
+from .local import LocalTree
+from .tree import AddressTree, get_db_dir
+from .remote import RemoteTree
+from .result import Result
+from .rtree import Index
 
 _tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)
@@ -305,7 +306,7 @@ def uninstall_dictionary(db_dir: Optional[os.PathLike] = None) -> None:
     logger.info('Dictionary has been uninstalled.')
 
 
-def get_datasets() -> Dict[int, Any]:
+def get_datasets() -> Dict[int, dict]:
     """
     Get the datasets in the installed dictionary.
 
@@ -317,8 +318,8 @@ def get_datasets() -> Dict[int, Any]:
 
     Returns
     -------
-    dict[int, dict]
-        The map of the datasets with their ids as keys.
+    List[Dataset]
+        List of datasets.
     """
     datasets = get_module_tree().datasets
     if datasets is None:

@@ -8,9 +8,9 @@ from rtree import index
 from rtree.exceptions import RTreeError
 from tqdm import tqdm
 
-from jageocoder.local import LocalTree
-from jageocoder.address import AddressLevel
-from jageocoder.node import AddressNode, AddressNodeTable
+from .address import AddressLevel
+from .local import LocalTree
+from .node import AddressNodeTable, AddressNode
 
 logger = getLogger(__name__)
 
@@ -282,15 +282,19 @@ class Index(object):
         2 points represented by (lon, lat).
     """
 
-    geod = Geodesic.WGS84  # type: ignore
+    geod = Geodesic.WGS84  # type: ignore (instantiated in geodesic.py)
 
-    def __init__(self, tree: LocalTree):
+    def __init__(self, tree: LocalTree, force_recreate: bool = False):
         self._tree = tree
         self.idx = None
 
         treepath = Path(tree.db_dir) / "rtree"
         dat_path = Path(tree.db_dir) / "rtree.dat"
         idx_path = Path(tree.db_dir) / "rtree.idx"
+        if force_recreate:
+            dat_path.unlink(missing_ok=True)
+            idx_path.unlink(missing_ok=True)
+
         if dat_path.exists() and idx_path.exists():
             try:
                 self.idx = self.load_rtree(treepath)
@@ -312,8 +316,9 @@ class Index(object):
         if self.idx is None:
             self.idx = self.create_rtree(treepath)
 
+    @classmethod
     def distance(
-        self,
+        cls,
         lon0: float, lat0: float,
         lon1: float, lat1: float
     ) -> float:
@@ -333,7 +338,7 @@ class Index(object):
         float
             The geodesic distance, in meter.
         """
-        g = self.geod.Inverse(lat0, lon0, lat1, lon1)
+        g = cls.geod.Inverse(lat0, lon0, lat1, lon1)
         return g['s12']
 
     def create_rtree(self, treepath: Path) -> index.Rtree:
@@ -351,36 +356,73 @@ class Index(object):
         index.Rtree
             Created rtree index.
         """
+        import time
         file_idx = index.Rtree(str(treepath))  # Filename must be passed as str
         node_table: AddressNodeTable = self._tree.address_nodes
 
-        max_id = node_table.count_records()
+        max_id = AddressNode.ROOT_NODE_ID + node_table.count_records()
         registered_coordinates = set()
 
         logger.info("Building RTree for reverse geocoding...")
         id = AddressNode.ROOT_NODE_ID
         with tqdm(total=max_id, mininterval=0.5, ascii=True) as pbar:
-            prev_id = 0
-            while id < max_id:
-                pbar.update(id - prev_id)
-                prev_id = id
+            mode = ""
+            sibling_id = AddressNode.ROOT_NODE_ID
+            for node in node_table.get_nodes_by_id(
+                    AddressNode.ROOT_NODE_ID, max_id):
+                id = node.id
+                pbar.update(1)
 
-                node = node_table.get_record(pos=id)
+                if mode == "block":
+                    if id < sibling_id:
+                        if node.has_valid_coordinate_values():
+                            if bdr is None:
+                                bdr = (node.x, node.y, node.x, node.y)
+                            else:
+                                bdr = (
+                                    min(node.x, bdr[0]),
+                                    min(node.y, bdr[1]),
+                                    max(node.x, bdr[2]),
+                                    max(node.y, bdr[3]),
+                                )
+
+                    if id == sibling_id - 1:
+                        mode = ""
+                        if bdr:
+                            file_idx.insert(
+                                id=parent_node.id,
+                                coordinates=bdr,
+                            )
+                        else:
+                            # All child nodes have invalid coordinate values
+                            key = (parent_node.x, parent_node.y)
+                            if parent_node.has_valid_coordinate_values() and \
+                                    key not in registered_coordinates:
+                                file_idx.insert(
+                                    id=parent_node.id,
+                                    coordinates=(node.x, node.y,
+                                                 node.x, node.y),
+                                )
+                                registered_coordinates.add(key)
+
+                    if id >= sibling_id:
+                        import pdb
+                        pdb.set_trace()
+
+                    continue
+
                 if node.level <= AddressLevel.WARD:
                     registered_coordinates.clear()
-                    id += 1
                     continue
 
                 if node.sibling_id == node.id + 1:
                     # The node has no child nodes
 
                     if not node.has_valid_coordinate_values():
-                        id += 1
                         continue
 
                     key = (node.x, node.y)
                     if key in registered_coordinates:
-                        id += 1
                         continue
 
                     file_idx.insert(
@@ -388,49 +430,21 @@ class Index(object):
                         coordinates=(node.x, node.y, node.x, node.y),
                     )
                     registered_coordinates.add(key)
-                    id += 1
                     continue
 
                 # The node has 1 or more child nodes
                 if node.level == AddressLevel.BLOCK:
                     # Get BDR of child nodes
-                    bdr = None
-                    for child_id in range(node.id + 1, node.sibling_id):
-                        child_node = node_table.get_record(child_id)
-                        if not child_node.has_valid_coordinate_values():
-                            continue
+                    mode = "block"
+                    sibling_id = node.sibling_id
+                    parent_node = node
 
-                        if bdr is None:
-                            bdr = (child_node.x, child_node.y,
-                                   child_node.x, child_node.y)
-                        else:
-                            bdr = (
-                                min(child_node.x, bdr[0]),
-                                min(child_node.y, bdr[1]),
-                                max(child_node.x, bdr[2]),
-                                max(child_node.y, bdr[3]),
-                            )
-
-                    if bdr:
-                        file_idx.insert(
-                            id=id,
-                            coordinates=bdr,
-                        )
+                    if node.has_valid_coordinate_values():
+                        bdr = (node.x, node.y, node.x, node.y)
                     else:
-                        # All child nodes have invalid coordinate values
-                        key = (node.x, node.y)
-                        if node.has_valid_coordinate_values() and \
-                                key not in registered_coordinates:
-                            file_idx.insert(
-                                id=id,
-                                coordinates=(node.x, node.y, node.x, node.y),
-                            )
-                            registered_coordinates.add(key)
+                        bdr = None
 
-                    id = node.sibling_id
                     continue
-
-                id += 1
 
         return file_idx
 
@@ -448,7 +462,8 @@ class Index(object):
         index.Rtree
             Loaded rtree index.
         """
-        file_idx = index.Rtree(str(treepath))
+        file_idx = index.Rtree(
+            str(treepath))  # rtree.Index.__init__() doesn't recognize Path object
         return file_idx
 
     def test_rtree(self) -> bool:
@@ -572,10 +587,12 @@ class Index(object):
             if item.bbox[0] == item.bbox[2] and item.bbox[1] == item.bbox[3]:
                 candidates.append(node)
             else:
-                for child_id in range(node.id + 1, node.sibling_id):
-                    child_node = self._tree.get_node_by_id(child_id)
-                    if child_node.sibling_id == child_id + 1 and \
+                for child_node in self._tree.address_nodes.get_nodes_by_id(
+                    node.id + 1, node.sibling_id
+                ):
+                    if child_node.sibling_id == child_node.id + 1 and \
                             child_node.has_valid_coordinate_values():
+                        child_node.tree = self._tree
                         candidates.append(child_node)
 
         node_dists = self._sort_by_dist(x, y, candidates)
