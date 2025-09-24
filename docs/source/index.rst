@@ -18,7 +18,7 @@ Jageocoder ドキュメント
 動作環境
 --------
 
-Python 3.9 以上、3.12 以下がインストールされた Linux, Windows, MacOS で動作します。
+Python 3.9.2 以上がインストールされた Linux, Windows, MacOS で動作します。
 
 
 ライセンス表示

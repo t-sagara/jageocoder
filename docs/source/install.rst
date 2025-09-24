@@ -44,7 +44,7 @@ Jageocoder サーバと住所データベース
 
 .. note::
 
-   デモンストレーション用サーバはリクエストに制限をかけています。
+   デモンストレーション用サーバは1秒あたりのリクエスト数に制限をかけています。
    デモンストレーション用サーバの代わりに専用の Jageocoder サーバを
    独自に設置したい場合は
    https://github.com/t-sagara/jageocoder-server
@@ -60,23 +60,23 @@ Jageocoder サーバと住所データベース
 から、最新のものを選択してダウンロードしてください。
 
 住所データベースは jageocoder のバージョンによってフォーマットが異なるため、
-v1 用のファイルは利用できません。v2.1 に対応する住所データベースファイルは
-末尾が ``_v21.zip`` です。
+v1 用, v2.1 用のファイルは利用できません。v2.2 に対応する住所データベースファイルは
+末尾が ``_v22.zip`` です。
 
 .. code-block:: console
 
-    $ jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/latest/v2/jukyo_all_v21.zip
+    $ jageocoder download-dictionary https://www.info-proto.com/static/jageocoder/20250423/v2/jukyo_all_20250423_v22.zip
 
 次にダウンロードした zip ファイルをインストールします。
 
 .. code-block:: console
 
-    $ jageocoder install-dictionary jukyo_all_v21.zip
+    $ jageocoder install-dictionary jukyo_all_20250423_v22.zip
 
 .. note::
 
-   2024年4月の時点で、全国の住居表示と地番の住所を含む住所データベースファイルは
-   4GB 以上、展開すると 25GB 以上になり、ストレージにその分の空きが必要です。
+   2025年9月の時点で、全国の住居表示と地番の住所を含む住所データベースファイルは
+   4.5GB 以上、展開すると 20GB 以上になり、ストレージにその分の空きが必要です。
 
 .. _uninstallation:
 

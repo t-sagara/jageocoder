@@ -31,7 +31,7 @@ To use Jageocoder, you need to install the "Dictionary Database" on the same mac
 
 ### Install Dictionary Database
 
-When a dictionary database is installed, large amounts of data can be processed at high speed. A database covering addresses in Japan requires 15 GB or more of storage.
+When a dictionary database is installed, large amounts of data can be processed at high speed. A database covering addresses in Japan requires 20 GB or more of storage.
 
 - Download an address database file compatible with that version from [here](https://www.info-proto.com/static/jageocoder/latest/v2/)
 
