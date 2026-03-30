@@ -3,7 +3,7 @@ from collections import OrderedDict
 import json
 from logging import getLogger
 import os
-from typing import Any, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, List, NoReturn, Optional, Union
 import uuid
 
 import requests

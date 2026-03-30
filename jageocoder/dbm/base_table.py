@@ -397,7 +397,7 @@ class BaseTable(object):
 
         # Create empty table
         cur = self.get_conn().cursor()
-        cur.execute(f"DROP TABLE IF EXISTS records")
+        cur.execute("DROP TABLE IF EXISTS records")
         cur.execute(self._get_create_table_statement())
         self.commit()
 
@@ -493,7 +493,6 @@ class BaseTable(object):
         if from_pos < 0 or to_pos > self.count_records():
             raise ValueError("Out of range.")
 
-        limits = to_pos - from_pos
         conn = self.get_conn()
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
@@ -762,7 +761,7 @@ class BaseTable(object):
                 raise ValueError(f"Field '{k}' is not in this table.")
             elif k == self.pos_field:
                 raise ValueError(
-                    f"The value of the pos field can not modified.")
+                    "The value of the pos field can not modified.")
 
             fields.append(k)
             if isinstance(self.schema[k], (dict, list)):
@@ -830,7 +829,7 @@ class BaseTable(object):
                     raise ValueError(f"Field '{k}' is not in this table.")
                 elif k == pos_field:
                     raise ValueError(
-                        f"The value of the pos field can not modified.")
+                        "The value of the pos field can not modified.")
 
                 cols.append(k)
                 if isinstance(self.schema[k], (dict, list)):

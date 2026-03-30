@@ -4,5 +4,8 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.formatting.autopep8Path": ""
+    "python.formatting.autopep8Path": "",
+    "flake8.args": [
+        "--max-line-length=120"
+    ]
 }

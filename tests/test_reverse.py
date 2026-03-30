@@ -179,3 +179,13 @@ class TestReverseMethods(unittest.TestCase):
         self.assertEqual(
             candidate_names[0], ['群馬県', '吾妻郡', '草津町', '大字草津', '464番地', '1442'],
         )
+
+    def test_issue43(self) -> None:
+        results = jageocoder.reverse(
+            x=141.2817147, y=43.1637659, level=8
+        )
+        candidate_names = [x['candidate']['fullname'] for x in results]
+        self.assertTrue(len(candidate_names) > 0)
+        self.assertEqual(
+            candidate_names[0][0:3], ['北海道', '石狩市', '新港西'],
+        )

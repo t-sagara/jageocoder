@@ -1,6 +1,6 @@
 [project]
 name = "jageocoder"
-version = "2.2.0"
+version = "2.2.1"
 description = "A Japanese-address geocoder for Python."
 authors = [{name = "Takeshi Sagara", email = "sagara@info-proto.com"}]
 readme = "README.md"
@@ -28,7 +28,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "twine >=5.1.1"
+    "flake8",
+    "twine >=5.1.1",
+    "tox >=4.0.0",
+    "tox-uv"
 ]
 doc = [
     "sphinx-rtd-theme >=1.2.0"

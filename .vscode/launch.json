@@ -5,6 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Downlaod test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "download-dictionary",
+                "https://www.info-proto.com/static/jageocoder/20250423/v2/gaiku_all_20250423_v22.zip"
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Install test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "jageocoder",
+            "args": [
+                "install-dictionary",
+                "--db-dir=/home/sagara/install_test",
+                "/home/sagara/jageocoder/gaiku_all_v22.20250423.zip"
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "Search test",
             "type": "debugpy",
             "request": "launch",

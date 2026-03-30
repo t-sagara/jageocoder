@@ -356,9 +356,24 @@ class Index(object):
         index.Rtree
             Created rtree index.
         """
-        import time
         file_idx = index.Rtree(str(treepath))  # Filename must be passed as str
         node_table: AddressNodeTable = self._tree.address_nodes
+
+        def _insert_node_to_rtree(
+            id: int,
+            coordinates: Tuple[float, float, float, float],
+        ) -> None:
+            file_idx.insert(
+                id=id,
+                coordinates=coordinates,
+            )
+
+        def _get_limit_bdr(cx: float, cy: float, radius: float) -> Tuple[float, float, float, float]:
+            # cx, cy を中心とし、半径 radius (m)の円を内包する BDR の (x0, y0, x1, y1) を返す
+            import math
+            delta_lat = radius / 111320.0
+            delta_lon = radius / (111320.0 * math.cos(math.radians(cy)))
+            return (cx - delta_lon, cy - delta_lat, cx + delta_lon, cy + delta_lat)
 
         max_id = AddressNode.ROOT_NODE_ID + node_table.count_records()
         registered_coordinates = set()
@@ -367,47 +382,49 @@ class Index(object):
         id = AddressNode.ROOT_NODE_ID
         with tqdm(total=max_id, mininterval=0.5, ascii=True) as pbar:
             mode = ""
+            bdr = None
+            first_block_node = None
+            parent_node = None
             sibling_id = AddressNode.ROOT_NODE_ID
             for node in node_table.get_nodes_by_id(
                     AddressNode.ROOT_NODE_ID, max_id):
                 id = node.id
                 pbar.update(1)
 
-                if mode == "block":
+                if mode == "block" and parent_node is not None:
                     if id < sibling_id:
                         if node.has_valid_coordinate_values():
-                            if bdr is None:
+                            if bdr is None or first_block_node is None:
                                 bdr = (node.x, node.y, node.x, node.y)
+                                first_block_node = node
+                                bdr_limit = _get_limit_bdr(
+                                    node.x, node.y, 500.0)
                             else:
-                                bdr = (
-                                    min(node.x, bdr[0]),
-                                    min(node.y, bdr[1]),
-                                    max(node.x, bdr[2]),
-                                    max(node.y, bdr[3]),
-                                )
+                                if node.x < bdr_limit[0] or node.y < bdr_limit[1] \
+                                        or node.x > bdr_limit[2] or node.y > bdr_limit[3]:
+                                    # The node is too far from the first node.
+                                    pass
+                                else:
+                                    bdr = (
+                                        min(node.x, bdr[0]),
+                                        min(node.y, bdr[1]),
+                                        max(node.x, bdr[2]),
+                                        max(node.y, bdr[3]),
+                                    )
 
                     if id == sibling_id - 1:
                         mode = ""
                         if bdr:
-                            file_idx.insert(
+                            _insert_node_to_rtree(
                                 id=parent_node.id,
                                 coordinates=bdr,
                             )
-                        else:
-                            # All child nodes have invalid coordinate values
-                            key = (parent_node.x, parent_node.y)
-                            if parent_node.has_valid_coordinate_values() and \
-                                    key not in registered_coordinates:
-                                file_idx.insert(
-                                    id=parent_node.id,
-                                    coordinates=(node.x, node.y,
-                                                 node.x, node.y),
-                                )
-                                registered_coordinates.add(key)
 
                     if id >= sibling_id:
-                        import pdb
-                        pdb.set_trace()
+                        raise RTreeError((
+                            f"データファイルが異常です。"
+                            f"The child node ({id}) of the parent_node ({parent_node.id}) "
+                            f"exceeded the sibling_id:{sibling_id}."))
 
                     continue
 
@@ -425,7 +442,7 @@ class Index(object):
                     if key in registered_coordinates:
                         continue
 
-                    file_idx.insert(
+                    _insert_node_to_rtree(
                         id=id,
                         coordinates=(node.x, node.y, node.x, node.y),
                     )
@@ -441,8 +458,11 @@ class Index(object):
 
                     if node.has_valid_coordinate_values():
                         bdr = (node.x, node.y, node.x, node.y)
+                        first_block_node = node
+                        bdr_limit = _get_limit_bdr(node.x, node.y, 500.0)
                     else:
                         bdr = None
+                        first_block_node = None
 
                     continue
 
