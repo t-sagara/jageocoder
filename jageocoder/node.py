@@ -122,7 +122,7 @@ class AddressNodeTable(AbstractTable):
             notes = []
             for attr in re.split(r'(?<!\\)/', note):
                 try:
-                    k, v = re.split(r'(?<!\\):', attr, 1)
+                    k, v = re.split(r'(?<!\\):', attr, maxsplit=1)
                 except ValueError:
                     k, v = '', attr
 
@@ -539,7 +539,7 @@ class AddressNode(object):
         notes = []
         for attr in re.split(r'(?<!\\)/', self.note):
             try:
-                k, v = re.split(r'(?<!\\):', attr, 1)
+                k, v = re.split(r'(?<!\\):', attr, maxsplit=1)
             except ValueError:
                 k, v = '', attr
 

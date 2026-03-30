@@ -127,7 +127,11 @@ def main():
 
     elif args['reverse']:
         from jageocoder.address import AddressLevel
-        jageocoder.init(db_dir=args['--db-dir'], mode='r', url=args['--url'])
+        jageocoder.init(
+            db_dir=args['--db-dir'],
+            mode='r',
+            debug=args['--debug'],
+            url=args['--url'])
         print(json.dumps(
             jageocoder.reverse(
                 x=float(args['<longitude>']),

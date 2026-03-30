@@ -1,6 +1,5 @@
 from logging import getLogger
 import os
-from pathlib import Path
 
 import marisa_trie
 

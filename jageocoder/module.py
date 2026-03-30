@@ -4,15 +4,14 @@ import shutil
 from typing import Any, Dict, List, Optional, Union
 import urllib.request
 from urllib.error import URLError
+import zipfile
 
 import jageocoder
-from .dataset import Dataset
 from .exceptions import JageocoderError
 from .local import LocalTree
 from .tree import AddressTree, get_db_dir
 from .remote import RemoteTree
 from .result import Result
-from .rtree import Index
 
 _tree: Optional[AddressTree] = None  # The default AddressTree
 logger = logging.getLogger(__name__)
@@ -193,7 +192,6 @@ def get_module_tree() -> AddressTree:
     AddressTree
         The singleton object.
     """
-    global _tree
     if _tree is None:
         raise JageocoderError("Tree is not initialized")
 
@@ -268,10 +266,17 @@ def install_dictionary(
     # Unzip the archive
     os.makedirs(db_dir, exist_ok=True)
     shutil.rmtree(db_dir)
-    shutil.unpack_archive(
-        filename=str(path),
-        extract_dir=str(db_dir),
-    )
+    # shutil.unpack_archive(
+    #     filename=str(path),
+    #     extract_dir=str(db_dir),
+    # )
+    with zipfile.ZipFile(path, "r") as zipf:
+        zipinfo_list = zipf.infolist()
+        n = len(zipinfo_list)
+        for index, zipinfo in enumerate(zipinfo_list):
+            logger.info(f"[{index+1}/{n}] Extractiong '{zipinfo.filename}'")
+            zipf.extract(zipinfo, db_dir)
+
     for readme_fname in ("README.txt", "README.md",):
         readme_path = os.path.join(db_dir, readme_fname)
         if os.path.exists(readme_path):

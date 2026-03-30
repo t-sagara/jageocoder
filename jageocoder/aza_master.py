@@ -3,7 +3,6 @@ import datetime
 import json
 from logging import getLogger
 from pathlib import Path
-from typing import Optional
 import re
 from typing import Dict, Union
 
