@@ -1,6 +1,6 @@
 [project]
 name = "jageocoder"
-version = "2.2.1"
+version = "2.2.1.1"
 description = "A Japanese-address geocoder for Python."
 authors = [{name = "Takeshi Sagara", email = "sagara@info-proto.com"}]
 readme = "README.md"
