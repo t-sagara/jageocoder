@@ -358,6 +358,8 @@ class Index(object):
         """
         file_idx = index.Rtree(str(treepath))  # Filename must be passed as str
         node_table: AddressNodeTable = self._tree.address_nodes
+        node_stack = []
+        next_check_id = -1
 
         def _insert_node_to_rtree(
             id: int,
@@ -367,6 +369,22 @@ class Index(object):
                 id=id,
                 coordinates=coordinates,
             )
+            # Remove ancestor nodes of the registred node from the stack
+            nonlocal node_stack, next_check_id
+            while len(node_stack) > 0:
+                n = node_table.get_node_by_id(id)
+                if node_stack[0][0] == id:
+                    node_stack = node_stack[1:]
+                elif node_stack[0][0] == n.parent_id:
+                    node_stack = node_stack[1:]
+                    id = n.parent_id
+                else:
+                    break
+
+            if len(node_stack) == 0:
+                next_check_id = -1
+            else:
+                next_check_id = node_stack[0][1]
 
         def _get_limit_bdr(cx: float, cy: float, radius: float) -> Tuple[float, float, float, float]:
             # cx, cy を中心とし、半径 radius (m)の円を内包する BDR の (x0, y0, x1, y1) を返す
@@ -428,13 +446,19 @@ class Index(object):
 
                     continue
 
+                elif id == next_check_id:
+                    n = node_stack[0]
+                    _insert_node_to_rtree(
+                        id=n[0],
+                        coordinates=(n[2], n[3], n[2], n[3])
+                    )
+
                 if node.level <= AddressLevel.WARD:
                     registered_coordinates.clear()
                     continue
 
                 if node.sibling_id == node.id + 1:
                     # The node has no child nodes
-
                     if not node.has_valid_coordinate_values():
                         continue
 
@@ -450,7 +474,11 @@ class Index(object):
                     continue
 
                 # The node has 1 or more child nodes
-                if node.level == AddressLevel.BLOCK:
+                if node.level < AddressLevel.BLOCK and node.has_valid_coordinate_values():
+                    node_stack.insert(0, (id, node.sibling_id, node.x, node.y))
+                    next_check_id = node.sibling_id
+
+                elif node.level == AddressLevel.BLOCK:
                     # Get BDR of child nodes
                     mode = "block"
                     sibling_id = node.sibling_id
