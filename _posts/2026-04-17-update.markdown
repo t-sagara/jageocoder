@@ -1,0 +1,15 @@
+---
+layout: post
+title:  "データ更新"
+date:   2026-04-21 17:00:00 +0900
+categories: Datafile update
+---
+
+v2.2 用住所データベースファイルを更新しました。
+
+[https://www.info-proto.com/static/jageocoder/20260417/v2/](https://www.info-proto.com/static/jageocoder/20260417/v2/)
+
+- 位置参照情報を令和6年度版に更新しました
+- 電子国土基本図（地名情報）「住居表示住所」の [2026-03-26 更新データ](https://www.gsi.go.jp/common/000261022.pdf) を収録しました
+- アドレス・ベース・レジストリおよび登記所備付地図データを 2025-08-09 版に更新しました
+- 利用データの出典・利用条件を更新していますので、ご利用の際は今一度ご確認ください

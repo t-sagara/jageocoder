@@ -1,0 +1,18 @@
+---
+layout: post
+title:  "新バージョンリリース: v2.2.0"
+date:   2025-09-24 14:00:00+0900
+categories: Package update
+---
+
+*jageocoder v2.2.0* をリリースしました。
+
+データファイルへの高速ランダムアクセスに利用している [pycapnp](https://github.com/capnproto/pycapnp) の Python 3.13 以降への対応が難しいようなので、Python標準の Sqlite3 を利用するように変更しました。
+このバージョンでは Python 3.9 以降の全てのバージョンに対応しています。
+
+データフォーマットが変わったため、住所データファイルも v22 用のものに差し替える必要があります。
+そのためマイナーバージョンも 2.1 から 2.2 に変更しました。
+今後もデータファイルの互換性がなくなる場合にマイナーバージョンを変更します。
+
+詳細は [Jageocoder ドキュメント](https://jageocoder.readthedocs.io/) を
+ご覧ください。
